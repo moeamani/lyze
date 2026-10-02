@@ -1,0 +1,62 @@
+{
+  "common": {
+    "cancel": "إلغاء",
+    "save": "حفظ التغييرات",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "close": "إغلاق",
+    "optional": "(اختياري)"
+  },
+  "landing": {
+    "signIn": "تسجيل الدخول",
+    "headline": "بيانات البحث، منظمة بلطف.",
+    "cta": "ابدأ الآن مجانًا"
+  },
+  "auth": {
+    "signInTitle": "مرحبًا بك في Lyze",
+    "signInSubtitle": "سجّل الدخول أو أنشئ حسابًا باستخدام بريدك الإلكتروني.",
+    "emailLabel": "البريد الإلكتروني",
+    "sendLink": "أرسل لي رابط الدخول",
+    "checkEmailTitle": "تحقق من بريدك"
+  },
+  "shell": {
+    "search": "بحث…",
+    "account": "الحساب",
+    "theme": "المظهر",
+    "themeLight": "فاتح",
+    "themeDark": "داكن",
+    "themeSystem": "النظام",
+    "language": "اللغة",
+    "signOut": "تسجيل الخروج",
+    "workspaces": "مساحات العمل",
+    "newWorkspace": "مساحة عمل جديدة",
+    "skipToContent": "تخطَّ إلى المحتوى"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "projects": "المشاريع",
+    "activity": "النشاط",
+    "members": "الأعضاء",
+    "settings": "الإعدادات",
+    "more": "المزيد",
+    "recentProjects": "المشاريع"
+  },
+  "roles": {
+    "owner": "مالك",
+    "editor": "محرر",
+    "analyst": "محلل",
+    "viewer": "مشاهد"
+  },
+  "projects": {
+    "title": "المشاريع",
+    "new": "مشروع جديد"
+  },
+  "studies": {
+    "new": "دراسة جديدة"
+  },
+  "studyStatus": {
+    "draft": "مسودة",
+    "live": "نشطة",
+    "closed": "مغلقة"
+  }
+}

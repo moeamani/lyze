@@ -1,0 +1,389 @@
+{
+  "meta": {
+    "description": "Collect and make sense of research data — surveys, interviews and analysis in one calm place."
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close",
+    "optional": "(optional)",
+    "moreActions": "More actions",
+    "breadcrumbs": "Breadcrumbs"
+  },
+  "validation": {
+    "required": "This can't be empty.",
+    "tooLong": "That's a little too long.",
+    "email": "That doesn't look like an email address.",
+    "slug": "Use lowercase letters, numbers and dashes.",
+    "slugReserved": "That address is reserved — try another."
+  },
+  "errors": {
+    "unauthorized": "Please sign in again.",
+    "forbidden": "You don't have permission to do that.",
+    "notFound": "We couldn't find that. It may have been deleted.",
+    "conflict": "That's already taken.",
+    "invalid": "Some fields need another look.",
+    "lastOwner": "Every workspace needs at least one owner. Promote someone else first.",
+    "inviteInvalid": "This invite has expired or was already used.",
+    "unknown": "Something went wrong. Please try again.",
+    "slugTaken": "Another workspace already uses this address.",
+    "alreadyMember": "This person is already a member.",
+    "noAccessTitle": "This area is for editors",
+    "noAccessBody": "Ask a workspace owner if you need access.",
+    "pageTitle": "Hmm, that didn't load",
+    "pageBody": "Something went wrong on our side. Your work is safe — try again in a moment.",
+    "retry": "Try again",
+    "notFoundTitle": "Nothing to see here",
+    "notFoundBody": "The page you're looking for moved, was deleted, or never existed.",
+    "goHome": "Go home"
+  },
+  "landing": {
+    "signIn": "Sign in",
+    "headline": "Research data, gently organized.",
+    "subhead": "Collect surveys and interviews, then find the story in the numbers and the words — all in one calm, focused place.",
+    "cta": "Get started — it's free",
+    "features": {
+      "collect": {
+        "title": "Collect",
+        "body": "Beautiful forms that feel great on any phone, plus interview guides and sessions."
+      },
+      "quant": {
+        "title": "Count",
+        "body": "Summaries, charts, crosstabs and stats explained in plain language."
+      },
+      "qual": {
+        "title": "Code",
+        "body": "Highlight transcripts and answers, build a codebook, and grow themes."
+      },
+      "mixed": {
+        "title": "Connect",
+        "body": "See the quotes behind every number with mixed-methods joint displays."
+      }
+    }
+  },
+  "auth": {
+    "signInTitle": "Welcome to Lyze",
+    "signInSubtitle": "Sign in or create an account with your email.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@university.edu",
+    "sendLink": "Email me a sign-in link",
+    "or": "or",
+    "google": "Continue with Google",
+    "noPassword": "No passwords to remember. We'll email you a magic link that signs you in.",
+    "invalidEmail": "Please enter a valid email address.",
+    "genericError": "We couldn't send your link. Please try again.",
+    "checkEmailTitle": "Check your inbox",
+    "checkEmailBody": "We sent you a sign-in link. It works once and expires in 24 hours.",
+    "devMailboxHint": "Running locally without an email server? Your link is waiting in the dev mailbox.",
+    "openDevMailbox": "Open dev mailbox",
+    "useDifferentEmail": "Use a different email"
+  },
+  "devMailbox": {
+    "title": "Dev mailbox",
+    "description": "Emails Lyze would have sent. Only available in development.",
+    "emptyTitle": "No mail yet",
+    "emptyBody": "Request a sign-in link and it will show up here.",
+    "to": "To",
+    "openLink": "Open link",
+    "back": "Back to sign in"
+  },
+  "onboarding": {
+    "title": "New workspace",
+    "body": "Workspaces hold projects, studies and the people you work with.",
+    "welcome": "Let's set up your workspace",
+    "welcomeBody": "A workspace is home for your team's projects and studies. You can rename it anytime.",
+    "nameLabel": "Workspace name",
+    "namePlaceholder": "e.g. Learning Sciences Lab",
+    "nameHint": "Usually your team, lab or organization.",
+    "suggestedName": "{name}'s research",
+    "demoLabel": "Add a demo project",
+    "demoHint": "A small sample project so you can look around right away.",
+    "create": "Create workspace",
+    "cancel": "Cancel"
+  },
+  "invite": {
+    "title": "Workspace invite",
+    "joinTitle": "Join {workspace}",
+    "joinBody": "You've been invited as {role} ({email}).",
+    "accept": "Accept invite",
+    "signInToAccept": "Sign in to accept",
+    "wrongAccount": "You're signed in as {email}. Sign in with the invited address to accept.",
+    "invalidTitle": "This invite isn't valid anymore",
+    "invalidBody": "It may have expired or already been used. Ask for a fresh one.",
+    "goHome": "Go home"
+  },
+  "account": {
+    "title": "Your account",
+    "back": "Back",
+    "profile": "Profile",
+    "profileHint": "How you appear to teammates.",
+    "nameLabel": "Name",
+    "save": "Save",
+    "saved": "Profile saved",
+    "preferences": "Preferences",
+    "preferencesHint": "Make Lyze feel like yours.",
+    "language": "Language",
+    "signOut": "Sign out"
+  },
+  "shell": {
+    "sidebar": "Sidebar",
+    "mainNav": "Main",
+    "moreNav": "More",
+    "home": "Home",
+    "search": "Search…",
+    "account": "Account",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "language": "Language",
+    "signOut": "Sign out",
+    "workspaces": "Workspaces",
+    "switchWorkspace": "Switch workspace",
+    "newWorkspace": "New workspace",
+    "newProject": "New project",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "skipToContent": "Skip to content",
+    "close": "Close"
+  },
+  "nav": {
+    "home": "Home",
+    "projects": "Projects",
+    "activity": "Activity",
+    "members": "Members",
+    "settings": "Settings",
+    "more": "More",
+    "recentProjects": "Projects",
+    "noProjects": "No projects yet."
+  },
+  "palette": {
+    "title": "Command palette",
+    "description": "Search for a page or an action",
+    "placeholder": "Type a command or search…",
+    "empty": "Nothing found. Try another word?",
+    "actions": "Actions",
+    "newProject": "Create a new project",
+    "goTo": "Go to",
+    "account": "Account",
+    "projects": "Projects",
+    "workspaces": "Switch workspace",
+    "preferences": "Preferences",
+    "toggleTheme": "Toggle light / dark"
+  },
+  "roles": {
+    "owner": "Owner",
+    "editor": "Editor",
+    "analyst": "Analyst",
+    "viewer": "Viewer"
+  },
+  "dashboard": {
+    "greeting": {
+      "neutral": "Welcome back, {name}",
+      "morning": "Good morning, {name}",
+      "afternoon": "Good afternoon, {name}",
+      "evening": "Good evening, {name}"
+    },
+    "subtitle": "Here's what's happening in your research.",
+    "overview": "Overview",
+    "stats": {
+      "projects": "Active projects",
+      "liveStudies": "Live, of {total} studies",
+      "members": "Members"
+    },
+    "recentStudies": "Recent studies",
+    "allProjects": "All projects",
+    "emptyTitle": "Your first study is one click away",
+    "emptyBody": "Start with a project — it groups related studies, like a survey and its follow-up interviews.",
+    "emptyBodyReadOnly": "When teammates add studies, they'll show up here."
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Group related studies — a survey and its follow-up interviews, for example.",
+    "new": "New project",
+    "newTitle": "New project",
+    "editTitle": "Edit project",
+    "dialogHint": "Projects keep related studies, codebooks and reports together.",
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g. Student wellbeing 2026",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "What are you trying to learn?",
+    "colorLabel": "Color",
+    "colors": {
+      "violet": "Violet",
+      "sky": "Sky",
+      "emerald": "Emerald",
+      "amber": "Amber",
+      "rose": "Rose",
+      "slate": "Slate"
+    },
+    "create": "Create project",
+    "saved": "Project saved",
+    "views": "Project views",
+    "active": "Active",
+    "archivedTab": "Archived",
+    "archivedBadge": "Archived",
+    "archive": "Archive",
+    "restore": "Restore",
+    "archived": "Project archived",
+    "restored": "Project restored",
+    "deleteTitle": "Delete “{name}”?",
+    "deleteBody": "This permanently deletes the project and every study, response and transcript in it. This can't be undone.",
+    "deleteConfirm": "Delete project",
+    "studyCount": "{count, plural, =0 {No studies} one {# study} other {# studies}}",
+    "emptyTitle": "No projects yet",
+    "emptyBody": "Create your first project to start collecting data.",
+    "emptyBodyReadOnly": "Projects created by your teammates will appear here.",
+    "noArchivedTitle": "Nothing archived",
+    "noArchivedBody": "Archived projects rest here, out of the way but never lost.",
+    "studiesHeading": "Studies",
+    "noStudiesTitle": "No studies in this project yet",
+    "noStudiesBody": "Add a survey, interviews, field notes or a diary study.",
+    "noStudiesReadOnly": "Studies added by editors will appear here."
+  },
+  "studies": {
+    "new": "New study",
+    "newTitle": "New study",
+    "newHint": "Pick how you'll collect data. You can mix methods within a project.",
+    "typeLabel": "Study type",
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g. Onboarding survey",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "A sentence about the goal of this study.",
+    "create": "Create study",
+    "saved": "Study saved",
+    "demo": "Demo",
+    "detailsTitle": "Details",
+    "detailsHint": "Name, description and status.",
+    "statusLabel": "Status",
+    "statusHint": {
+      "draft": "Only your team can see this study. Nothing is collected yet.",
+      "live": "This study is collecting data.",
+      "closed": "Collection is finished. Analysis stays available."
+    },
+    "delete": "Delete study",
+    "deleteTitle": "Delete “{name}”?",
+    "deleteBody": "This permanently deletes the study and all its data. This can't be undone.",
+    "deleteConfirm": "Delete study",
+    "stepsTitle": "Next steps",
+    "stepDone": "done",
+    "steps": {
+      "create": "Create the study",
+      "buildForm": "Build your form",
+      "share": "Share it with respondents",
+      "participants": "Add participants",
+      "sessions": "Run and record sessions",
+      "analyze": "Analyze and report"
+    }
+  },
+  "studyTypes": {
+    "survey": {
+      "name": "Survey / form",
+      "hint": "Structured questions, collected at scale."
+    },
+    "interview": {
+      "name": "Interview",
+      "hint": "Guided conversations, recorded and transcribed."
+    },
+    "mixed": {
+      "name": "Mixed methods",
+      "hint": "A survey and interviews, linked by participant."
+    },
+    "observation": {
+      "name": "Observation",
+      "hint": "Field notes and observations, timestamped."
+    },
+    "diary": {
+      "name": "Diary study",
+      "hint": "Participants log entries over time."
+    }
+  },
+  "studyStatus": {
+    "draft": "Draft",
+    "live": "Live",
+    "closed": "Closed"
+  },
+  "activity": {
+    "title": "Activity",
+    "subtitle": "A record of changes in this workspace.",
+    "someone": "Someone",
+    "emptyTitle": "All quiet",
+    "emptyBody": "Changes to projects, studies and members will be listed here.",
+    "events": {
+      "workspace_created": "{actor} created the workspace",
+      "workspace_updated": "{actor} updated workspace settings",
+      "project_created": "{actor} created project “{name}”",
+      "project_updated": "{actor} updated project “{name}”",
+      "project_archived": "{actor} archived project “{name}”",
+      "project_restored": "{actor} restored project “{name}”",
+      "project_deleted": "{actor} deleted project “{name}”",
+      "study_created": "{actor} created study “{name}”",
+      "study_updated": "{actor} updated study “{name}”",
+      "study_status_changed": "{actor} set “{name}” to {status}",
+      "study_deleted": "{actor} deleted study “{name}”",
+      "member_invited": "{actor} invited {email} as {role}",
+      "member_invite_revoked": "{actor} revoked the invite for {email}",
+      "member_joined": "{actor} joined as {role}",
+      "member_role_changed": "{actor} changed a member's role to {role}",
+      "member_removed": "{actor} removed a member",
+      "member_left": "{actor} left the workspace",
+      "unknown": "{actor}: {action}"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Workspace details and controls.",
+    "general": "General",
+    "generalHint": "The name and web address of this workspace.",
+    "nameLabel": "Workspace name",
+    "slugLabel": "Web address",
+    "slugHint": "Changing this changes every link to this workspace.",
+    "saved": "Settings saved",
+    "yourRole": "You're a {role} in this workspace.",
+    "readOnlyHint": "Only owners can change workspace settings.",
+    "dangerZone": "Danger zone",
+    "dangerHintOwner": "Leave the workspace, or delete it and everything in it.",
+    "dangerHintMember": "You can leave this workspace at any time.",
+    "deleteWorkspace": "Delete workspace",
+    "deleteTitle": "Delete “{name}”?",
+    "deleteBody": "Every project, study, response and member link in this workspace will be permanently deleted.",
+    "deleteConfirm": "Delete forever"
+  },
+  "members": {
+    "title": "Members",
+    "subtitle": "{count, plural, one {# person} other {# people}} in this workspace.",
+    "invite": "Invite",
+    "inviteTitle": "Invite a teammate",
+    "inviteHint": "They'll get an email with a link to join. Invites expire after 7 days.",
+    "emailLabel": "Email",
+    "roleLabel": "Role",
+    "sendInvite": "Send invite",
+    "invited": "Invite sent to {email}",
+    "roleHints": {
+      "owner": "Everything, including members, billing-type settings and deleting the workspace.",
+      "editor": "Create and edit projects, studies, forms and participants.",
+      "analyst": "Analyze data: code, theme, memo and build reports.",
+      "viewer": "Read-only access to studies and results."
+    },
+    "rolesTitle": "What each role can do",
+    "you": "You",
+    "joined": "joined",
+    "expires": "expires",
+    "pending": "Pending invites",
+    "roleFor": "Role for {name}",
+    "roleChanged": "Role updated",
+    "removeLabel": "Remove {name}",
+    "removeTitle": "Remove {name}?",
+    "removeBody": "They'll lose access to this workspace right away. Their past contributions stay.",
+    "removeConfirm": "Remove",
+    "removed": "Member removed",
+    "revokeLabel": "Revoke invite for {email}",
+    "revoked": "Invite revoked",
+    "leave": "Leave workspace",
+    "leaveTitle": "Leave {name}?",
+    "leaveBody": "You'll need a new invite to come back.",
+    "leaveConfirm": "Leave"
+  }
+}
