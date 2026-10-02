@@ -58,5 +58,27 @@
     "draft": "مسودة",
     "live": "نشطة",
     "closed": "مغلقة"
+  },
+  "respondent": {
+    "start": "ابدأ",
+    "continue": "متابعة",
+    "next": "التالي",
+    "back": "السابق",
+    "submit": "إرسال",
+    "submitting": "جارٍ الإرسال…",
+    "required": "مطلوب",
+    "optional": "اختياري",
+    "other": "أخرى",
+    "otherPlaceholder": "يرجى التحديد",
+    "choose": "اختر…",
+    "progress": "الصفحة {current} من {total}",
+    "yes": "نعم",
+    "no": "لا",
+    "thankYouTitle": "شكرًا لك!",
+    "thankYouMessage": "تم تسجيل إجابتك.",
+    "language": "اللغة",
+    "errors": {
+      "required": "هذا السؤال يحتاج إلى إجابة."
+    }
   }
 }

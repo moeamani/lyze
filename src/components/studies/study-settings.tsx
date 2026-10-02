@@ -47,7 +47,7 @@ export function StudySettings({
   return (
     <Form {...form}>
       <form onSubmit={onSubmit} className="grid gap-5" noValidate>
-        <fieldset disabled={!canEdit} className="grid gap-5">
+        <fieldset disabled={!canEdit} className="grid min-w-0 gap-5">
           <FormField
             control={form.control}
             name="name"

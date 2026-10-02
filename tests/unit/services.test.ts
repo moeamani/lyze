@@ -35,7 +35,7 @@ describe("workspaces", () => {
     expect(mine).toEqual([expect.objectContaining({ id: ws.id, role: "owner" })]);
 
     const counts = await workspaceCounts(ws.id);
-    expect(counts).toEqual({ projects: 1, studies: 2, liveStudies: 1, members: 1 });
+    expect(counts).toEqual({ projects: 1, studies: 2, liveStudies: 1, members: 1, responses: 0 });
   });
 
   it("gives clashing names unique slugs", async () => {

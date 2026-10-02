@@ -9,6 +9,7 @@
  * so light/dark mode is just a re-definition of the same variables.
  */
 :root {
+  color-scheme: light;
   --radius: 0.875rem;
 
   --background: oklch(0.99 0.003 285);
@@ -74,6 +75,8 @@
 }
 
 .dark {
+  /* Lets native controls (radios, selects, date pickers, scrollbars) match dark mode. */
+  color-scheme: dark;
   --background: oklch(0.17 0.008 285);
   --foreground: oklch(0.95 0.005 285);
   --card: oklch(0.205 0.009 285);
@@ -234,4 +237,87 @@
 
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── Respondent form themes ─────────────────────────────────────────────────
+ * A form picks one accent; it only re-points the accent tokens, so every
+ * component keeps working in light and dark mode. */
+.form-theme[data-accent="violet"] {
+  --primary: oklch(0.53 0.17 285);
+  --accent-soft: oklch(0.955 0.03 285);
+  --accent-soft-foreground: oklch(0.42 0.15 285);
+  --ring: oklch(0.6 0.15 285);
+}
+.form-theme[data-accent="sky"] {
+  --primary: oklch(0.52 0.13 240);
+  --accent-soft: oklch(0.955 0.025 235);
+  --accent-soft-foreground: oklch(0.42 0.12 240);
+  --ring: oklch(0.6 0.12 240);
+}
+.form-theme[data-accent="emerald"] {
+  --primary: oklch(0.5 0.11 160);
+  --accent-soft: oklch(0.955 0.03 160);
+  --accent-soft-foreground: oklch(0.4 0.1 160);
+  --ring: oklch(0.6 0.11 160);
+}
+.form-theme[data-accent="amber"] {
+  --primary: oklch(0.52 0.12 60);
+  --accent-soft: oklch(0.96 0.04 80);
+  --accent-soft-foreground: oklch(0.43 0.1 60);
+  --ring: oklch(0.65 0.12 70);
+}
+.form-theme[data-accent="rose"] {
+  --primary: oklch(0.53 0.18 10);
+  --accent-soft: oklch(0.955 0.025 10);
+  --accent-soft-foreground: oklch(0.45 0.16 10);
+  --ring: oklch(0.62 0.16 10);
+}
+.form-theme[data-accent="slate"] {
+  --primary: oklch(0.38 0.03 260);
+  --accent-soft: oklch(0.95 0.008 260);
+  --accent-soft-foreground: oklch(0.35 0.03 260);
+  --ring: oklch(0.55 0.03 260);
+}
+.dark .form-theme[data-accent="violet"] {
+  --primary: oklch(0.74 0.13 285);
+  --accent-soft: oklch(0.29 0.05 285);
+  --accent-soft-foreground: oklch(0.86 0.08 285);
+}
+.dark .form-theme[data-accent="sky"] {
+  --primary: oklch(0.75 0.11 235);
+  --accent-soft: oklch(0.29 0.04 235);
+  --accent-soft-foreground: oklch(0.86 0.07 235);
+}
+.dark .form-theme[data-accent="emerald"] {
+  --primary: oklch(0.75 0.12 160);
+  --accent-soft: oklch(0.29 0.04 160);
+  --accent-soft-foreground: oklch(0.86 0.08 160);
+}
+.dark .form-theme[data-accent="amber"] {
+  --primary: oklch(0.8 0.13 75);
+  --accent-soft: oklch(0.3 0.04 75);
+  --accent-soft-foreground: oklch(0.88 0.08 75);
+}
+.dark .form-theme[data-accent="rose"] {
+  --primary: oklch(0.74 0.14 10);
+  --accent-soft: oklch(0.3 0.05 10);
+  --accent-soft-foreground: oklch(0.87 0.07 10);
+}
+.dark .form-theme[data-accent="slate"] {
+  --primary: oklch(0.85 0.02 260);
+  --accent-soft: oklch(0.3 0.01 260);
+  --accent-soft-foreground: oklch(0.9 0.01 260);
+}
+.dark .form-theme {
+  --primary-foreground: oklch(0.18 0.02 285);
+  --ring: var(--primary);
+}
+.form-theme {
+  --primary-foreground: oklch(0.99 0.005 285);
+}
+.form-theme[data-corners="soft"] {
+  --radius: 0.625rem;
+}
+.form-theme[data-corners="square"] {
+  --radius: 0.25rem;
 }

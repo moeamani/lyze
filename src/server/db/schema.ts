@@ -1,5 +1,6 @@
 import {
   boolean,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -8,11 +9,14 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { newId } from "@/lib/ids";
 import { ROLES } from "@/lib/permissions";
 import { STUDY_STATUSES, STUDY_TYPES } from "@/lib/studies";
+import type { FormDoc } from "@/lib/forms/schema";
+import type { AnswerValue } from "@/lib/forms/answers";
 
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow();
@@ -208,6 +212,145 @@ export const devMailbox = pgTable("dev_mailbox", {
   createdAt: createdAt(),
 });
 
+// ── Forms & responses ───────────────────────────────────────────────────────
+
+export const forms = pgTable("forms", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => newId("frm")),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  studyId: text("study_id")
+    .notNull()
+    .unique()
+    .references(() => studies.id, { onDelete: "cascade" }),
+  /** Short id used in public links: /f/{publicId}. */
+  publicId: text("public_id").notNull().unique(),
+  draft: jsonb("draft").$type<FormDoc>().notNull(),
+  publishedVersion: integer("published_version"),
+  publishedAt: timestamp("published_at", { withTimezone: true, mode: "date" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** Immutable snapshots. Responses always point at the version they answered. */
+export const formVersions = pgTable(
+  "form_versions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("fv")),
+    formId: text("form_id")
+      .notNull()
+      .references(() => forms.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    doc: jsonb("doc").$type<FormDoc>().notNull(),
+    publishedById: text("published_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("form_versions_form_version_idx").on(t.formId, t.version)],
+);
+
+export const formInvites = pgTable(
+  "form_invites",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("fi")),
+    formId: text("form_id")
+      .notNull()
+      .references(() => forms.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    token: text("token").notNull().unique(),
+    sentAt: timestamp("sent_at", { withTimezone: true, mode: "date" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("form_invites_form_email_idx").on(t.formId, t.email)],
+);
+
+export const RESPONSE_STATUSES = ["partial", "complete", "screened_out", "over_quota"] as const;
+export type ResponseStatus = (typeof RESPONSE_STATUSES)[number];
+export const responseStatusEnum = pgEnum("response_status", RESPONSE_STATUSES);
+
+export const responses = pgTable(
+  "responses",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("rsp")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    studyId: text("study_id")
+      .notNull()
+      .references(() => studies.id, { onDelete: "cascade" }),
+    formId: text("form_id")
+      .notNull()
+      .references(() => forms.id, { onDelete: "cascade" }),
+    formVersion: integer("form_version").notNull(),
+    status: responseStatusEnum("status").notNull().default("partial"),
+    /** Secret that lets a respondent resume (and only that respondent). */
+    resumeToken: text("resume_token").notNull().unique(),
+    inviteId: text("invite_id").references(() => formInvites.id, { onDelete: "set null" }),
+    deviceId: text("device_id"),
+    locale: text("locale"),
+    currentPageId: text("current_page_id"),
+    quotaIds: text("quota_ids").array().notNull().default([]),
+    meta: jsonb("meta").$type<{ userAgent?: string; referrer?: string; embed?: boolean }>().notNull().default({}),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    updatedAt: updatedAt(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true, mode: "date" }),
+    durationMs: integer("duration_ms"),
+  },
+  (t) => [
+    index("responses_study_idx").on(t.studyId, t.startedAt),
+    index("responses_form_status_idx").on(t.formId, t.status),
+    index("responses_device_idx").on(t.formId, t.deviceId),
+  ],
+);
+
+export const answers = pgTable(
+  "answers",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("ans")),
+    responseId: text("response_id")
+      .notNull()
+      .references(() => responses.id, { onDelete: "cascade" }),
+    questionId: text("question_id").notNull(),
+    value: jsonb("value").$type<AnswerValue>().notNull(),
+    /** Denormalized for fast stats (scales, numbers, yes/no). */
+    numeric: doublePrecision("numeric"),
+    /** Denormalized for search (open text, "other" text). */
+    text: text("text"),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("answers_response_question_idx").on(t.responseId, t.questionId), index("answers_question_idx").on(t.questionId)],
+);
+
+export const files = pgTable(
+  "files",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("fil")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    responseId: text("response_id").references(() => responses.id, { onDelete: "cascade" }),
+    storage: text("storage").notNull(),
+    key: text("key").notNull(),
+    name: text("name").notNull(),
+    mime: text("mime").notNull(),
+    size: integer("size").notNull(),
+    uploadedById: text("uploaded_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("files_response_idx").on(t.responseId)],
+);
+
 // ── Relations ───────────────────────────────────────────────────────────────
 
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
@@ -240,3 +383,8 @@ export type Invite = typeof invites.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type Study = typeof studies.$inferSelect;
 export type AuditEvent = typeof auditEvents.$inferSelect;
+export type Form = typeof forms.$inferSelect;
+export type FormVersion = typeof formVersions.$inferSelect;
+export type ResponseRow = typeof responses.$inferSelect;
+export type AnswerRow = typeof answers.$inferSelect;
+export type FileRow = typeof files.$inferSelect;

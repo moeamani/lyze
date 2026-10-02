@@ -81,14 +81,12 @@ Phases add tables as they need them (migrations per phase).
 | `projects` | workspaceId, name, description, color, archivedAt | 1 |
 | `studies` | projectId, workspaceId, name, type(survey/interview/mixed/observation/diary), status(draft/live/closed), description | 1 |
 | `audit_events` | workspaceId, actorId, action, entityType, entityId, metadata(jsonb) | 1 |
-| `forms` | studyId, title, settings(jsonb: theme, progress bar, resume, languages, one-response mode, quotas), publicId, publishedVersion | 2 |
-| `form_versions` | formId, version, snapshot(jsonb) — respondents answer an immutable snapshot | 2 |
-| `questions` | formId, pageId, position, type, title, description, required, config(jsonb), dataKind(quant/qual), translations(jsonb) | 2 |
-| `form_pages` | formId, position, title | 2 |
-| `logic_rules` | formId, sourceQuestionId, condition(jsonb), action(show/hide/skip_to/end), target | 2 |
-| `participants` | workspaceId, studyId?, externalId, name, email, attributes(jsonb), status, consentAt, anonymized | 2/4 |
-| `responses` | formId, formVersion, participantId?, status(partial/complete), resumeToken, startedAt, submittedAt, durationMs, meta(jsonb: ua, locale), flagged | 2 |
-| `answers` | responseId, questionId, value(jsonb), numeric (for fast stats), text (for search) | 2 |
+| `forms` | studyId (unique), publicId, **draft (jsonb FormDoc)**, publishedVersion, publishedAt | 2 |
+| `form_versions` | formId, version, doc(jsonb) — immutable snapshot respondents answer | 2 |
+| `form_invites` | formId, email, token, sentAt — personal links for email invites | 2 |
+| `participants` | workspaceId, studyId?, externalId, name, email, attributes(jsonb), status, consentAt, anonymized | 4 |
+| `responses` | studyId, formId, formVersion, status(partial/complete/screened_out/over_quota), resumeToken, inviteId?, deviceId?, locale, currentPageId, quotaIds[], meta, startedAt, submittedAt, durationMs | 2 |
+| `answers` | responseId, questionId, value(jsonb), numeric (for fast stats), text (for search); unique(responseId, questionId) | 2 |
 | `derived_variables` / `recodes` | studyId, name, definition(jsonb) | 3 |
 | `interview_guides` / `guide_items` | studyId, topic, question, probes, minutes, position | 4 |
 | `sessions_` (`research_sessions`) | studyId, participantId, kind(interview/focus_group/field_notes/diary), scheduledAt, status, mediaFileId, notes | 4 |
@@ -101,7 +99,7 @@ Phases add tables as they need them (migrations per phase).
 | `memos` | workspaceId, target(type,id), body, authorId | 5 |
 | `insights` | projectId, kind(chart/quote/theme/stat), payload(jsonb), note | 7 |
 | `reports` / `report_blocks` | projectId, title, shareToken, blocks(type, config, position) | 7 |
-| `files` | workspaceId, key, name, mime, size, storage(s3/local) | 2/4 |
+| `files` | workspaceId, responseId?, storage(s3/local), key, name, mime, size | 2 |
 | `api_keys` | workspaceId, name, hashedKey, prefix, lastUsedAt | 8 |
 | `webhooks` | workspaceId, url, secret, events[] | 8 |
 
@@ -119,9 +117,9 @@ Phases add tables as they need them (migrations per phase).
 | `/w/[ws]/projects` | Project list + create |
 | `/w/[ws]/p/[projectId]` | Project overview: studies |
 | `/w/[ws]/p/[projectId]/s/[studyId]` | Study overview (type-aware tabs) |
-| `…/s/[studyId]/build` | Form builder (Phase 2) |
-| `…/s/[studyId]/distribute` | Link, QR, embed, invites (Phase 2) |
-| `…/s/[studyId]/responses` | Table + summaries + charts (Phase 3) |
+| `…/s/[studyId]/build` | Form builder: canvas + settings panel, preview (Phase 2) |
+| `…/s/[studyId]/share` | Link, QR, embed, email invites (Phase 2) |
+| `…/s/[studyId]/responses`, `/responses/[id]` | Response list + detail (Phase 2); summaries, charts (Phase 3) |
 | `…/s/[studyId]/analyze` | Crosstabs, stats, cleaning (Phase 3) |
 | `…/s/[studyId]/guide`, `/participants`, `/sessions/[sid]` | Interviews (Phase 4) |
 | `/w/[ws]/p/[projectId]/codebook`, `/coding`, `/themes`, `/search` | Qualitative (Phase 5) |
@@ -129,9 +127,11 @@ Phases add tables as they need them (migrations per phase).
 | `/w/[ws]/p/[projectId]/reports/[id]` | Report builder (Phase 7) |
 | `/w/[ws]/settings`, `/settings/members`, `/settings/api` | Workspace settings |
 | `/account` | Profile, locale, data export, delete my data |
-| `/f/[publicId]` | Respondent form (lightweight, no app shell) |
+| `/f/[publicId]` | Respondent form (own root layout: no app shell/providers). `?lang=`, `?t=` invite, `?resume=`, `?embed=1` |
 | `/r/[shareToken]` | Read-only shared report |
 | `/api/auth/[...nextauth]` | Auth.js |
+| `/api/f/[publicId]/{start,resume,save,submit,upload}` | Respondent API (rate-limited) |
+| `/api/files/[id]` | Authenticated file download |
 | `/api/v1/*` | Public API (API key) |
 
 ---
@@ -192,6 +192,30 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 
 ---
 
+## Status
+
+- [x] Phase 1 — Foundation
+- [x] Phase 2 — Forms: builder, respondent form, responses
+- [ ] Phase 3 — Quantitative analysis
+- [ ] Phase 4 — Interviews
+- [ ] Phase 5 — Qualitative coding
+- [ ] Phase 6 — Mixed methods
+- [ ] Phase 7 — Reports & exports
+- [ ] Phase 8 — Polish
+
+### Phase 2 notes
+
+- `src/lib/forms/` is the heart of forms and is framework-free: `schema.ts` (Zod FormDoc),
+  `answers.ts` (per-type answer validation + denormalized columns), `logic.ts` (visibility,
+  dynamic required, skip/end navigation, full-submission validation), `piping.ts`, `random.ts`
+  (seeded shuffles), `quotas.ts`, `i18n.ts` (per-language overlays), `templates.ts`.
+- The respondent runner (`components/form-runner`) uses native inputs only (no Radix) and gets
+  its strings as a plain object, so `/f/*` ships a small bundle. Lighthouse (mobile, local prod
+  build): Performance 96, Accessibility 100, Best Practices 100 (SEO is low on purpose: forms are
+  `noindex`).
+- Builder state is one document with undo/redo and debounced autosave; publish validates and
+  freezes a version. Logic UI: question-level show/hide/require, page-level skip/end.
+
 ## Decisions log
 
 | # | Decision | Why |
@@ -208,3 +232,11 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 10 | Answers store `value` jsonb + denormalized `numeric` / `text` | Flexible per question type, but fast stats and full-text search. |
 | 11 | TanStack Table pinned to **v8** | Stable API + shadcn data-table patterns. |
 | 12 | Geist font from the `geist` npm package | Offline builds; one clean sans. |
+| 13 | **Form definition is one JSON document** (pages → questions, logic, settings, translations) instead of question/page/rule tables | The builder edits and autosaves one object; Zod validates it whole; versions are trivial snapshots. Analysis reads question metadata from the version snapshot; answers are rows, so SQL stats stay easy. |
+| 14 | **Two root layouts**: `(main)` app and `(respondent)` forms, plus `global-not-found` | Respondent pages skip app providers and translation payloads → fast on phones. |
+| 15 | Respondent API = **route handlers** (`/api/f/...`), not Server Actions | Plain JSON contracts, per-route rate limits, multipart uploads, works from embeds. |
+| 16 | Responses are created on the **first answer** (not on page view) and saved continuously | "Saved as they come in" without filling the table with empty bounces. |
+| 17 | One-response modes: none / per device (browser id) / invite-only (personal token) | Device mode is soft protection, documented as such; invite mode is strict. Email-verified mode would need respondent auth — deferred. |
+| 18 | Logic semantics: show-targets start hidden; hide wins; answers to hidden questions are ignored and pruned; skip/end rules belong to the last page their conditions reference; skips only go forward | Predictable, cycle-free, and identical on client and server (shared code). |
+| 19 | Rate limiting is in-process memory; captcha is Cloudflare Turnstile (optional) | Zero-config single-instance default; swap in a shared store when scaling out. |
+| 20 | Participants table deferred to Phase 4 | Phase 2 links responses to invites/devices; participant records arrive with interviews and are linked in Phase 6. |

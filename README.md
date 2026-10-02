@@ -4,8 +4,8 @@ Lyze is a calm, minimal web app for collecting and analyzing research data —
 surveys and forms, interviews, and quantitative, qualitative and mixed-methods
 analysis in one place. The name is "analyze", trimmed to its essentials.
 
-> **Status:** Phase 1 (foundation) is complete. See [PLAN.md](./PLAN.md) for the
-> architecture, data model, route map and the remaining phases.
+> **Status:** Phases 1–2 are complete (foundation; form builder, respondent forms and response
+> storage). See [PLAN.md](./PLAN.md) for the architecture, data model, route map and what's next.
 
 ## Quick start
 
@@ -22,7 +22,7 @@ That's it — no database or email server needed for local development:
   **[/dev/mailbox](http://localhost:3000/dev/mailbox)**.
 
 Sign in with any email address, name your workspace, and tick “Add a demo
-project” to have something to explore right away.
+project” — it includes a published survey you can open, share and answer right away.
 
 ## Environment variables
 
@@ -40,6 +40,9 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | no | Enables “Continue with Google”. |
 | `AUTH_TRUST_HOST` | no | Set to `false` to stop trusting `X-Forwarded-Host`. |
 | `LYZE_DEV_MAILBOX` | no | `1` exposes `/dev/mailbox` outside development (used by e2e). Never enable in real production. |
+| `UPLOADS_DIR` | no | Local folder for uploaded files when S3 isn't configured (default `./.data/uploads`). |
+| `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | prod | Any S3-compatible storage for uploads and recordings. |
+| `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | no | Enables the optional captcha on public forms. |
 
 ## Scripts
 
@@ -66,9 +69,13 @@ src/
     w/[ws]/…           Authenticated app shell: dashboard, projects, studies, activity, settings
     invite/[token]     Accept a workspace invite
     dev/mailbox        Dev-only inbox for sign-in links
+  app/(respondent)/f/  Public forms — separate, minimal root layout
+  app/api/f/…          Respondent API: start, save, submit, upload (rate-limited)
   components/
     ui/                shadcn/ui primitives (Radix), vendored
     shell/             Sidebar, mobile tab bar, command palette (⌘/Ctrl+K)
+    builder/           Form builder: dnd canvas, settings panel, logic, translations, preview
+    form-runner/       Respondent form (native inputs, tiny bundle; also powers preview)
     …                  Feature components composed from primitives
   server/
     actions/           Server Actions: validate → authorize → mutate → audit → revalidate
@@ -78,6 +85,9 @@ src/
     auth.ts            Auth.js v5 config (database sessions)
     mail/              Mailer (SMTP or dev mailbox) + email templates
   lib/                 Framework-free logic: permissions, validation (Zod), slugs, ids
+  lib/forms/           Form document schema, answer validation, logic engine, piping,
+                       quotas, translations, templates (heavily unit tested)
+  server/storage/      Storage adapters: local disk (dev) and S3-compatible
   i18n/                next-intl config (locale from cookie / Accept-Language, RTL aware)
 messages/              Translations (en, ar)
 drizzle/               SQL migrations
@@ -124,3 +134,10 @@ Check each at **360px**, **768px** and **1280px+**, in light and dark mode:
 - [ ] Mobile “More” sheet and bottom tab bar
 - [ ] Command palette (desktop)
 - [ ] Arabic (RTL) dashboard
+- [ ] Form builder: template picker, canvas with a selected question, settings panel, logic dialog
+- [ ] Builder preview: phone and desktop frames
+- [ ] Builder on a phone: full-height editing sheet
+- [ ] Public form on a phone: each question type, validation message, progress bar, thank-you
+- [ ] Resume prompt (“Welcome back”) and “Save and finish later” link
+- [ ] Share page: link, QR, embed, invites
+- [ ] Responses list (cards on phones, table on desktop) and response detail

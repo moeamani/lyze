@@ -44,3 +44,16 @@ export function inviteEmail(url: string, workspaceName: string, inviterName: str
       <p style="margin:24px 0 0;font-size:13px;color:#77777e">This invite expires in 7 days.</p>`),
   };
 }
+
+export function formInviteEmail(url: string, title: string, inviterName: string, description?: string) {
+  return {
+    subject: `${inviterName} invited you to “${title}”`,
+    text: `${inviterName} would love your input on “${title}”.\n${description ? `\n${description}\n` : ""}\nYour personal link:\n${url}\n\nThis link is just for you — please don't share it.`,
+    html: shell(`
+      <h1 style="margin:0 0 8px;font-size:20px">${escape(title)}</h1>
+      <p style="margin:0 0 16px;line-height:1.5;color:#55555c"><strong>${escape(inviterName)}</strong> would love your input.</p>
+      ${description ? `<p style="margin:0 0 24px;line-height:1.5;color:#55555c">${escape(description)}</p>` : ""}
+      ${button(url, "Start")}
+      <p style="margin:24px 0 0;font-size:13px;color:#77777e">This link is personal — please don't forward it.</p>`),
+  };
+}

@@ -22,12 +22,15 @@ export function StudyCard({
   href,
   study,
   project,
+  responses,
 }: {
   href: string;
+  responses?: number;
   study: { id: string; name: string; type: StudyType; status: StudyStatus; updatedAt: Date };
   project?: { name: string; color: string };
 }) {
   const tt = useTranslations("studyTypes");
+  const ts = useTranslations("studies");
   return (
     <Link
       href={href}
@@ -46,6 +49,12 @@ export function StudyCard({
             </span>
           )}
           <span>{tt(`${study.type}.name`)}</span>
+          {responses !== undefined && (
+            <>
+              <span aria-hidden>·</span>
+              <span className="tabular-nums">{ts("responseCount", { count: responses })}</span>
+            </>
+          )}
           <span aria-hidden>·</span>
           <RelativeTime date={study.updatedAt} />
         </span>

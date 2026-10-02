@@ -1,6 +1,6 @@
 import { and, asc, eq, isNull, like, ne } from "drizzle-orm";
 import { db } from "@/server/db";
-import { memberships, projects, studies, workspaces } from "@/server/db/schema";
+import { memberships, projects, responses, studies, workspaces } from "@/server/db/schema";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import {
   createWorkspaceSchema,
@@ -8,7 +8,9 @@ import {
   type CreateWorkspaceInput,
   type UpdateWorkspaceInput,
 } from "@/lib/validation";
+import { TEMPLATES } from "@/lib/forms/templates";
 import { recordAudit } from "./audit";
+import { createPublishedForm } from "./forms";
 import { requireWorkspace } from "./access";
 import { AppError } from "./errors";
 
@@ -61,7 +63,7 @@ export async function createWorkspace(userId: string, raw: CreateWorkspaceInput)
         })
         .returning();
       if (project) {
-        await tx.insert(studies).values([
+        const [survey] = await tx.insert(studies).values([
           {
             workspaceId: workspace.id,
             projectId: project.id,
@@ -81,7 +83,9 @@ export async function createWorkspace(userId: string, raw: CreateWorkspaceInput)
             isDemo: true,
             createdById: userId,
           },
-        ]);
+        ]).returning();
+        // The demo survey comes with a ready-to-share form.
+        if (survey) await createPublishedForm(tx, { workspaceId: workspace.id, studyId: survey.id, doc: TEMPLATES.coffee(), userId });
       }
     }
     return workspace;
@@ -136,11 +140,12 @@ export async function deleteWorkspace(userId: string, workspaceId: string) {
 }
 
 export async function workspaceCounts(workspaceId: string) {
-  const [projectCount, studyCount, liveStudies, members] = await Promise.all([
+  const [projectCount, studyCount, liveStudies, members, completed] = await Promise.all([
     db.$count(projects, and(eq(projects.workspaceId, workspaceId), isNull(projects.archivedAt))),
     db.$count(studies, eq(studies.workspaceId, workspaceId)),
     db.$count(studies, and(eq(studies.workspaceId, workspaceId), eq(studies.status, "live"))),
     db.$count(memberships, eq(memberships.workspaceId, workspaceId)),
+    db.$count(responses, and(eq(responses.workspaceId, workspaceId), eq(responses.status, "complete"))),
   ]);
-  return { projects: projectCount, studies: studyCount, liveStudies, members };
+  return { projects: projectCount, studies: studyCount, liveStudies, members, responses: completed };
 }
