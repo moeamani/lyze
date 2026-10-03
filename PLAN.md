@@ -119,8 +119,10 @@ Phases add tables as they need them (migrations per phase).
 | `/w/[ws]/p/[projectId]/s/[studyId]` | Study overview (type-aware tabs) |
 | `…/s/[studyId]/build` | Form builder: canvas + settings panel, preview (Phase 2) |
 | `…/s/[studyId]/share` | Link, QR, embed, email invites (Phase 2) |
-| `…/s/[studyId]/responses`, `/responses/[id]` | Response list + detail (Phase 2); summaries, charts (Phase 3) |
-| `…/s/[studyId]/analyze` | Crosstabs, stats, cleaning (Phase 3) |
+| `…/s/[studyId]/responses`, `/responses/[id]` | Response grid (sort, search, columns) + detail with exclude (Phase 2–3) |
+| `…/s/[studyId]/results` | Per-question summaries and charts, filter, compare-by (Phase 3) |
+| `…/s/[studyId]/analyze?tool=` | Crosstab, compare groups, correlation, before/after, reliability, correlation matrix, prepare data (Phase 3) |
+| `/api/studies/[studyId]/export?format=` | CSV, Excel, SPSS .sav, R bundle, REFI-QDA .qdpx (Phase 3) |
 | `…/s/[studyId]/guide`, `/participants`, `/sessions/[sid]` | Interviews (Phase 4) |
 | `/w/[ws]/p/[projectId]/codebook`, `/coding`, `/themes`, `/search` | Qualitative (Phase 5) |
 | `/w/[ws]/p/[projectId]/mixed` | Joint displays, triangulation (Phase 6) |
@@ -196,7 +198,7 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 
 - [x] Phase 1 — Foundation
 - [x] Phase 2 — Forms: builder, respondent form, responses
-- [ ] Phase 3 — Quantitative analysis
+- [x] Phase 3 — Quantitative analysis + R / SPSS / NVivo / MAXQDA interoperability
 - [ ] Phase 4 — Interviews
 - [ ] Phase 5 — Qualitative coding
 - [ ] Phase 6 — Mixed methods
@@ -215,6 +217,38 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
   `noindex`).
 - Builder state is one document with undo/redo and debounced autosave; publish validates and
   freezes a version. Logic UI: question-level show/hide/require, page-level skip/end.
+
+### Phase 3 notes
+
+- `src/lib/stats/` is a dependency-free statistics library: distributions (log-gamma, regularized
+  incomplete beta/gamma, normal, t, F, χ²), descriptives (R type-7 quantiles, Tukey boxes, average
+  ranks), and tests (χ² independence + Cramér's V + Fisher exact for 2×2, Welch/Student and paired
+  t, Levene (median), one-way + Welch ANOVA with η²/ω², Mann–Whitney U, Kruskal–Wallis,
+  Pearson/Spearman with Fisher-z CI, simple regression, Cronbach's α with item statistics). Every
+  function is unit-tested against reference values computed with SciPy.
+- `src/lib/analysis/` turns form versions + answers into an SPSS-style dataset: one variable per
+  value (`Q1`, `Q3_2` dummies, `Q1_other`), measurement level, value labels, and metadata columns.
+  Data preparation (include partial / screened-out, speeder cut-off, manual exclusions, recodes:
+  group / reverse / bins, computed mean/sum scale scores) is stored per study and applies
+  everywhere: Results, Analyze and every export. Raw answers are never changed.
+- Every result has a plain-language sentence, an APA-style "how to report it" line, details,
+  assumption checks (with automatic switch to rank-based tests when normality is doubtful), a
+  chart with a table view, and the **equivalent R and SPSS syntax**.
+- Charts follow the data-viz rules: validated 8-slot categorical palette (light + dark), diverging
+  red ↔ gray ↔ blue for Likert, sequential heat for crosstabs, thin bars, one axis, legend only for
+  2+ series, a table toggle on every chart (needed because the light palette's contrast check
+  warns).
+- New workspaces with the demo project get 48 deterministic responses (3 unfinished, a few
+  speeders, built-in correlations) so Results and Analyze have something to show immediately.
+
+### Coverage vs R, SPSS, NVivo, MAXQDA
+
+| Tool | What Lyze does now | Later |
+| --- | --- | --- |
+| **SPSS** | Frequencies, descriptives, crosstabs + χ², t-tests, ANOVA, nonparametrics, correlations, reliability, recode / compute, select cases; SPSS syntax for each result; **.sav export** with variable labels, value labels, measurement levels, dates | Factor analysis, multiple/logistic regression, post-hoc tables |
+| **R** | Same tests with R code for each result; **R bundle** (CSV + .sav + `lyze_import.R` that builds factors, ordered factors and labels) | Running R code inside Lyze is out of scope |
+| **NVivo / ATLAS.ti / MAXQDA** | **REFI-QDA .qdpx** project: every open-text answer as a source, one code per question with the answer coded, cases with survey variables as case attributes (MAXQDA variant with CRLF line endings) | Full coding, codebook, memos and .qdc codebook exchange arrive in Phase 5 |
+| **Excel / anything** | .xlsx (responses, codes, variable sheet) and CSV (labels or codes, UTF-8 BOM, formula-injection safe) | — |
 
 ## Decisions log
 
@@ -240,3 +274,9 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 18 | Logic semantics: show-targets start hidden; hide wins; answers to hidden questions are ignored and pruned; skip/end rules belong to the last page their conditions reference; skips only go forward | Predictable, cycle-free, and identical on client and server (shared code). |
 | 19 | Rate limiting is in-process memory; captcha is Cloudflare Turnstile (optional) | Zero-config single-instance default; swap in a shared store when scaling out. |
 | 20 | Participants table deferred to Phase 4 | Phase 2 links responses to invites/devices; participant records arrive with interviews and are linked in Phase 6. |
+| 21 | **Statistics implemented in-house** (`lib/stats`), verified against SciPy | No heavyweight numeric dependency in the server bundle; every formula is tested to 1e-6 against reference values. |
+| 22 | Interoperability through **files + syntax**, not embedded R/SPSS | Researchers keep their tools: .sav for SPSS/jamovi/JASP/PSPP, an R bundle, REFI-QDA .qdpx for NVivo/ATLAS.ti/MAXQDA, and copy-paste R/SPSS syntax that reproduces each Lyze result. |
+| 23 | .sav is written uncompressed, UTF-8, with long-name/very-long-string/measure/display records | Opens in SPSS ≥ 16, PSPP, R `haven`, Python `pyreadstat` (round-trip tested). String values are capped at 255 bytes; the full text stays in CSV/xlsx/qdpx. |
+| 24 | .qdpx follows the REFI-QDA 1.5 project schema as implemented by QualCoder | Plain-text sources with code-point offsets, UTF-8 BOM, lowercase `sources/`; a CRLF variant for MAXQDA, which counts line breaks as two characters. Not yet verified inside the commercial apps. |
+| 25 | Data preparation is a **saved per-study rule set**, not edits to answers | Reproducible and reversible; every view and export applies the same rules. |
+| 26 | Analysis tool state lives in the **URL** | Results are linkable and survive refresh. |

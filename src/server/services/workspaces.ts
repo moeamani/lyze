@@ -11,6 +11,7 @@ import {
 import { TEMPLATES } from "@/lib/forms/templates";
 import { recordAudit } from "./audit";
 import { createPublishedForm } from "./forms";
+import { seedDemoResponses } from "./demo";
 import { requireWorkspace } from "./access";
 import { AppError } from "./errors";
 
@@ -85,7 +86,11 @@ export async function createWorkspace(userId: string, raw: CreateWorkspaceInput)
           },
         ]).returning();
         // The demo survey comes with a ready-to-share form.
-        if (survey) await createPublishedForm(tx, { workspaceId: workspace.id, studyId: survey.id, doc: TEMPLATES.coffee(), userId });
+        if (survey) {
+          const doc = TEMPLATES.coffee();
+          const form = await createPublishedForm(tx, { workspaceId: workspace.id, studyId: survey.id, doc, userId });
+          await seedDemoResponses(tx, { workspaceId: workspace.id, studyId: survey.id, formId: form.id, doc });
+        }
       }
     }
     return workspace;

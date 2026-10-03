@@ -103,3 +103,18 @@ export function PeopleIllustration({ className }: Props) {
     </svg>
   );
 }
+
+export function ChartIllustration({ className }: Props) {
+  return (
+    <svg viewBox="0 0 160 120" aria-hidden className={cn("h-28 w-auto", className)}>
+      <ellipse cx="80" cy="110" rx="50" ry="6" fill="var(--muted)" />
+      <rect x="36" y="20" width="88" height="80" rx="14" fill="var(--card)" stroke="var(--border)" strokeWidth="2" />
+      <rect x="52" y="62" width="10" height="26" rx="3" fill="var(--series-1)" opacity=".85" />
+      <rect x="68" y="48" width="10" height="40" rx="3" fill="var(--series-1)" opacity=".85" />
+      <rect x="84" y="56" width="10" height="32" rx="3" fill="var(--series-1)" opacity=".85" />
+      <rect x="100" y="36" width="10" height="52" rx="3" fill="var(--series-1)" opacity=".85" />
+      <path d="M50 44q14-12 26-4t32-14" stroke="var(--series-2)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      <path d="M132 22l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5Z" fill="var(--chart-3, var(--primary))" opacity=".7" />
+    </svg>
+  );
+}

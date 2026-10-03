@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useTranslations } from "next-intl";
 import { GitBranchIcon, PencilIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,13 @@ import {
   findQuestion,
   type Condition,
   type ConditionGroup,
+  type FormDoc,
   type LogicActionType,
   type LogicRule,
   type Operator,
   type Question,
 } from "@/lib/forms/schema";
-import { useBuilder } from "./context";
+import { BuilderContext, useBuilder } from "./context";
 
 // ── Which operators make sense for which question ───────────────────────────
 
@@ -55,7 +56,7 @@ export function operatorsFor(q: Question | undefined): Operator[] {
   }
 }
 
-function defaultValue(q: Question | undefined): Condition["value"] {
+export function defaultValue(q: Question | undefined): Condition["value"] {
   if (!q) return undefined;
   switch (q.type) {
     case "single_choice":
@@ -134,10 +135,22 @@ function ValueInput({ question, value, onChange, label }: { question: Question; 
   );
 }
 
-export function ConditionGroupEditor({ group, onChange, eligible }: { group: ConditionGroup; onChange: (g: ConditionGroup) => void; eligible: Question[] }) {
+export function ConditionGroupEditor({
+  group,
+  onChange,
+  eligible,
+  doc: docProp,
+}: {
+  group: ConditionGroup;
+  onChange: (g: ConditionGroup) => void;
+  eligible: Question[];
+  /** Outside the builder (e.g. results filters), pass the form explicitly. */
+  doc?: Pick<FormDoc, "pages">;
+}) {
   const t = useTranslations("builder");
   const to = useTranslations("operators");
-  const { doc } = useBuilder();
+  const builder = useContext(BuilderContext);
+  const doc = docProp ?? builder!.doc;
 
   const setCondition = (i: number, c: Condition) => onChange({ ...group, conditions: group.conditions.map((x, j) => (j === i ? c : x)) });
 

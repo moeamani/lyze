@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { BarChart3Icon, LayoutDashboardIcon, PencilRulerIcon, Share2Icon } from "lucide-react";
+import { BarChart3Icon, FlaskConicalIcon, InboxIcon, LayoutDashboardIcon, PencilRulerIcon, Share2Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function StudyTabs({ base }: { base: string }) {
@@ -13,7 +13,9 @@ export function StudyTabs({ base }: { base: string }) {
     { href: base, label: t("overview"), icon: LayoutDashboardIcon, active: pathname === base },
     { href: `${base}/build`, label: t("build"), icon: PencilRulerIcon, active: false },
     { href: `${base}/share`, label: t("share"), icon: Share2Icon, active: pathname.startsWith(`${base}/share`) },
-    { href: `${base}/responses`, label: t("responses"), icon: BarChart3Icon, active: pathname.startsWith(`${base}/responses`) },
+    { href: `${base}/responses`, label: t("responses"), icon: InboxIcon, active: pathname.startsWith(`${base}/responses`) },
+    { href: `${base}/results`, label: t("results"), icon: BarChart3Icon, active: pathname.startsWith(`${base}/results`) },
+    { href: `${base}/analyze`, label: t("analyze"), icon: FlaskConicalIcon, active: pathname.startsWith(`${base}/analyze`) },
   ];
   return (
     <nav aria-label={t("label")} className="-mx-4 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0">

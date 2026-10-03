@@ -345,7 +345,9 @@
       "form_created": "{actor} started a form for “{name}”",
       "form_published": "{actor} published “{name}”",
       "form_invited": "{actor} sent form invites",
-      "response_deleted": "{actor} deleted a response"
+      "response_deleted": "{actor} deleted a response",
+      "analysis_updated": "{actor} updated data preparation rules",
+      "data_exported": "{actor} exported “{name}” data"
     }
   },
   "settings": {
@@ -840,13 +842,283 @@
     "invitee": "Invitee",
     "download": "Download",
     "minutes": "{m} min {s} s",
-    "seconds": "{s} s"
+    "seconds": "{s} s",
+    "exclude": "Exclude from analysis",
+    "include": "Include in analysis",
+    "excludedBadge": "Excluded",
+    "excludedToast": "Response excluded from analysis",
+    "includedToast": "Response included in analysis",
+    "columns": "Columns",
+    "search": "Search answers…",
+    "showing": "Showing {from}–{to} of {total}",
+    "prev": "Previous",
+    "next": "Next"
   },
   "studyTabs": {
     "overview": "Overview",
     "build": "Build",
     "share": "Share",
     "responses": "Responses",
-    "label": "Study sections"
+    "label": "Study sections",
+    "results": "Results",
+    "analyze": "Analyze"
+  },
+  "results": {
+    "title": "Results",
+    "noFormTitle": "Nothing to summarize yet",
+    "noFormBody": "Publish your form and share it — summaries and charts appear here as responses arrive.",
+    "noDataTitle": "No responses match",
+    "noDataBody": "Try removing a filter, or include in-progress responses under Prepare data.",
+    "responses": "Responses analyzed",
+    "completion": "Completion rate",
+    "medianTime": "Median time",
+    "excludedNote": "{count, plural, =0 {All completed responses included.} one {# response excluded by your data preparation rules.} other {# responses excluded by your data preparation rules.}}",
+    "overTime": "Responses over time",
+    "perDay": "responses",
+    "chart": "Chart",
+    "table": "Table",
+    "donut": "Donut",
+    "box": "Box plot",
+    "answered": "{answered} of {total} answered",
+    "count": "Count",
+    "percent": "Percent",
+    "option": "Answer",
+    "value": "Value",
+    "mean": "Mean",
+    "median": "Median",
+    "sd": "SD",
+    "min": "Min",
+    "max": "Max",
+    "n": "n",
+    "mode": "Mode",
+    "ci": "95% CI",
+    "npsScore": "NPS",
+    "promoters": "Promoters (9–10)",
+    "passives": "Passives (7–8)",
+    "detractors": "Detractors (0–6)",
+    "meanRank": "Average rank",
+    "rankedFirst": "Ranked first",
+    "topWords": "Most used words",
+    "recentAnswers": "Recent answers",
+    "avgWords": "{n} words on average",
+    "noText": "No written answers yet.",
+    "other": "“Other” answers",
+    "files": "{count, plural, one {# file} other {# files}} uploaded",
+    "dates": "From {from} to {to}",
+    "filter": "Filter",
+    "addFilter": "Add filter",
+    "filterTitle": "Filter responses",
+    "filterHint": "Show results only for people whose answers match.",
+    "applyFilter": "Apply filter",
+    "clearFilter": "Clear",
+    "filtered": "{count, plural, one {# filter} other {# filters}}",
+    "compareBy": "Compare by",
+    "noCompare": "No comparison",
+    "groupOf": "{label} (n = {n})",
+    "export": "Export",
+    "exportHint": "Cleaned data, ready for your tools",
+    "formats": {
+      "xlsx": "Excel workbook (.xlsx)",
+      "csv": "CSV — readable labels",
+      "csvCodes": "CSV — numeric codes",
+      "sav": "SPSS data file (.sav)",
+      "r": "R bundle (script + data)",
+      "qdpx": "NVivo / ATLAS.ti (REFI-QDA .qdpx)",
+      "qdpxMaxqda": "MAXQDA (REFI-QDA .qdpx)"
+    },
+    "reproduce": "Reproduce in R / SPSS",
+    "copy": "Copy",
+    "copied": "Copied",
+    "quant": "Quantitative",
+    "qual": "Qualitative",
+    "group": "Group"
+  },
+  "analyze": {
+    "title": "Analyze",
+    "tools": "Analysis tools",
+    "tool": {
+      "crosstab": "Crosstab",
+      "compare": "Compare groups",
+      "correlate": "Correlation",
+      "paired": "Before / after",
+      "reliability": "Reliability",
+      "matrix": "Correlation matrix",
+      "prepare": "Prepare data"
+    },
+    "toolHint": {
+      "crosstab": "How two categorical answers relate — with a chi-square test.",
+      "compare": "Does a score differ between groups? t-test, ANOVA or their rank-based versions.",
+      "correlate": "Do two scores move together? Pearson or Spearman, with a scatter plot.",
+      "paired": "Compare two scores from the same people — a paired t-test.",
+      "reliability": "Do several items measure one thing? Cronbach's alpha.",
+      "matrix": "Correlations between several scores at once.",
+      "prepare": "Choose which responses count, recode answers and build scale scores."
+    },
+    "rows": "Rows",
+    "columns": "Columns",
+    "outcome": "Outcome (score)",
+    "group": "Groups",
+    "x": "Variable X",
+    "y": "Variable Y",
+    "first": "First score",
+    "second": "Second score",
+    "items": "Items",
+    "variables": "Variables",
+    "choose": "Choose…",
+    "pickToStart": "Pick variables above to run the analysis.",
+    "notEnough": "Not enough data for this analysis yet (each group needs at least 2 answers).",
+    "method": "Method",
+    "methods": {
+      "auto": "Automatic",
+      "parametric": "Means (t-test / ANOVA)",
+      "nonparametric": "Ranks (Mann–Whitney / Kruskal–Wallis)",
+      "pearson": "Pearson (linear)",
+      "spearman": "Spearman (rank)"
+    },
+    "percentages": "Percentages",
+    "pctModes": {
+      "col": "Column %",
+      "row": "Row %",
+      "total": "Total %",
+      "count": "Counts"
+    },
+    "result": "Result",
+    "summary": "What it means",
+    "details": "Details",
+    "assumptions": "Assumptions & checks",
+    "sampleSize": "Sample size: {n}",
+    "effect": "Effect size",
+    "report": "How to report it",
+    "significant": "Statistically significant",
+    "notSignificant": "Not statistically significant",
+    "groups": "Groups",
+    "total": "Total",
+    "missing": "{count} with a missing answer were left out.",
+    "selectAtLeast": "Select at least two items.",
+    "addItem": "Add item",
+    "remove": "Remove",
+    "lowExpected": "Some cells have small expected counts — see Fisher's exact test below."
+  },
+  "stats": {
+    "effects": {
+      "negligible": "negligible",
+      "small": "small",
+      "medium": "medium",
+      "large": "large"
+    },
+    "alphaBands": {
+      "excellent": "excellent",
+      "good": "good",
+      "acceptable": "acceptable",
+      "questionable": "questionable",
+      "poor": "poor",
+      "unacceptable": "unacceptable"
+    },
+    "crosstab": {
+      "sig": "“{row}” and “{col}” are related: answers to one differ depending on the other. The association is {effect} (Cramér's V = {v}).",
+      "ns": "There's no clear relationship between “{row}” and “{col}” in this data. Any differences you see could be chance.",
+      "fisher": "Fisher's exact test (better for small samples): p {p}."
+    },
+    "ttest": {
+      "sig": "{a} (M = {ma}) and {b} (M = {mb}) differ on “{y}”. The difference of {diff} is statistically significant, and the effect is {effect} (Cohen's d = {d}).",
+      "ns": "{a} (M = {ma}) and {b} (M = {mb}) don't differ clearly on “{y}”. The difference of {diff} could be chance (effect {effect}, d = {d})."
+    },
+    "anova": {
+      "sig": "Average “{y}” differs across {k} groups. The effect is {effect} (η² = {eta}). Highest: {top} (M = {topMean}); lowest: {bottom} (M = {bottomMean}).",
+      "ns": "Average “{y}” doesn't differ clearly across the {k} groups (η² = {eta}).",
+      "welchNote": "Group spreads differ (Levene p {p}), so rely on Welch's version: F({df1}, {df2}) = {f}, p {wp}."
+    },
+    "mw": {
+      "sig": "{a} and {b} differ on “{y}” (medians {ma} vs {mb}). The difference in rankings is statistically significant ({effect} effect, r = {r}).",
+      "ns": "{a} and {b} don't differ clearly on “{y}” (medians {ma} vs {mb}; r = {r})."
+    },
+    "kw": {
+      "sig": "“{y}” differs across the {k} groups (ε² = {eps}, {effect}). Highest mean rank: {top}.",
+      "ns": "“{y}” doesn't differ clearly across the {k} groups (ε² = {eps})."
+    },
+    "corr": {
+      "sig": "“{x}” and “{y}” move {direction}: a {effect} correlation ({symbol} = {r}). It's statistically significant.",
+      "ns": "There's no clear correlation between “{x}” and “{y}” ({symbol} = {r}).",
+      "positive": "together (higher with higher)",
+      "negative": "in opposite directions (one up, the other down)",
+      "regression": "Each 1-point increase in “{x}” goes with a {slope} change in “{y}” on average; X explains {r2}% of the variation in Y."
+    },
+    "paired": {
+      "sig": "People scored differently on “{a}” (M = {ma}) than on “{b}” (M = {mb}). The average change of {diff} is statistically significant ({effect}, dz = {d}).",
+      "ns": "Scores on “{a}” (M = {ma}) and “{b}” (M = {mb}) don't differ clearly (average change {diff}, dz = {d})."
+    },
+    "alpha": {
+      "summary": "These {k} items form a scale with {band} reliability: Cronbach's α = {alpha} (n = {n}).",
+      "drop": "Dropping “{item}” would raise α to {to}.",
+      "reverse": "“{item}” correlates negatively with the rest — it may need reverse-scoring (Prepare data → Reverse)."
+    },
+    "assumption": {
+      "independentObservations": "Each response is counted once (independent observations).",
+      "independentGroups": "The groups are different people.",
+      "expectedCounts": "Expected counts: {percent}% of cells below 5 (smallest {min}). The test is reliable when ≤ 20%.",
+      "normality": "Scores roughly normal or large enough samples (smallest group n = {minN}).",
+      "normalityDifferences": "Differences roughly normal or n ≥ 30 (n = {minN}).",
+      "normalityVariables": "Both scores roughly normal or n ≥ 30 (n = {minN}).",
+      "equalVariances": "Similar spread across groups (Levene p = {p}).",
+      "ordinalOutcome": "Uses ranks, so it works for ordinal scales and skewed data.",
+      "pairedCases": "Uses the {n} people who answered both.",
+      "linearRelationship": "Assumes a straight-line relationship — check the scatter plot.",
+      "monotonicRelationship": "Assumes one tends to rise (or fall) with the other.",
+      "outliers": "Extreme values (|z| > 3): {count}.",
+      "sameConstruct": "Items should all measure the same idea.",
+      "reverseScored": "Negatively worded items should be reverse-scored first.",
+      "listwise": "Uses the {n} people who answered every item ({dropped} left out)."
+    },
+    "status": {
+      "ok": "OK",
+      "warn": "Check",
+      "info": "Note"
+    }
+  },
+  "prepare": {
+    "title": "Prepare data",
+    "hint": "These rules apply to Results, Analyze and every export.",
+    "include": "Which responses count",
+    "includePartial": "Include unfinished responses",
+    "includeScreened": "Include screened-out and over-quota responses",
+    "speeders": "Exclude speeders",
+    "speedersHint": "Drop completed responses faster than this. Median time is {median} s — a third of it ({suggest} s) is a common cut-off.",
+    "seconds": "seconds",
+    "excluded": "Excluded by hand",
+    "excludedHint": "Exclude individual responses from their detail page.",
+    "restore": "Restore",
+    "summary": "{kept} responses analyzed · {status} not complete · {speeders} speeders · {manual} excluded by hand",
+    "recodes": "Recodes",
+    "recodesHint": "Create new variables from existing answers. The original answers never change.",
+    "addRecode": "Add recode",
+    "modes": {
+      "group": "Group categories",
+      "reverse": "Reverse a scale",
+      "bins": "Number → ranges"
+    },
+    "source": "From",
+    "newName": "New variable name",
+    "newLabel": "Label",
+    "groupLabel": "Group name",
+    "addGroup": "Add group",
+    "edges": "Range starts",
+    "edgesHint": "Comma-separated lower bounds, e.g. 18, 25, 35, 50",
+    "computed": "Scale scores",
+    "computedHint": "Average or add up several items into one score (for example a wellbeing index).",
+    "addComputed": "Add scale score",
+    "op": {
+      "mean": "Average",
+      "sum": "Sum"
+    },
+    "itemsLabel": "Items",
+    "reverseItems": "Reverse-score these items",
+    "save": "Save rules",
+    "saved": "Data preparation saved",
+    "unsaved": "Unsaved changes",
+    "upToDate": "All changes saved",
+    "nameTaken": "That name is already used.",
+    "variableName": "Start with a letter; use letters, numbers and _ only.",
+    "noVariables": "No suitable variables yet.",
+    "opLabel": "Combine as"
   }
 }

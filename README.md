@@ -4,8 +4,8 @@ Lyze is a calm, minimal web app for collecting and analyzing research data —
 surveys and forms, interviews, and quantitative, qualitative and mixed-methods
 analysis in one place. The name is "analyze", trimmed to its essentials.
 
-> **Status:** Phases 1–2 are complete (foundation; form builder, respondent forms and response
-> storage). See [PLAN.md](./PLAN.md) for the architecture, data model, route map and what's next.
+> **Status:** Phases 1–3 are complete (foundation; form builder, respondent forms and response
+> storage; results, charts, statistics and exports for SPSS, R, NVivo, ATLAS.ti and MAXQDA). See [PLAN.md](./PLAN.md) for the architecture, data model, route map and what's next.
 
 ## Quick start
 
@@ -59,6 +59,29 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | `npm run db:migrate` | Apply migrations to `DATABASE_URL` (or the local PGlite DB). |
 | `npm run db:studio` | Drizzle Studio (needs `DATABASE_URL`). |
 
+## Analysis and exports
+
+- **Results** — a summary and chart for every question (bars, diverging Likert, box plots, NPS,
+  word frequencies, responses over time), each with a table view. Filter by any answer and
+  compare by any choice question; filters live in the URL.
+- **Analyze** — crosstab (χ², Cramér's V, Fisher), compare groups (t-test / ANOVA, or
+  Mann–Whitney / Kruskal–Wallis when the data call for it), correlation with scatter plot,
+  before/after (paired t), reliability (Cronbach's α) and a correlation matrix. Each result
+  explains itself in plain language, gives an APA line, checks assumptions and shows the
+  **R and SPSS syntax** that reproduces it.
+- **Prepare data** — which responses count (unfinished, screened out, speeders, manual
+  exclusions), recodes (group, reverse, ranges) and scale scores. Rules apply to Results,
+  Analyze and every export; original answers never change.
+- **Export** (Results or Analyze → Export):
+
+| Format | Opens in |
+| --- | --- |
+| Excel `.xlsx` | Excel, Sheets, Numbers (responses, codes, variable list) |
+| CSV (labels or codes) | Anything |
+| SPSS `.sav` | SPSS, PSPP, jamovi, JASP, R `haven`, Python `pyreadstat` |
+| R bundle `.zip` | R / RStudio — `source("lyze_import.R")` gives a labelled `lyze` data frame |
+| REFI-QDA `.qdpx` | NVivo, ATLAS.ti, MAXQDA (separate MAXQDA variant), QualCoder |
+
 ## Architecture
 
 ```
@@ -85,6 +108,9 @@ src/
     auth.ts            Auth.js v5 config (database sessions)
     mail/              Mailer (SMTP or dev mailbox) + email templates
   lib/                 Framework-free logic: permissions, validation (Zod), slugs, ids
+  lib/stats/           Statistics library (distributions, descriptives, tests), tested vs SciPy
+  lib/analysis/        Dataset builder (SPSS-style variables), recodes, summaries, R/SPSS syntax
+  lib/exports/         .sav, .xlsx, CSV, R script and REFI-QDA .qdpx writers
   lib/forms/           Form document schema, answer validation, logic engine, piping,
                        quotas, translations, templates (heavily unit tested)
   server/storage/      Storage adapters: local disk (dev) and S3-compatible
@@ -141,3 +167,8 @@ Check each at **360px**, **768px** and **1280px+**, in light and dark mode:
 - [ ] Resume prompt (“Welcome back”) and “Save and finish later” link
 - [ ] Share page: link, QR, embed, invites
 - [ ] Responses list (cards on phones, table on desktop) and response detail
+- [ ] Responses grid: sort, search, column picker; excluded response badge
+- [ ] Results: KPIs, over-time chart, each question type, table toggle, filter dialog, compare-by
+- [ ] Analyze: crosstab heatmap, compare groups (box plots), correlation (scatter + line), reliability
+- [ ] Prepare data: toggles, recode editors, scale score, sticky save bar
+- [ ] Export menu

@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RelativeTime } from "@/components/common/relative-time";
 import { DeleteResponseButton } from "@/components/studies/delete-response-button";
+import { ExcludeResponseButton } from "@/components/studies/exclude-response-button";
+import { getAnalysisSettings } from "@/server/services/analysis";
 import { QuestionTypeIcon } from "@/components/builder/question-icon";
 import { durationParts } from "@/components/studies/format";
 
@@ -36,6 +38,7 @@ export default async function ResponseDetailPage({ params }: PageProps<"/w/[ws]/
     throw e;
   }
   const { response, doc, answers, files } = detail;
+  const excludedIds = new Set((await getAnalysisSettings(study.id)).excludedIds);
   const d = durationParts(response.durationMs);
 
   return (
@@ -47,7 +50,13 @@ export default async function ResponseDetailPage({ params }: PageProps<"/w/[ws]/
             {t("title")}
           </Link>
         </Button>
-        {can(role, "content:edit") && <DeleteResponseButton scope={{ workspaceId: workspace.id, slug: ws, projectId, studyId }} responseId={response.id} />}
+        <div className="flex flex-wrap items-center gap-2">
+          {excludedIds.has(response.id) && <Badge variant="destructive">{t("excludedBadge")}</Badge>}
+          {can(role, "content:analyze") && (
+            <ExcludeResponseButton scope={{ workspaceId: workspace.id, slug: ws, projectId, studyId }} responseId={response.id} excluded={excludedIds.has(response.id)} />
+          )}
+          {can(role, "content:edit") && <DeleteResponseButton scope={{ workspaceId: workspace.id, slug: ws, projectId, studyId }} responseId={response.id} />}
+        </div>
       </div>
 
       <Card className="gap-3 py-4">

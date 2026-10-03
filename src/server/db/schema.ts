@@ -17,6 +17,7 @@ import { ROLES } from "@/lib/permissions";
 import { STUDY_STATUSES, STUDY_TYPES } from "@/lib/studies";
 import type { FormDoc } from "@/lib/forms/schema";
 import type { AnswerValue } from "@/lib/forms/answers";
+import type { AnalysisSettings } from "@/lib/analysis/settings";
 
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow();
@@ -350,6 +351,18 @@ export const files = pgTable(
   },
   (t) => [index("files_response_idx").on(t.responseId)],
 );
+
+/** Data preparation rules per study (exclusions, recodes, computed scores). */
+export const studyAnalysis = pgTable("study_analysis", {
+  studyId: text("study_id")
+    .primaryKey()
+    .references(() => studies.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  settings: jsonb("settings").$type<AnalysisSettings>().notNull(),
+  updatedAt: updatedAt(),
+});
 
 // ── Relations ───────────────────────────────────────────────────────────────
 

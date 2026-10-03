@@ -7,11 +7,13 @@ import { listResponses, responseCounts } from "@/server/services/responses";
 import { RESPONSE_STATUSES, type ResponseStatus } from "@/server/db/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/common/empty-state";
 import { RelativeTime } from "@/components/common/relative-time";
 import { SegmentedNav } from "@/components/common/segmented-nav";
 import { durationParts } from "@/components/studies/format";
+import { ResponsesGrid, type GridColumn, type GridRow } from "@/components/studies/responses-grid";
+import { loadStudyDataset } from "@/server/services/analysis";
+import { valueLabel } from "@/lib/analysis/variables";
 import { ClipboardIllustration } from "@/components/illustrations";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -34,7 +36,30 @@ export default async function ResponsesPage({ params, searchParams }: PageProps<
   const { workspace, study } = await getStudyContext(ws, projectId, studyId);
   const t = await getTranslations("responses");
   const base = `/w/${ws}/p/${projectId}/s/${studyId}`;
-  const [counts, { items, hasMore }] = await Promise.all([responseCounts(workspace.id, study.id), listResponses(workspace.id, study.id, { status, before })]);
+  const [counts, { items, hasMore }, raw] = await Promise.all([
+    responseCounts(workspace.id, study.id),
+    listResponses(workspace.id, study.id, { status, before }),
+    loadStudyDataset(workspace.id, study.id, { raw: true }),
+  ]);
+  const excluded = new Set(raw.settings.excludedIds);
+  const gridColumns: GridColumn[] = raw.variables
+    .filter((v) => v.role !== "meta")
+    .map((v) => ({ id: v.id, name: v.name, label: v.label, numeric: v.type === "numeric" && !v.categories?.length }));
+  const gridRows: GridRow[] = raw.rows
+    .filter((r) => !status || r.meta.status === status)
+    .slice(-2000)
+    .map((r) => ({
+      id: r.id,
+      status: r.meta.status,
+      statusLabel: t(`statuses.${r.meta.status}`),
+      submitted: (r.meta.submittedAt ?? r.meta.startedAt).toISOString(),
+      excluded: excluded.has(r.id),
+      cells: Object.fromEntries(gridColumns.map((c) => {
+        const v = raw.byId.get(c.id)!;
+        const value = r.values[c.id] ?? null;
+        return [c.id, typeof value === "number" && v.categories?.length ? valueLabel(v, value) : value];
+      })),
+    }));
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   const duration = (ms: number | null) => {
@@ -94,49 +119,12 @@ export default async function ResponsesPage({ params, searchParams }: PageProps<
               </li>
             ))}
           </ul>
-          {/* Larger screens: table */}
-          <div className="hidden rounded-2xl border bg-card shadow-soft md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("filter")}</TableHead>
-                  <TableHead>{t("started")}</TableHead>
-                  <TableHead>{t("submitted")}</TableHead>
-                  <TableHead>{t("duration")}</TableHead>
-                  <TableHead>{t("invitee")}</TableHead>
-                  <TableHead className="text-end">
-                    <span className="sr-only">{t("view")}</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>
-                      <Badge variant={STATUS_VARIANT[r.status]}>{t(`statuses.${r.status}`)}</Badge>
-                      <span className="ms-2 text-xs text-muted-foreground">{t("answers", { count: r.answerCount })}</span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <RelativeTime date={r.startedAt} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{r.submittedAt ? <RelativeTime date={r.submittedAt} /> : "—"}</TableCell>
-                    <TableCell className="tabular-nums">{duration(r.durationMs)}</TableCell>
-                    <TableCell className="max-w-48 truncate text-muted-foreground">{r.inviteEmail ?? "—"}</TableCell>
-                    <TableCell className="text-end">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link href={`${base}/responses/${r.id}`}>
-                          {t("view")}
-                          <ChevronRightIcon className="rtl:rotate-180" />
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          {/* Larger screens: full data grid */}
+          <div className="hidden md:block">
+            <ResponsesGrid columns={gridColumns} rows={gridRows} base={base} />
           </div>
           {hasMore && (
-            <Button asChild variant="outline" className="mx-auto">
+            <Button asChild variant="outline" className="mx-auto md:hidden">
               <Link href={`${base}/responses?${new URLSearchParams({ ...(status ? { status } : {}), before: items.at(-1)!.startedAt.toISOString() })}`}>{t("loadMore")}</Link>
             </Button>
           )}

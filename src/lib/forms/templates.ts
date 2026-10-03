@@ -151,10 +151,12 @@ function coffee(): FormDoc {
     config: { options: opts("Energy", "Taste", "Habit", "Social ritual", "Focus"), allowOther: true, shuffle: true },
   });
   const enjoy = q("rating", "How much do you enjoy your morning coffee?", { config: { max: 5, icon: "heart" } });
+  const focus = q("likert", "Coffee helps me focus.", { config: { labels: agree } });
+  const less = q("likert", "I'd like to drink less coffee.", { config: { labels: agree } });
   const story = q("long_text", "Tell us about your perfect cup.", { config: { placeholder: "Where, when, with whom…" } });
   doc.pages = [
     { id: newPageId(), shuffleQuestions: false, questions: [cups, how] },
-    { id: newPageId(), shuffleQuestions: false, questions: [why, enjoy, story] },
+    { id: newPageId(), shuffleQuestions: false, questions: [why, enjoy, focus, less, story] },
   ];
   doc.logic = [{ id: newRuleId(), when: { match: "all", conditions: [{ questionId: cups.id, operator: "gt", value: 0 }] }, action: "show_question", target: how.id }];
   return doc;

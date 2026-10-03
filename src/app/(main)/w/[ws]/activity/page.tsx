@@ -41,6 +41,8 @@ const KNOWN_ACTIONS = new Set([
   "form.published",
   "form.invited",
   "response.deleted",
+  "analysis.updated",
+  "data.exported",
 ]);
 
 export default async function ActivityPage({ params }: PageProps<"/w/[ws]/activity">) {
