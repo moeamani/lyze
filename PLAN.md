@@ -98,6 +98,11 @@ Phases add tables as they need them (migrations per phase).
 | `code_applications` | codeId, segmentId \| answerId, start, end (UTF-16 offsets into that one unit), quote, createdById, source(human/ai), approvedAt (null = pending suggestion), reason, starred | 5 |
 | `themes` | projectId, name, description, color, position — codes hang off themes via `codes.themeId` (one theme per code), so the board is just ordered columns | 5 |
 | `memos` | workspaceId, projectId, target(project/code/theme/segment/answer/session, id), title, body, authorId | 5 |
+| `project_groups` | workspaceId, name, position — custom folders; `projects.groupId` (set null on delete) | 6 |
+| `responses.participantId` | links a survey response to a participant (auto via personal email invite) | 6 |
+| `project_briefs` | projectId (PK), aim, questions jsonb, statements jsonb (hypothesis/proposition/assumption), proposal file + extracted text | 6 |
+| `writeups` | projectId, title, body (Markdown), provider, createdById | 6 |
+| `notifications` | userId, workspaceId, kind, data jsonb, href, groupKey (repeats fold), readAt | 6 |
 | `insights` | projectId, kind(chart/quote/theme/stat), payload(jsonb), note | 7 |
 | `reports` / `report_blocks` | projectId, title, shareToken, blocks(type, config, position) | 7 |
 | `files` | workspaceId, responseId?, storage(s3/local), key, name, mime, size | 2 |
@@ -132,7 +137,9 @@ Phases add tables as they need them (migrations per phase).
 | `/api/sessions/[sid]/media`, `/transcript?format=`, `/calendar` | Recording upload, transcript download (txt/vtt/srt), .ics (Phase 4) |
 | `/w/[ws]/p/[projectId]` (+ tabs) | Project tabs: Studies, `/coding?doc=`, `/codebook?code=`, `/themes`, `/quotes?code=&theme=&study=&person=&starred=`, `/memos`, `/search?q=&in=&study=&person=&code=&from=&to=` (Phase 5) |
 | `/api/projects/[projectId]/export?format=` | REFI-QDA `qdpx`, `qdpx-maxqda`, codebook `qdc`, quote bank `quotes` CSV (Phase 5) |
-| `/w/[ws]/p/[projectId]/mixed` | Joint displays, triangulation (Phase 6) |
+| `/w/[ws]/p/[projectId]/mixed?view=joint\|cross\|cases&q=` | Joint display, codes × closed answers, people across sources (Phase 6) |
+| `/w/[ws]/p/[projectId]/writeup`, `/writeup/[id]` | Research brief + proposal, written analysis drafts (Phase 6) |
+| `/w/[ws]/activity?cat=&actor=&from=&to=&q=&before=` | Activity with filters, day groups, paging (Phase 6) |
 | `/w/[ws]/p/[projectId]/reports/[id]` | Report builder (Phase 7) |
 | `/w/[ws]/settings`, `/settings/members`, `/settings/api` | Workspace settings |
 | `/account` | Profile, locale, data export, delete my data |
@@ -208,7 +215,7 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - [x] Phase 3 — Quantitative analysis + R / SPSS / NVivo / MAXQDA interoperability
 - [x] Phase 4 — Interviews: guides, participants, consent, sessions, recording, transcription
 - [x] Phase 5 — Qualitative coding
-- [ ] Phase 6 — Mixed methods
+- [x] Phase 6 — Mixed methods, written analysis, groups, notifications, Persian, rebrand
 - [ ] Phase 7 — Reports & exports
 - [ ] Phase 8 — Polish
 
@@ -306,6 +313,39 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - Also in this phase: the landing mascot is now a small 3D agent, and the respondent form was
   redesigned — each question is a centred card in a single column on every screen.
 
+### Phase 6 notes
+
+- **Mixed methods** (`/mixed`): a joint display that puts each code's weight in conversations
+  (passages, people, a quote) beside its share of survey respondents, and labels it "both",
+  "conversations only" or "survey only"; a codes × closed-question table (how respondents whose
+  open answers carry a code answered, next to everyone); and a case view of participants across
+  sources. Responses link to participants through personal invites (same email in the project).
+- **Written analysis** (`/writeup`): a research brief (aim, research questions, hypotheses /
+  propositions / assumptions, uploaded thesis or proposal: .docx/.txt/.md text is extracted, PDFs
+  are passed to Claude as documents). "Write analysis" builds a context from the brief, codebook,
+  quotes, themes, memos, survey summaries and the joint display, and the `AssistProvider` writes
+  Markdown. The built-in writer is deterministic: findings per research question (codes matched by
+  shared stems, ignoring words common to the whole codebook), convergence notes, a cautious
+  verdict per statement, themes and limits. Claude writes in the UI language.
+- **House style** (`src/lib/writeup/style.ts`) comes from the humanize checklist: no em/en dashes,
+  no AI vocabulary, plain verbs, specific numbers, one honest hedge. It is part of Claude's prompt,
+  and `cleanProse` runs on every draft and edit; tests assert the built-in draft has no tells.
+- **Project groups**: Notion-style collapsible folders on the projects page; move a project from
+  its folder button; deleting a group keeps its projects.
+- **Activity**: category chips with 30-day counts, person, date range and text filters (URL state),
+  day headings, section-colored icons, "show older" paging.
+- **Notifications**: bell in the sidebar and phone header with unread count, polling once a minute.
+  New responses (folded per study), transcript ready/failed, consent signed, member joined.
+  `notify()` never throws, so a notification can't break the action behind it.
+- **Brand**: the uploaded logotype and monogram (monogram rounded next to the wordmark and as the
+  favicon). Notion-like neutrals (white page, warm gray chrome, thin borders, ink primary buttons,
+  smaller radii) with the brand lavender as accent. Each area has its own hue (`--section-*`:
+  forms, interviews, coding, mixed, write-up, people, activity) used in tab icons, page icon tiles
+  and activity rows, and project tabs are grouped (Data · Qualitative · Mixed · Write-up · Find).
+- **Persian**: full `fa` translation (RTL), set in Peyda (self-hosted woff2, `next/font/local`);
+  Arabic also uses Peyda. Latin text inside Persian keeps Geist; quotes use `dir="auto"`.
+- Fixed: the projects page always showed "No studies" (unqualified columns in the count subquery).
+
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |
@@ -357,3 +397,8 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 36 | Theme membership is a column on `codes` (`themeId`, `themePosition`), not a join table | A code belongs to at most one theme on the board; moving a card is a single update. |
 | 37 | AI help sits behind an `AssistProvider`; built-in heuristics are the default, Claude is opt-in (`AI_PROVIDER=claude`) | Works offline and in tests; no research data leaves the server unless the workspace operator configures it. |
 | 38 | AI suggestions are **pending codings** (`source = ai`, `approvedAt = null`) | They are visible in context, but excluded from counts, quotes, search filters and exports until a person accepts them. |
+| 39 | Mixed-methods views are **computed on read** from codings and answers, not stored | Always in sync with coding; the data sizes involved are small. |
+| 40 | Written analyses are **saved drafts** (Markdown), regenerated on demand, never edited in place by the AI | People edit the text freely; each run is a new draft, so nothing a person wrote is overwritten. |
+| 41 | The built-in writer stays English; Claude writes in the UI language | Template prose in several languages would read stiffly; a model writes natural Persian. |
+| 42 | Notifications are in-app only (no email yet) and fold repeats by `groupKey` | One "48 new responses" instead of 48 rows; email digests can come later. |
+| 43 | Brand primary is ink, not lavender | Matches the logotype; lavender (#A49EFF) stays the accent so status and data colors keep their meaning. |

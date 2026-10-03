@@ -14,6 +14,7 @@ import { createPublishedForm } from "./forms";
 import { seedDemoResponses } from "./demo";
 import { seedDemoInterviews } from "./demo-interviews";
 import { seedDemoCoding } from "./demo-coding";
+import { seedDemoMixed } from "./demo-mixed";
 import { requireWorkspace } from "./access";
 import { AppError } from "./errors";
 
@@ -95,7 +96,10 @@ export async function createWorkspace(userId: string, raw: CreateWorkspaceInput)
           await seedDemoResponses(tx, { workspaceId: workspace.id, studyId: survey.id, formId: form.id, doc });
         }
         if (interviews) await seedDemoInterviews(tx, { workspaceId: workspace.id, studyId: interviews.id, userId });
-        if (survey && interviews) await seedDemoCoding(tx, { workspaceId: workspace.id, projectId: project.id, interviewStudyId: interviews.id, surveyStudyId: survey.id, userId });
+        if (survey && interviews) {
+          await seedDemoCoding(tx, { workspaceId: workspace.id, projectId: project.id, interviewStudyId: interviews.id, surveyStudyId: survey.id, userId });
+          await seedDemoMixed(tx, { workspaceId: workspace.id, slug: workspace.slug, projectId: project.id, interviewStudyId: interviews.id, surveyStudyId: survey.id, userId });
+        }
       }
     }
     return workspace;

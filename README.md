@@ -133,6 +133,26 @@ answers.
 - **Exchange** — export the whole project as REFI-QDA .qdpx (sources, codes, codings, memos,
   participants as cases) for NVivo, ATLAS.ti, MAXQDA (CRLF variant) or QualCoder.
 
+## Mixed methods and the write-up
+
+- **Mixed methods** — a joint display of each code in conversations and in survey answers
+  (both / conversations only / survey only), a table of how people who raised a code answered a
+  closed question, and a view of participants across sources.
+- **Brief** — the project's aim, research questions and hypotheses, plus the thesis or proposal
+  (.docx, .txt, .md; PDFs are read by Claude).
+- **Write analysis** — a written draft organized by research question, with an assessment of each
+  hypothesis, built from your codes, quotes and survey results. It follows a plain "human" house
+  style (no em dashes, no AI filler, every claim tied to a number or a quote). Edit, copy or
+  download it as Markdown.
+
+## Workspace
+
+- **Project groups** — custom folders on the projects page.
+- **Activity** — filter by type, person, date and text; grouped by day.
+- **Notifications** — new responses, finished transcripts, signed consent and new members, from
+  the bell in the sidebar (or the header on phones).
+- **Languages** — English, Persian (فارسی, set in Peyda) and Arabic; switch from the account menu.
+
 ## Architecture
 
 ```
@@ -237,3 +257,7 @@ Check each at **360px**, **768px** and **1280px+**, in light and dark mode:
 - [ ] Themes board: columns, drag a card, theme dialog with drafted description
 - [ ] Quotes: filters, cards, starred; Memos list; Search with filters and highlighted hits
 - [ ] Results for an open-text question: bars, word cloud, tone bar
+- [ ] Mixed methods: joint display, codes × answers, people
+- [ ] Write-up: brief editor (mobile), a generated draft, edit mode
+- [ ] Projects page with groups; notifications menu; activity filters
+- [ ] Persian (RTL, Peyda) on dashboard, project tabs and a respondent form

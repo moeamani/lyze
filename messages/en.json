@@ -242,7 +242,31 @@
     "studiesHeading": "Studies",
     "noStudiesTitle": "No studies in this project yet",
     "noStudiesBody": "Add a survey, interviews, field notes or a diary study.",
-    "noStudiesReadOnly": "Studies added by editors will appear here."
+    "noStudiesReadOnly": "Studies added by editors will appear here.",
+    "groups": {
+      "new": "New group",
+      "newTitle": "New group",
+      "renameTitle": "Rename group",
+      "name": "Group name",
+      "namePlaceholder": "e.g. Thesis, Client work, 2026",
+      "create": "Create",
+      "created": "Group created",
+      "renamed": "Group renamed",
+      "ungrouped": "Not in a group",
+      "actionsFor": "Actions for {name}",
+      "rename": "Rename",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "delete": "Delete group",
+      "deleteTitle": "Delete “{name}”?",
+      "deleteBody": "The group goes away. Its projects stay and move to “Not in a group”.",
+      "moveProject": "Move {name} to a group",
+      "moveTo": "Move to",
+      "moved": "Moved to {name}",
+      "ungroup": "Remove from group",
+      "emptyGroup": "No projects here yet. Use the folder button on a project to move it in.",
+      "studyCount": "{count, plural, =0 {No studies} one {# study} other {# studies}}"
+    }
   },
   "studies": {
     "new": "New study",
@@ -365,7 +389,34 @@
       "session_status": "{actor} changed a session's status",
       "session_deleted": "{actor} deleted session “{name}”",
       "session_media_uploaded": "{actor} uploaded a session recording",
-      "session_transcript_imported": "{actor} imported a transcript"
+      "session_transcript_imported": "{actor} imported a transcript",
+      "brief_updated": "{actor} updated the research brief",
+      "writeup_created": "{actor} wrote a draft analysis “{name}”"
+    },
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "older": "Show older",
+    "noMatches": "Nothing matches these filters.",
+    "categories": {
+      "workspace": "Workspace",
+      "project": "Projects",
+      "study": "Studies",
+      "member": "Members",
+      "form": "Forms",
+      "response": "Responses",
+      "participant": "Participants",
+      "session": "Sessions",
+      "coding": "Coding",
+      "writeup": "Write-ups"
+    },
+    "filters": {
+      "categories": "Filter by type",
+      "search": "Search names, emails, codes",
+      "person": "Person",
+      "everyone": "Everyone",
+      "from": "From",
+      "to": "To",
+      "clear": "Clear"
     }
   },
   "settings": {
@@ -1615,7 +1666,14 @@
     "themes": "Themes",
     "quotes": "Quotes",
     "memos": "Memos",
-    "search": "Search"
+    "search": "Search",
+    "groupData": "Data",
+    "groupQual": "Qualitative",
+    "groupMixed": "Mixed methods",
+    "groupWriteup": "Write-up",
+    "groupFind": "Find",
+    "mixed": "Mixed methods",
+    "writeup": "Write-up"
   },
   "coding": {
     "title": "Coding",
@@ -1866,5 +1924,120 @@
     "resultsTruncated": "Showing the first {count} results",
     "none": "Nothing found. Try fewer words or remove a filter.",
     "untitledMemo": "Memo"
+  },
+  "writeup": {
+    "title": "Write-up",
+    "intro": "Set out what the project asks, then get a written analysis built from your codes, quotes and survey results.",
+    "generate": "Write analysis",
+    "writing": "Writing…",
+    "generated": "Draft ready",
+    "providerBuiltin": "The built-in assistant writes from counts and quotes, in plain language, and links questions to codes by shared words. Turn on Claude for a fuller reading that also uses your proposal.",
+    "providerClaude": "Claude writes the analysis from your brief, the proposal, codes, quotes and survey results, in the language you're using Lyze in.",
+    "drafts": "Drafts",
+    "noDrafts": "No drafts yet. Fill in the brief and press Write analysis.",
+    "builtin": "Built-in",
+    "backToBrief": "Brief and drafts",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Markdown",
+    "saved": "Saved",
+    "titleLabel": "Title",
+    "bodyLabel": "Text (Markdown)",
+    "draftNoticeBuiltin": "A draft from the built-in assistant. Every number comes from your data, but check the reading before you use it.",
+    "draftNoticeClaude": "A draft written by Claude from your data. Check every claim and quote against the sources before you use it.",
+    "deleteTitle": "Delete this draft?",
+    "deleteBody": "The draft is removed. Your data and brief stay.",
+    "brief": {
+      "title": "Research brief",
+      "hint": "What the project wants to find out. Every write-up is organized around this.",
+      "aim": "Aim",
+      "aimPlaceholder": "In a sentence or two: what is this research for?",
+      "questions": "Research questions",
+      "questionN": "Research question {n}",
+      "removeQuestion": "Remove research question {n}",
+      "addQuestion": "Add a research question",
+      "statements": "Statements and hypotheses",
+      "statementsHint": "Claims the analysis should test against the data.",
+      "statementN": "Statement {n}",
+      "kindFor": "Type of statement {n}",
+      "removeStatement": "Remove statement {n}",
+      "addStatement": "Add a statement",
+      "kind": {
+        "hypothesis": "Hypothesis",
+        "proposition": "Proposition",
+        "assumption": "Assumption"
+      },
+      "proposal": "Thesis or proposal",
+      "noProposal": "No file yet.",
+      "uploadProposal": "Upload a file",
+      "replaceProposal": "Replace file",
+      "removeProposal": "Remove file",
+      "proposalHint": "PDF, Word (.docx), text or Markdown, up to 20 MB. Text from Word and text files is used by both assistants; PDFs are read by Claude.",
+      "readable": "Text read",
+      "pdfOnlyAi": "Read by Claude only",
+      "uploaded": "File attached",
+      "uploadedPdf": "PDF attached. Claude can read it; the built-in assistant uses the brief only.",
+      "saved": "Brief saved",
+      "unsaved": "Unsaved changes"
+    }
+  },
+  "notifications": {
+    "label": "Notifications",
+    "labelUnread": "Notifications, {count} unread",
+    "title": "Notifications",
+    "markAll": "Mark all read",
+    "empty": "You're all caught up.",
+    "unread": "Unread",
+    "kinds": {
+      "responses": "{count, plural, one {New response} other {# new responses}} to “{study}”",
+      "transcript": "Transcript ready: {session}",
+      "transcriptFailed": "Transcription failed: {session}",
+      "consent": "{code} signed the consent form for “{study}”",
+      "memberJoined": "{name} joined the workspace",
+      "writeup": "A new draft analysis is ready"
+    }
+  },
+  "mixedMethods": {
+    "title": "Mixed methods",
+    "intro": "Put what people said next to what they answered. Codes, survey answers and the people behind them, in one place.",
+    "views": "Views",
+    "view": {
+      "joint": "Joint display",
+      "cross": "Codes × answers",
+      "cases": "People"
+    },
+    "jointTitle": "Where the conversations and the survey meet",
+    "jointMeta": "{sessions, plural, one {# conversation} other {# conversations}} · {respondents, plural, one {# survey response} other {# survey responses}}",
+    "code": "Code",
+    "conversations": "Conversations",
+    "survey": "Survey",
+    "where": "Found in",
+    "qualCount": "{passages, plural, one {# passage} other {# passages}} · {people, plural, one {# person} other {# people}}",
+    "quantCount": "{share}% of respondents ({n})",
+    "convergence": {
+      "both": "Both",
+      "qual": "Conversations only",
+      "quant": "Survey only"
+    },
+    "convergenceHint": {
+      "both": "Codes raised in interviews and in survey answers",
+      "qual": "Depth without numbers: the survey can't say how common",
+      "quant": "Numbers without depth: nobody explained it in a conversation"
+    },
+    "emptyJoint": "Nothing coded yet. Code a few transcripts and open survey answers, and this table fills in.",
+    "crossTitle": "How people who raised a code answered",
+    "crossHint": "Pick a closed question. Each row shows the answers of respondents whose open-text answers carry that code, next to everyone.",
+    "pickQuestion": "Choose a closed question",
+    "everyone": "All respondents",
+    "mean": "Mean",
+    "noCodedAnswers": "No coded open-text answers in this survey yet.",
+    "crossNote": "Groups overlap (one answer can carry several codes) and are often small. Read differences as leads to follow, not as tested effects.",
+    "emptyCross": "There's no published survey with closed questions in this project.",
+    "casesTitle": "People across sources",
+    "casesHint": "{both} of {total} participants appear in both a conversation and the survey. Survey responses are linked to a participant through their personal invite.",
+    "sessionsCount": "{count, plural, =0 {No sessions} one {# session} other {# sessions}}",
+    "responsesCount": "{count, plural, =0 {No survey} one {# survey} other {# surveys}}",
+    "noCodes": "Nothing coded for this person yet.",
+    "emptyCases": "No participants in this project yet."
   }
 }

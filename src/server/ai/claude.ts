@@ -3,6 +3,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { normalizeRange } from "@/lib/qual/ranges";
 import type { AssistProvider } from "./index";
+import { STYLE_RULES, cleanProse } from "@/lib/writeup/style";
 
 const MODEL = process.env.AI_MODEL || "claude-opus-5-5";
 /** Keep requests bounded: long documents are sent in pieces of about this many characters. */
@@ -103,6 +104,34 @@ export function claudeProvider(): AssistProvider {
         "low",
       );
       return result.description.trim();
+    },
+    async writeAnalysis({ context, language, proposalPdf }) {
+      const client = new Anthropic();
+      const content: Anthropic.ContentBlockParam[] = [];
+      if (proposalPdf?.length) content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: Buffer.from(proposalPdf).toString("base64") }, title: context.proposal?.name ?? "Proposal" });
+      content.push({
+        type: "text",
+        text: `Write the analysis section of a research report for this project, in ${language}, as Markdown.
+
+Structure: start with one "# " title line. Then: what the project set out to learn (from the brief${proposalPdf?.length || context.proposal?.text ? " and the attached proposal" : ""}); the data; findings organized by research question; an assessment of each statement or hypothesis (consistent with the data, partly, not tested, or contradicted, and why); themes; and what the data can't tell us. Use "##" and "###" headings in sentence case.
+
+Ground every claim in the data below: cite counts, name codes, and quote participants verbatim with their code (P01...). Survey percentages and interview patterns should be compared where both exist (convergence, divergence, or one source only). If the data doesn't answer a research question, say so. Never invent quotes, numbers or sources. Keep it to about 900 to 1500 words.
+
+${STYLE_RULES}
+
+Project data (JSON):
+<data>
+${escapeData(JSON.stringify(context)).slice(0, CHUNK_CHARS * 3)}
+</data>`,
+      });
+      const message = await client.messages
+        .stream({ model: MODEL, max_tokens: 16000, system: SYSTEM, thinking: { type: "adaptive" }, messages: [{ role: "user", content }] })
+        .finalMessage();
+      if (message.stop_reason === "refusal") throw new Error("The assistant declined this request.");
+      const text = message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
+      const lines = cleanProse(text).split("\n");
+      const head = lines[0]?.startsWith("# ") ? lines.shift()!.slice(2).trim() : `${context.project.name}: analysis`;
+      return { title: head, body: lines.join("\n").trim() };
     },
   };
 }

@@ -1,3 +1,4 @@
+import { membersWithRoles, notify, studyLink } from "./notifications";
 import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/server/db";
@@ -433,14 +434,25 @@ export async function runTranscription(transcriptId: string, provider: Transcrip
     });
     const assigned = assignSpeakers(result.segments, ctx);
     await db.transaction((tx) => writeTranscript(tx, { workspaceId: session.workspaceId, sessionId: session.id, provider: provider.name, language: result.language, ...assigned }));
+    await notifyTranscript(session, "transcript");
   } catch (error) {
     console.error("Transcription failed", transcriptId, error);
+    const [t] = await db.select({ sessionId: transcripts.sessionId }).from(transcripts).where(eq(transcripts.id, transcriptId)).limit(1).catch(() => []);
+    const [session] = t ? await db.select().from(researchSessions).where(eq(researchSessions.id, t.sessionId)).limit(1).catch(() => []) : [];
+    if (session) await notifyTranscript(session, "transcriptFailed");
     await db
       .update(transcripts)
       .set({ status: "failed", error: error instanceof Error ? error.message.slice(0, 500) : "Transcription failed" })
       .where(eq(transcripts.id, transcriptId))
       .catch(() => undefined);
   }
+}
+
+async function notifyTranscript(session: ResearchSession, kind: "transcript" | "transcriptFailed") {
+  const link = await studyLink(session.studyId);
+  if (!link) return;
+  const people = [...new Set([...(session.interviewerId ? [session.interviewerId] : []), ...(await membersWithRoles(session.workspaceId, ["owner", "editor"]))])];
+  await notify(people, { workspaceId: session.workspaceId, kind, data: { session: session.title, study: link.studyName }, href: `${link.base}/sessions/${session.id}` });
 }
 
 /** Import a transcript file (WebVTT, SRT or text) from Zoom, Teams, Otter… */

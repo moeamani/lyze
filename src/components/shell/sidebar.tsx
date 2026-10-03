@@ -1,5 +1,6 @@
 "use client";
 
+import { NotificationBell } from "./notification-bell";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -72,6 +73,8 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
             <Logo />
           </Link>
         )}
+        <div className={cn("flex items-center", collapsed && "flex-col")}>
+        {!collapsed && <NotificationBell />}
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -88,6 +91,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
             {collapsed ? ts("expandSidebar") : ts("collapseSidebar")} <Kbd className="ms-1">⌘B</Kbd>
           </TooltipContent>
         </Tooltip>
+        </div>
       </div>
 
       <WorkspaceSwitcher collapsed={collapsed} />

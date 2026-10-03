@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   boolean,
   doublePrecision,
   index,
@@ -146,6 +147,8 @@ export const projects = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     color: text("color").notNull().default("violet"),
+    /** Custom folder on the projects page (null = ungrouped). */
+    groupId: text("group_id").references((): AnyPgColumn => projectGroups.id, { onDelete: "set null" }),
     archivedAt: timestamp("archived_at", { withTimezone: true, mode: "date" }),
     createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: createdAt(),
@@ -297,6 +300,8 @@ export const responses = pgTable(
     /** Secret that lets a respondent resume (and only that respondent). */
     resumeToken: text("resume_token").notNull().unique(),
     inviteId: text("invite_id").references(() => formInvites.id, { onDelete: "set null" }),
+    /** The person behind this response, when known (mixed methods: same person, several sources). */
+    participantId: text("participant_id").references((): AnyPgColumn => participants.id, { onDelete: "set null" }),
     deviceId: text("device_id"),
     locale: text("locale"),
     currentPageId: text("current_page_id"),
@@ -704,3 +709,92 @@ export type Code = typeof codes.$inferSelect;
 export type Theme = typeof themes.$inferSelect;
 export type CodeApplication = typeof codeApplications.$inferSelect;
 export type Memo = typeof memos.$inferSelect;
+
+// ── Phase 6: groups, notifications, research brief, written analyses ─────────
+
+export const projectGroups = pgTable(
+  "project_groups",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("grp")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    position: integer("position").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("project_groups_ws_idx").on(t.workspaceId, t.position)],
+);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("ntf")),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: text("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Message key under `notifications.kinds` (e.g. "responses", "transcript", "consent"). */
+    kind: text("kind").notNull(),
+    /** Values for the message, plus `count` when repeats are folded together. */
+    data: jsonb("data").$type<Record<string, string | number>>().notNull().default({}),
+    href: text("href"),
+    /** Repeats with the same group key fold into one unread notification. */
+    groupKey: text("group_key"),
+    readAt: timestamp("read_at", { withTimezone: true, mode: "date" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("notifications_user_idx").on(t.userId, t.createdAt)],
+);
+
+export type BriefStatement = { id: string; text: string; kind: "hypothesis" | "proposition" | "assumption" };
+
+/** What the project is trying to find out: the context any written analysis is built on. */
+export const projectBriefs = pgTable("project_briefs", {
+  projectId: text("project_id")
+    .primaryKey()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  aim: text("aim").notNull().default(""),
+  questions: jsonb("questions").$type<{ id: string; text: string }[]>().notNull().default([]),
+  statements: jsonb("statements").$type<BriefStatement[]>().notNull().default([]),
+  /** Uploaded thesis / proposal: the file, plus its text when it could be extracted. */
+  proposalFileId: text("proposal_file_id").references(() => files.id, { onDelete: "set null" }),
+  proposalName: text("proposal_name"),
+  proposalText: text("proposal_text"),
+  updatedAt: updatedAt(),
+});
+
+export const writeups = pgTable(
+  "writeups",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("wrt")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    /** Markdown. */
+    body: text("body").notNull(),
+    provider: text("provider").notNull(),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("writeups_project_idx").on(t.projectId, t.createdAt)],
+);
+
+export type ProjectGroup = typeof projectGroups.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type ProjectBrief = typeof projectBriefs.$inferSelect;
+export type Writeup = typeof writeups.$inferSelect;

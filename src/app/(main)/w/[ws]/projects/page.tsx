@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ArchiveIcon } from "lucide-react";
 import { getWorkspaceContext } from "@/server/queries/workspace";
-import { listProjects } from "@/server/services/projects";
+import { listGroups, listProjects } from "@/server/services/projects";
 import { can } from "@/lib/permissions";
-import { Badge } from "@/components/ui/badge";
 import { SegmentedNav } from "@/components/common/segmented-nav";
 import { PageContainer, PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
-import { RelativeTime } from "@/components/common/relative-time";
-import { swatchClass } from "@/components/common/swatch";
 import { NewProjectButton } from "@/components/projects/new-project-button";
+import { ProjectBoard } from "@/components/projects/project-board";
 import { FoldersIllustration } from "@/components/illustrations";
-import { cn } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("projects");
@@ -25,7 +21,7 @@ export default async function ProjectsPage({ params, searchParams }: PageProps<"
   const archived = (await searchParams).view === "archived";
   const { workspace, role } = await getWorkspaceContext(ws);
   const t = await getTranslations("projects");
-  const projects = await listProjects(workspace.id, { archived });
+  const [projects, groups] = await Promise.all([listProjects(workspace.id, { archived }), listGroups(workspace.id)]);
   const scope = { workspaceId: workspace.id, slug: workspace.slug };
   const canEdit = can(role, "content:edit");
 
@@ -63,26 +59,7 @@ export default async function ProjectsPage({ params, searchParams }: PageProps<"
           </EmptyState>
         )
       ) : (
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p) => (
-            <li key={p.id}>
-              <Link
-                href={`/w/${ws}/p/${p.id}`}
-                className="group flex h-full flex-col gap-3 overflow-hidden rounded-2xl border bg-card p-5 shadow-soft transition-[box-shadow,transform] outline-none hover:-translate-y-0.5 hover:shadow-lift focus-visible:ring-[3px] focus-visible:ring-ring/40 motion-reduce:hover:translate-y-0"
-              >
-                <span aria-hidden className={cn("h-1.5 w-10 rounded-full", swatchClass(p.color))} />
-                <span className="min-w-0">
-                  <span className="block truncate text-base font-semibold">{p.name}</span>
-                  {p.description && <span className="mt-1 line-clamp-2 text-sm text-muted-foreground">{p.description}</span>}
-                </span>
-                <span className="mt-auto flex items-center justify-between gap-2 pt-1 text-xs text-muted-foreground">
-                  <Badge variant="secondary">{t("studyCount", { count: p.studyCount })}</Badge>
-                  <RelativeTime date={p.updatedAt} />
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <ProjectBoard scope={scope} groups={archived ? [] : groups.map((g) => ({ id: g.id, name: g.name }))} projects={projects} canEdit={canEdit && !archived} />
       )}
     </PageContainer>
   );

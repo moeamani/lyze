@@ -1,6 +1,6 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/server/db";
-import { answers as answersTable, files, formInvites, forms, responses, studies, type ResponseStatus } from "@/server/db/schema";
+import { answers as answersTable, files, formInvites, forms, participants, responses, studies, type ResponseStatus } from "@/server/db/schema";
 import { newId, newToken } from "@/lib/ids";
 import { answerColumns, validateAnswer, type Answers, type AnswerValue } from "@/lib/forms/answers";
 import { validateSubmission } from "@/lib/forms/logic";
@@ -8,6 +8,7 @@ import { matchingQuotas } from "@/lib/forms/quotas";
 import { findQuestion, type FormDoc } from "@/lib/forms/schema";
 import { storage, storageFor } from "@/server/storage";
 import { getPublishedDoc } from "./forms";
+import { membersWithRoles, notify, studyLink } from "./notifications";
 
 /** Respondent-facing failures. Codes are i18n keys in the `respondent` namespace. */
 export type RespondentErrorCode = "notFound" | "closed" | "alreadyResponded" | "inviteRequired" | "invalid" | "tooLarge" | "fileType";
@@ -279,7 +280,38 @@ export async function submitResponse(
   });
   await Promise.allSettled(orphanedKeys.map((f) => storageFor(f.storage).delete(f.key)));
 
+  if (status === "complete") {
+    await linkResponseToParticipant(response.id).catch(() => undefined);
+    const link = await studyLink(response.studyId);
+    if (link) {
+      const people = await membersWithRoles(link.workspaceId, ["owner", "editor"]);
+      await notify(people, { workspaceId: link.workspaceId, kind: "responses", data: { study: link.studyName }, href: `${link.base}/responses`, groupKey: `responses:${response.studyId}` });
+    }
+  }
+
   return { status, message };
+}
+
+/**
+ * Mixed methods: a response sent through a personal email invite belongs to the participant
+ * with that email in the same project (an interviewee who also filled in the survey).
+ */
+export async function linkResponseToParticipant(responseId: string) {
+  const [row] = await db
+    .select({ email: formInvites.email, projectId: studies.projectId })
+    .from(responses)
+    .innerJoin(formInvites, eq(formInvites.id, responses.inviteId))
+    .innerJoin(studies, eq(studies.id, responses.studyId))
+    .where(eq(responses.id, responseId))
+    .limit(1);
+  if (!row?.email) return;
+  const [person] = await db
+    .select({ id: participants.id })
+    .from(participants)
+    .innerJoin(studies, eq(studies.id, participants.studyId))
+    .where(and(eq(studies.projectId, row.projectId), sql`lower(${participants.email}) = ${row.email.toLowerCase()}`))
+    .limit(1);
+  if (person) await db.update(responses).set({ participantId: person.id }).where(eq(responses.id, responseId));
 }
 
 const ACCEPT: Record<string, (mime: string) => boolean> = {

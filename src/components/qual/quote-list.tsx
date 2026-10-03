@@ -112,7 +112,7 @@ function QuoteCard({ scope, quote, codes, canStar }: { scope: Scope; quote: Quot
   const [pending, startTransition] = useTransition();
   return (
     <li className="grid min-w-0 grid-cols-1 content-between gap-3 rounded-2xl border bg-card p-4 shadow-soft">
-      <blockquote className="text-[0.95rem] leading-relaxed text-pretty">“{quote.quote}”</blockquote>
+      <blockquote dir="auto" className="text-start text-[0.95rem] leading-relaxed text-pretty">“{quote.quote}”</blockquote>
       <div className="grid grid-cols-1 gap-2">
         <div className="flex flex-wrap gap-1">
           {quote.codeIds.map((id) => {

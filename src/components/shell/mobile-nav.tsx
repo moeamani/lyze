@@ -1,5 +1,6 @@
 "use client";
 
+import { NotificationBell } from "./notification-bell";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -25,6 +26,7 @@ export function MobileHeader() {
         <Logo showWord={false} />
       </Link>
       <span className="min-w-0 flex-1 truncate text-sm font-semibold">{workspace.name}</span>
+      <NotificationBell className="size-11 rounded-xl" />
       <button
         type="button"
         onClick={openPalette}

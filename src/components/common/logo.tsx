@@ -1,18 +1,35 @@
 import { cn } from "@/lib/utils";
 
+const WORD = "M132.368 295C126.736 295 122.341 293.592 119.184 290.776C116.027 287.96 114.448 283.395 114.448 277.08V204.12H133.648V275.032C133.648 277.08 134.117 278.531 135.056 279.384C135.995 280.237 137.36 280.664 139.152 280.664H143.76V295H132.368ZM155.83 314.2V299.864H164.918C167.137 299.864 168.758 299.523 169.782 298.84C170.891 298.243 171.745 297.133 172.342 295.512L173.75 291.544H168.502L144.438 226.392H164.022L179.766 273.624L194.486 226.392H214.07L187.702 301.528C186.166 306.051 183.947 309.293 181.046 311.256C178.145 313.219 174.091 314.2 168.886 314.2H155.83ZM219.668 295V279.896L257.428 240.728H221.204V226.392H280.468V241.496L242.068 280.664H281.492V295H219.668ZM324.046 296.536C317.049 296.536 310.947 295.085 305.742 292.184C300.622 289.197 296.611 285.016 293.71 279.64C290.894 274.264 289.486 267.949 289.486 260.696C289.486 253.443 290.894 247.171 293.71 241.88C296.611 236.504 300.622 232.323 305.742 229.336C310.862 226.349 316.921 224.856 323.918 224.856C330.745 224.856 336.675 226.349 341.71 229.336C346.745 232.323 350.627 236.589 353.358 242.136C356.174 247.683 357.582 254.296 357.582 261.976V265.816H309.326C309.582 271.277 311.033 275.331 313.678 277.976C316.409 280.621 319.993 281.944 324.43 281.944C327.673 281.944 330.361 281.261 332.494 279.896C334.713 278.531 336.291 276.44 337.23 273.624L356.558 274.776C354.766 281.603 350.969 286.936 345.166 290.776C339.363 294.616 332.323 296.536 324.046 296.536ZM309.326 254.04H337.87C337.614 249.005 336.206 245.251 333.646 242.776C331.171 240.301 327.929 239.064 323.918 239.064C319.907 239.064 316.579 240.387 313.934 243.032C311.374 245.592 309.838 249.261 309.326 254.04Z";
+const DOT = "M366.986 295V275.416H387.85V295H366.986Z";
+
+/** The monogram: an ink "L" and square on lavender. Rounded whenever it sits next to the logotype. */
+export function Monogram({ className, rounded = true }: { className?: string; rounded?: boolean }) {
+  return (
+    <svg viewBox="0 0 500 500" aria-hidden className={cn("size-7 shrink-0", className)}>
+      <rect width="500" height="500" rx={rounded ? 120 : 0} fill="var(--brand)" />
+      <path d="M312 135H360V183H312V135Z" fill="var(--brand-ink)" />
+      <path d="M140 308.258V135H188V308.258C188 312.98 191.877 317 196.896 317H360V365H196.896C165.579 365 140 339.701 140 308.258Z" fill="var(--brand-ink)" />
+    </svg>
+  );
+}
+
+/** The "lyze." logotype. Letters follow the text color; the dot keeps the brand accent. */
+export function Logotype({ className }: { className?: string }) {
+  return (
+    <svg viewBox="112 200 278 116" aria-hidden className={cn("h-5 w-auto shrink-0", className)}>
+      <path d={WORD} fill="currentColor" />
+      <path d={DOT} fill="var(--brand-dot)" />
+    </svg>
+  );
+}
+
 export function Logo({ className, showWord = true }: { className?: string; showWord?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-2 font-semibold tracking-tight", className)}>
-      <svg viewBox="0 0 32 32" aria-hidden className="size-7 shrink-0">
-        <rect width="32" height="32" rx="10" fill="var(--primary)" />
-        <path d="M11 9v14h10" stroke="var(--primary-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <circle cx="22" cy="10.5" r="2.2" fill="var(--primary-foreground)" />
-      </svg>
-      {showWord && (
-        <span className="text-lg">
-          lyze<span className="text-primary">.</span>
-        </span>
-      )}
+    <span className={cn("inline-flex items-center gap-2 text-foreground", className)} dir="ltr">
+      <Monogram />
+      {showWord && <Logotype />}
+      <span className="sr-only">Lyze</span>
     </span>
   );
 }

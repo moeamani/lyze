@@ -1,4 +1,5 @@
 import type { Viewport } from "next";
+import { peyda } from "@/app/fonts";
 import { GeistSans } from "geist/font/sans";
 import "../globals.css";
 
@@ -18,7 +19,7 @@ export const viewport: Viewport = {
  */
 export default function RespondentLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={GeistSans.variable}>
+    <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${peyda.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{

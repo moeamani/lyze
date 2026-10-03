@@ -1,3 +1,4 @@
+import { membersWithRoles, notify, studyLink } from "./notifications";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/server/db";
@@ -108,4 +109,9 @@ export async function signConsent(token: string, raw: unknown) {
     entityId: found.participantId,
     metadata: { code: found.code, version: found.consent.version },
   });
+  const link = await studyLink(found.studyId);
+  if (link) {
+    const people = await membersWithRoles(found.workspaceId, ["owner", "editor"]);
+    await notify(people, { workspaceId: found.workspaceId, kind: "consent", data: { code: found.code, study: link.studyName }, href: `${link.base}/participants/${found.participantId}` });
+  }
 }

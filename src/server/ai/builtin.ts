@@ -1,4 +1,5 @@
 import { clusterTexts, extractiveSummary } from "@/lib/qual/nlp";
+import { composeWriteup } from "@/lib/writeup/compose";
 import { draftThemeDescription, suggestCodings } from "@/lib/qual/suggest";
 import type { AssistProvider } from "./index";
 
@@ -18,6 +19,9 @@ export function builtinProvider(): AssistProvider {
     },
     async draftTheme({ name, codes, quotes }) {
       return draftThemeDescription(name, codes, quotes);
+    },
+    async writeAnalysis({ context }) {
+      return composeWriteup(context);
     },
   };
 }

@@ -8,7 +8,11 @@ import { STOPWORDS, tokenize } from "@/lib/analysis/text";
 /** Very light stemming so "habits"/"habit" and "rushing"/"rush" meet. */
 export function stem(word: string): string {
   let w = word.toLowerCase();
-  if (w.length > 5 && w.endsWith("ing")) w = w.slice(0, -3);
+  if (w.length > 5 && w.endsWith("ing")) {
+    w = w.slice(0, -3);
+    // "cutting" → "cut", "shopping" → "shop"
+    if (/([bdgmnprt])\1$/.test(w)) w = w.slice(0, -1);
+  }
   else if (w.length > 4 && w.endsWith("ies")) w = `${w.slice(0, -3)}y`;
   else if (w.length > 4 && w.endsWith("es") && /(sh|ch|x|ss)es$/.test(w)) w = w.slice(0, -2);
   else if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) w = w.slice(0, -1);
