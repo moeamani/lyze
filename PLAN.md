@@ -107,8 +107,9 @@ Phases add tables as they need them (migrations per phase).
 | `reports` | projectId, title, blocks jsonb (heading/text/question/quote/theme/joint/writeup; data blocks hold references), shareToken (null = private) | 7 |
 | `responses.source` | respondent / manual / import / generated | 7 |
 | `files` | workspaceId, responseId?, storage(s3/local), key, name, mime, size | 2 |
-| `api_keys` | workspaceId, name, hashedKey, prefix, lastUsedAt | 8 |
-| `webhooks` | workspaceId, url, secret, events[] | 8 |
+| `api_keys` | workspaceId, name, hashedKey (SHA-256; secret shown once), prefix, lastUsedAt | 8 |
+| `webhooks` | workspaceId, url (public https only in production), secret (HMAC signing), events[], lastStatus | 8 |
+| `workspace_ai` | workspaceId (PK), apiKeyEnc (AES-256-GCM, key from AUTH_SECRET), keyHint, model | 8 |
 
 ---
 
@@ -142,14 +143,15 @@ Phases add tables as they need them (migrations per phase).
 | `/w/[ws]/p/[projectId]/writeup`, `/writeup/[id]` | Research brief + proposal, written analysis drafts (Phase 6) |
 | `/w/[ws]/activity?cat=&actor=&from=&to=&q=&before=` | Activity with filters, day groups, paging (Phase 6) |
 | `/w/[ws]/p/[projectId]/reports`, `/reports/[id]` | Report list (generate / blank) and builder with share, print, Markdown (Phase 7) |
-| `/w/[ws]/settings`, `/settings/members`, `/settings/api` | Workspace settings |
+| `/w/[ws]/settings`, `/settings/members`, `/settings/ai`, `/settings/api` | Workspace settings: general, members, AI key and model, API keys and webhooks |
 | `/account` | Profile, locale, data export, delete my data |
 | `/f/[publicId]` | Respondent form (own root layout: no app shell/providers). `?lang=`, `?t=` invite, `?resume=`, `?embed=1` |
 | `/r/[shareToken]` | Read-only shared report, no sign-in, live data, print button (Phase 7) |
 | `/api/auth/[...nextauth]` | Auth.js |
 | `/api/f/[publicId]/{start,resume,save,submit,upload}` | Respondent API (rate-limited) |
 | `/api/files/[id]` | Authenticated file download |
-| `/api/v1/*` | Public API (API key) |
+| `/api/v1/projects`, `/api/v1/studies/[id]/responses?format=json\|csv` | Public read-only API (Bearer API key) |
+| `/api/account/export` | Download my data (JSON) |
 
 ---
 
@@ -218,7 +220,7 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - [x] Phase 5 — Qualitative coding
 - [x] Phase 6 — Mixed methods, written analysis, groups, notifications, Persian, rebrand
 - [x] Phase 7 — Reports & exports, plus Generate / Upload CSV / Enter manually everywhere
-- [ ] Phase 8 — Polish
+- [x] Phase 8 — AI settings, API & webhooks, account data, polish
 
 ### Phase 2 notes
 
@@ -392,6 +394,33 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
   an answer to each research question, and specific limitations. All numbers come from the
   project; the text goes through the humanize clean-up. Claude (`AI_PROVIDER=claude`) stays optional.
 
+### Phase 8 notes
+
+- **AI settings** (Settings → AI): owners paste an Anthropic API key (encrypted at rest, only the
+  last four characters are ever shown again), pick the model, and can check the key (lists models,
+  spends no tokens). The server's `ANTHROPIC_API_KEY` is a fallback.
+- **Use AI / Placeholder** next to every generate button (questionnaire, guide, codebook, write-up,
+  code suggestions, session summary, answer grouping, theme description). `providerFor()` resolves
+  the choice on the server: "ai" needs a key (otherwise a clear "AI isn't set up" message);
+  "placeholder" (the built-in offline generator) is allowed only for workspace owners and in
+  development (`NODE_ENV !== production` or `LYZE_DEV_TOOLS=1`). Everyone else never sees it.
+  Made-up data (test responses, test participants, sample transcripts) is likewise owner/dev-only.
+- **Proposal reading** got stricter: stops at References/Appendix (so questionnaire items in an
+  appendix aren't research questions), takes "Q1." only inside a research-questions section,
+  keeps the first occurrence of a label (RQ1 restated in the Discussion), drops near-duplicates,
+  prefers labelled questions, and only falls back to questions in the introduction. A new upload
+  replaces the brief's questions and hypotheses instead of adding to them.
+- **Public API** (read-only, Bearer key): projects with studies, and a study's cleaned responses as
+  JSON (with variable metadata) or CSV. **Webhooks**: `response.submitted`, `transcript.ready`,
+  `consent.signed`, POSTed as JSON with `X-Lyze-Event` and `X-Lyze-Signature: sha256=<HMAC>`; private
+  and local addresses are refused in production; every delivery records its status.
+- **Account**: download all your data as JSON; delete your account (type your email; workspaces
+  where you're alone go with it; owning a shared workspace alone blocks it until you hand over).
+- **Polish**: Lighthouse accessibility 100 on dashboard, coding, mixed methods, write-up, reports,
+  activity, settings and sign-in (fixed: a link name that didn't match its visible text, low
+  contrast on success text, labels on tinted cards); toasts no longer overflow small phones;
+  settings pages share a tab bar.
+
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |
@@ -453,3 +482,6 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 46 | Manual entry reuses the respondent form (`?entry=manual`, signed-in members only) | Same validation and logic as real respondents; no second data-entry UI to maintain. |
 | 47 | Report blocks reference data instead of copying it | Reports and their public links stay current as coding and data change; deleted items show a clear placeholder. |
 | 48 | PDF via the browser's print (print stylesheet), not a server renderer | No headless browser in production; charts print as vector SVG. A server-side PDF/DOCX export can come later. |
+| 49 | AI keys are stored per workspace, encrypted with a key derived from AUTH_SECRET | Each team pays for its own usage; a database leak alone doesn't expose keys. Rotating AUTH_SECRET makes stored keys unreadable (owners re-enter them). |
+| 50 | Placeholder generation is owner/dev-only | It's a testing tool; real users should get real AI or a clear message, never canned text they might mistake for analysis. |
+| 51 | The public API is read-only in v1 | Covers the common needs (R/Python scripts, dashboards) without opening write paths; writes can come later with scoped keys. |

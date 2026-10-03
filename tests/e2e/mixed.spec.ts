@@ -38,7 +38,7 @@ test("mixed methods, written analysis, groups, notifications and activity", asyn
   // The brief frames a written analysis; re-reading the demo proposal finds nothing new.
   await page.goto(`${base}/writeup`);
   await page.locator('input[type="file"]').setInputFiles("tests/fixtures/proposal.pdf");
-  await expect(page.getByText("Read the file. Everything it lists is already in your brief.")).toBeVisible();
+  await expect(page.getByText(/Read the file: the aim, 3 research questions and 3 hypotheses/)).toBeVisible();
   await expect(page.getByText("proposal.pdf")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Research question 1" })).toHaveValue(/ritual/);
   await page.getByRole("button", { name: "Add a research question" }).click();

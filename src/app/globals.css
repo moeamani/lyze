@@ -40,7 +40,7 @@
 
   --destructive: oklch(0.56 0.2 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.55 0.13 155);
+  --success: oklch(0.5 0.12 155);
   --warning: oklch(0.7 0.14 70);
 
   --border: oklch(0.925 0.003 90);
@@ -429,5 +429,12 @@
   }
   .report-print .break-inside-avoid {
     break-inside: avoid;
+  }
+}
+
+/* Sonner on phones: it sets both side offsets and width: 100%, which pokes past the screen edge. */
+@media (max-width: 600px) {
+  [data-sonner-toaster] {
+    width: auto !important;
   }
 }

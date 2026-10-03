@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useActionFeedback } from "@/components/common/use-action-feedback";
 import { importTranscriptAction } from "@/server/actions/interviews";
 import { generateAction } from "@/server/actions/create";
+import { useCanPlaceholder } from "@/components/common/ai-mode";
 import { cn } from "@/lib/utils";
 
 type Scope = { workspaceId: string; slug: string; projectId: string; studyId: string };
@@ -240,9 +241,11 @@ export function ImportTranscriptDialog({ scope, sessionId, open, onOpenChange }:
 /** "Generate sample": a made-up transcript built from the guide, for trying coding before real interviews. */
 function SampleTranscriptButton({ scope, sessionId }: { scope: Scope; sessionId: string }) {
   const t = useTranslations("create");
+  const allowed = useCanPlaceholder();
   const feedback = useActionFeedback();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  if (!allowed) return null;
   return (
     <Button
       variant="ghost"

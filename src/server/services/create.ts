@@ -7,7 +7,7 @@ import { answerColumns, type Answers } from "@/lib/forms/answers";
 import { buildForm, parseFormCsv } from "@/lib/create/form";
 import { fakeAnswers, parseResponsesCsv, responsesCsvExample, seeded } from "@/lib/create/responses";
 import { fakePeople, parseCodebookCsv, parseGuideCsv } from "@/lib/create/misc";
-import { assistProvider } from "@/server/ai";
+import { assistProvider, type AssistProvider } from "@/server/ai";
 import { requireWorkspace } from "./access";
 import { recordAudit } from "./audit";
 import { AppError } from "./errors";
@@ -35,12 +35,12 @@ async function briefFor(workspaceId: string, projectId: string) {
 // ── Questionnaire ───────────────────────────────────────────────────────────
 
 /** Draft a questionnaire from the project brief (built-in rules or Claude). Needs research questions or statements. */
-export async function generateQuestionnaire(userId: string, workspaceId: string, studyId: string, locale = "en") {
+export async function generateQuestionnaire(userId: string, workspaceId: string, studyId: string, locale = "en", provider: AssistProvider = assistProvider()) {
   await requireWorkspace(userId, workspaceId, "content:edit");
   const study = await studyRow(workspaceId, studyId);
   const { brief, proposal } = await briefFor(workspaceId, study.projectId);
   if (!brief.questions.length && !brief.statements.length) throw new AppError("invalid");
-  const rows = await assistProvider().draftQuestionnaire({ brief, proposal, language: language(locale) });
+  const rows = await provider.draftQuestionnaire({ brief, proposal, language: language(locale) });
   const doc = buildForm(study.name, rows, study.description ?? undefined);
   const form = await createForm(userId, workspaceId, study.projectId, studyId, { doc, how: "generated" });
   return { formId: form.id, questions: rows.length };
@@ -57,12 +57,12 @@ export async function importQuestionnaire(userId: string, workspaceId: string, s
 
 // ── Interview guide ────────────────────────────────────────────────────────
 
-export async function generateGuide(userId: string, workspaceId: string, studyId: string, locale = "en") {
+export async function generateGuide(userId: string, workspaceId: string, studyId: string, locale = "en", provider: AssistProvider = assistProvider()) {
   await requireWorkspace(userId, workspaceId, "content:edit");
   const study = await studyRow(workspaceId, studyId);
   const { brief, proposal } = await briefFor(workspaceId, study.projectId);
   if (!brief.questions.length && !brief.statements.length) throw new AppError("invalid");
-  const guide = await assistProvider().draftGuide({ brief, proposal, language: language(locale) });
+  const guide = await provider.draftGuide({ brief, proposal, language: language(locale) });
   await saveGuide(userId, workspaceId, studyId, guide);
   return { sections: guide.sections.length };
 }
@@ -192,7 +192,7 @@ async function addCodes(userId: string, workspaceId: string, projectId: string, 
 }
 
 /** A starting codebook from the brief and the project's own text. Codes that already exist are kept as they are. */
-export async function generateCodebook(userId: string, workspaceId: string, projectId: string, locale = "en") {
+export async function generateCodebook(userId: string, workspaceId: string, projectId: string, locale = "en", provider: AssistProvider = assistProvider()) {
   await requireWorkspace(userId, workspaceId, "content:analyze");
   const { brief } = await briefFor(workspaceId, projectId);
   const docs = await listDocuments(workspaceId, projectId);
@@ -202,7 +202,7 @@ export async function generateCodebook(userId: string, workspaceId: string, proj
     for (const u of doc?.units ?? []) if (u.role !== "interviewer" && u.text.length > 25) samples.push(u.text);
   }
   if (samples.length < 4 && !brief.questions.length) throw new AppError("invalid");
-  const codes = await assistProvider().draftCodebook({ brief, samples: samples.slice(0, 300), language: language(locale) });
+  const codes = await provider.draftCodebook({ brief, samples: samples.slice(0, 300), language: language(locale) });
   return addCodes(userId, workspaceId, projectId, codes);
 }
 

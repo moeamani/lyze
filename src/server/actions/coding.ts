@@ -10,6 +10,7 @@ import { clusterQuestion, createCodeFromCluster, draftTheme, suggestForDocument,
 import { parseDocKey } from "@/server/services/qual-docs";
 import { AppError } from "@/server/services/errors";
 import { attempt } from "./result";
+import { providerFor, type AiMode } from "@/server/ai";
 
 type Scope = { workspaceId: string; slug: string; projectId: string };
 
@@ -107,22 +108,22 @@ export async function deleteMemoAction(scope: Scope, memoId: string) {
 
 // ── Assistant (all output is a suggestion) ─────────────────────────────────
 
-export async function suggestCodingsAction(scope: Scope, docKey: string) {
-  return run(scope, (u) => {
+export async function suggestCodingsAction(scope: Scope, docKey: string, mode: AiMode = "ai") {
+  return run(scope, async (u) => {
     const ref = parseDocKey(docKey);
     if (!ref) throw new AppError("invalid");
-    return suggestForDocument(u, ...W(scope), ref);
+    return suggestForDocument(u, ...W(scope), ref, await providerFor(u, scope.workspaceId, mode));
   });
 }
-export async function summarizeSessionAction(scope: Scope, sessionId: string) {
-  return run(scope, (u) => summarizeSession(u, ...W(scope), sessionId), false);
+export async function summarizeSessionAction(scope: Scope, sessionId: string, mode: AiMode = "ai") {
+  return run(scope, async (u) => summarizeSession(u, ...W(scope), sessionId, await providerFor(u, scope.workspaceId, mode)), false);
 }
-export async function clusterQuestionAction(scope: Scope, studyId: string, questionId: string) {
-  return run(scope, (u) => clusterQuestion(u, ...W(scope), studyId, questionId), false);
+export async function clusterQuestionAction(scope: Scope, studyId: string, questionId: string, mode: AiMode = "ai") {
+  return run(scope, async (u) => clusterQuestion(u, ...W(scope), studyId, questionId, await providerFor(u, scope.workspaceId, mode)), false);
 }
 export async function createCodeFromClusterAction(scope: Scope, code: CodeInput, answerIds: string[]) {
   return run(scope, (u) => createCodeFromCluster(u, ...W(scope), { code, answerIds }));
 }
-export async function draftThemeAction(scope: Scope, themeId: string) {
-  return run(scope, (u) => draftTheme(u, ...W(scope), themeId), false);
+export async function draftThemeAction(scope: Scope, themeId: string, mode: AiMode = "ai") {
+  return run(scope, async (u) => draftTheme(u, ...W(scope), themeId, await providerFor(u, scope.workspaceId, mode)), false);
 }

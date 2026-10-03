@@ -72,6 +72,10 @@ const KNOWN_ACTIONS = new Set([
   "report.unshared",
   "response.generated",
   "response.imported",
+  "workspace.ai_updated",
+  "workspace.api_key_created",
+  "workspace.api_key_revoked",
+  "workspace.webhook_created",
 ]);
 
 const LOOK: Record<ActivityCategory, { icon: LucideIcon; section: Section }> = {

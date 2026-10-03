@@ -35,8 +35,11 @@ export function MobileHeader() {
       >
         <SearchIcon className="size-5" />
       </button>
-      <Link href="/account" aria-label={ts("account")} className="grid size-11 place-items-center rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40">
-        <UserAvatar />
+      <Link href="/account" className="grid size-11 place-items-center rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40">
+        <span aria-hidden>
+          <UserAvatar />
+        </span>
+        <span className="sr-only">{ts("account")}</span>
       </Link>
     </header>
   );

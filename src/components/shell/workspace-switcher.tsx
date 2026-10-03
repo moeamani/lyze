@@ -40,9 +40,10 @@ export function WorkspaceSwitcher({ collapsed = false, className }: { collapsed?
           collapsed && "justify-center",
           className,
         )}
-        aria-label={t("switchWorkspace")}
+        aria-label={collapsed ? t("switchWorkspace") : undefined}
       >
         <WorkspaceMark name={workspace.name} />
+        {!collapsed && <span className="sr-only">{t("switchWorkspace")}: </span>}
         {!collapsed && (
           <>
             <span className="min-w-0 flex-1">

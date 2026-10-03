@@ -7,6 +7,7 @@ import { signOutAction } from "@/server/actions/auth";
 import { lastWorkspaceSlug } from "@/server/preferences";
 import { ProfileForm } from "@/components/account/profile-form";
 import { Preferences } from "@/components/account/preferences";
+import { AccountData } from "@/components/account/account-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageContainer, PageHeader } from "@/components/common/page-header";
@@ -46,6 +47,14 @@ export default async function AccountPage() {
         </CardHeader>
         <CardContent>
           <Preferences />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("data.title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AccountData email={user.email} />
         </CardContent>
       </Card>
       <form action={signOutAction}>

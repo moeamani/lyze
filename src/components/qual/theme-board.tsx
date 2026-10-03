@@ -1,5 +1,6 @@
 "use client";
 
+import { AiModeSelect, useAiMode } from "@/components/common/ai-mode";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -273,6 +274,7 @@ function ThemeDialog({ scope, theme, count, onClose, assistant }: { scope: Scope
   const [drafted, setDrafted] = useState(false);
   const [pending, startTransition] = useTransition();
   const [drafting, startDraft] = useTransition();
+  const [mode] = useAiMode();
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent closeLabel={tc("close")} className="sm:max-w-lg">
@@ -308,6 +310,7 @@ function ThemeDialog({ scope, theme, count, onClose, assistant }: { scope: Scope
                 {t("description")}
               </Label>
               {drafted && <SuggestionBadge assistant={assistant} />}
+              {theme && <AiModeSelect />}
               {theme && (
                 <Button
                   type="button"
@@ -316,7 +319,7 @@ function ThemeDialog({ scope, theme, count, onClose, assistant }: { scope: Scope
                   disabled={drafting}
                   onClick={() =>
                     startDraft(async () => {
-                      const result = await draftThemeAction(scope, theme.id);
+                      const result = await draftThemeAction(scope, theme.id, mode);
                       if (feedback(result) && result.ok) {
                         setDescription(result.data.text);
                         setDrafted(true);

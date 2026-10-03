@@ -830,3 +830,62 @@ export const reports = pgTable(
   (t) => [index("reports_project_idx").on(t.projectId, t.updatedAt)],
 );
 export type Report = typeof reports.$inferSelect;
+
+// ── Phase 8: AI settings, API keys, webhooks ───────────────────────────────
+
+/** A workspace's own AI key (encrypted at rest with AUTH_SECRET) and model choice. */
+export const workspaceAi = pgTable("workspace_ai", {
+  workspaceId: text("workspace_id")
+    .primaryKey()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull().default("anthropic"),
+  apiKeyEnc: text("api_key_enc").notNull(),
+  /** Last four characters, to show which key is saved. */
+  keyHint: text("key_hint").notNull(),
+  model: text("model"),
+  updatedById: text("updated_by_id").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: updatedAt(),
+});
+
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("key")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** SHA-256 of the secret; the secret itself is shown once and never stored. */
+    hashedKey: text("hashed_key").notNull().unique(),
+    prefix: text("prefix").notNull(),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true, mode: "date" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("api_keys_ws_idx").on(t.workspaceId)],
+);
+
+export const webhooks = pgTable(
+  "webhooks",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("whk")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    /** Used to sign each delivery (HMAC-SHA256), shown to the owner so receivers can verify. */
+    secret: text("secret").notNull(),
+    events: jsonb("events").$type<string[]>().notNull().default([]),
+    active: boolean("active").notNull().default(true),
+    lastStatus: integer("last_status"),
+    lastDeliveredAt: timestamp("last_delivered_at", { withTimezone: true, mode: "date" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("webhooks_ws_idx").on(t.workspaceId)],
+);
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type Webhook = typeof webhooks.$inferSelect;

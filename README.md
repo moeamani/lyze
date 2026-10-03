@@ -47,9 +47,10 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | `MEDIA_MAX_MB` | no | Largest session recording accepted (default 500 MB). |
 | `TRANSCRIPTION_PROVIDER` | no | Empty → mock transcripts (dev). `openai` → any OpenAI-compatible speech-to-text endpoint. |
 | `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_API_URL`, `TRANSCRIPTION_MODEL` | with `openai` | Key, base URL (default `https://api.openai.com/v1`) and model (default `whisper-1`). |
-| `AI_PROVIDER` | no | Empty → the built-in assistant (offline heuristics). `claude` → Claude via the Anthropic API. |
-| `ANTHROPIC_API_KEY` | with `claude` | Anthropic API key. |
-| `AI_MODEL` | no | Claude model id (default `claude-opus-5-5`). |
+| `ANTHROPIC_API_KEY` | no | Server-wide fallback key. Usually each workspace adds its own in Settings → AI instead. |
+| `AI_MODEL` | no | Model for the server-wide key (default `claude-opus-5-5`). |
+| `AI_PROVIDER` | no | `claude` makes scripts and background jobs without an explicit choice use the server key. |
+| `LYZE_DEV_TOOLS` | no | `1` lets every member use Placeholder generation and test data in production (normally owners only). |
 
 ## Scripts
 
@@ -169,6 +170,30 @@ shows current data; turn the link off to revoke it), print or save it as PDF, or
 
 All prose Lyze writes follows the humanize skill in `docs/skills/humanize`.
 
+## AI
+
+Owners add an Anthropic API key in **Settings → AI** (stored encrypted; only its last four
+characters are shown) and pick a model. Every generate button then has a **Use AI / Placeholder**
+choice: Placeholder is Lyze's built-in offline generator, shown only to workspace owners and in
+development, for testing without spending tokens.
+
+## API and webhooks
+
+Create a key in **Settings → API & webhooks**, then:
+
+```sh
+curl -H "Authorization: Bearer lyze_…" https://your-lyze/api/v1/projects
+curl -H "Authorization: Bearer lyze_…" "https://your-lyze/api/v1/studies/<studyId>/responses?format=csv"
+```
+
+Webhooks receive `response.submitted`, `transcript.ready` and `consent.signed` as JSON. Verify the
+`X-Lyze-Signature` header: it is `sha256=` followed by the HMAC-SHA256 of the raw body with the
+webhook's signing secret.
+
+## Your data
+
+**Account → Your data** downloads everything Lyze holds about you as JSON, or deletes your account.
+
 ## Architecture
 
 ```
@@ -279,3 +304,5 @@ Check each at **360px**, **768px** and **1280px+**, in light and dark mode:
 - [ ] Persian (RTL, Peyda) on dashboard, project tabs and a respondent form
 - [ ] Generate / Upload / Manual on build page, guide, responses (with test-data banner), participants, codebook, session
 - [ ] Reports: list, generated report in the editor, public link page, print preview
+- [ ] Settings tabs; AI page (no key / workspace key); Use AI / Placeholder dropdown next to Write analysis
+- [ ] API & webhooks page with a new key shown once; account "Your data" card and delete dialog

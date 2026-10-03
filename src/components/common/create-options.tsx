@@ -7,6 +7,7 @@ import { DownloadIcon, Loader2Icon, PencilLineIcon, SparklesIcon, UploadIcon } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useActionFeedback } from "@/components/common/use-action-feedback";
+import { AiModeSelect, useAiMode, useCanPlaceholder } from "@/components/common/ai-mode";
 import { deleteGeneratedAction, generateAction, responsesTemplateAction, uploadAction, type CreateKind, type CreateScope } from "@/server/actions/create";
 import { FORM_CSV_EXAMPLE } from "@/lib/create/form";
 import { CODEBOOK_CSV_EXAMPLE, GUIDE_CSV_EXAMPLE, PEOPLE_CSV_EXAMPLE } from "@/lib/create/misc";
@@ -51,6 +52,10 @@ export function CreateOptions({
   const [busy, setBusy] = useState<"generate" | "upload" | null>(null);
   const [count, setCount] = useState(kind === "participants" ? 8 : 40);
   const file = useRef<HTMLInputElement>(null);
+  const [mode] = useAiMode();
+  const canPlaceholder = useCanPlaceholder();
+  // Made-up data is a placeholder tool: hidden from people who can't use it.
+  const generateHidden = hide.includes("generate") || (COUNTED.includes(kind) && !canPlaceholder);
 
   const run = (which: "generate" | "upload", fn: () => Promise<boolean>) => {
     setBusy(which);
@@ -62,7 +67,7 @@ export function CreateOptions({
 
   const generate = () =>
     run("generate", async () => {
-      const r = await generateAction(scope, kind, count);
+      const r = await generateAction(scope, kind, count, mode);
       return feedback(r, r.ok ? t(`generated.${kind}`, { count: Number(r.data.count ?? 0) }) : undefined);
     });
 
@@ -83,7 +88,7 @@ export function CreateOptions({
   const card = "flex flex-col gap-2 rounded-xl border bg-card p-4";
   return (
     <div className={cn("grid grid-cols-1 gap-3", compact ? "sm:grid-cols-3" : "md:grid-cols-3", className)}>
-      {!hide.includes("generate") && (
+      {!generateHidden && (
         <div className={card}>
           <p className="flex items-center gap-2 font-semibold">
             <SparklesIcon className="size-4 text-section-coding" aria-hidden />
@@ -98,6 +103,7 @@ export function CreateOptions({
               {busy === "generate" ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
               {t("generateButton")}
             </Button>
+            {!COUNTED.includes(kind) && <AiModeSelect />}
           </div>
         </div>
       )}

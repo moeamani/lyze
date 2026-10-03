@@ -37,7 +37,8 @@
     "retry": "Try again",
     "notFoundTitle": "Nothing to see here",
     "notFoundBody": "The page you're looking for moved, was deleted, or never existed.",
-    "goHome": "Go home"
+    "goHome": "Go home",
+    "aiNotConfigured": "AI isn't set up for this workspace yet. An owner can add an API key in Settings → AI."
   },
   "landing": {
     "signIn": "Sign in",
@@ -125,7 +126,17 @@
     "preferences": "Preferences",
     "preferencesHint": "Make Lyze feel like yours.",
     "language": "Language",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "data": {
+      "title": "Your data",
+      "hint": "Download everything Lyze holds about you as JSON, or delete your account. Workspaces where you're the only member are deleted with it.",
+      "export": "Download my data",
+      "delete": "Delete account",
+      "deleteTitle": "Delete your account?",
+      "deleteBody": "This can't be undone. If you own a workspace with other members, make someone else an owner first.",
+      "typeEmail": "Type {email} to confirm",
+      "deleteForever": "Delete forever"
+    }
   },
   "shell": {
     "sidebar": "Sidebar",
@@ -396,7 +407,11 @@
       "report_shared": "{actor} turned on the public link for “{name}”",
       "report_unshared": "{actor} turned off the public link for “{name}”",
       "response_generated": "{actor} generated {count} test responses",
-      "response_imported": "{actor} imported {count} responses from a CSV"
+      "response_imported": "{actor} imported {count} responses from a CSV",
+      "workspace_ai_updated": "{actor} changed the AI settings",
+      "workspace_api_key_created": "{actor} created API key “{name}”",
+      "workspace_api_key_revoked": "{actor} revoked API key “{name}”",
+      "workspace_webhook_created": "{actor} added a webhook to {name}"
     },
     "today": "Today",
     "yesterday": "Yesterday",
@@ -1986,10 +2001,9 @@
       "saved": "Brief saved",
       "unsaved": "Unsaved changes",
       "proposalAuto": "Upload it and Lyze reads the aim, research questions and hypotheses for you. You can still edit them below.",
-      "foundInFile": "Read the file: {aim, select, yes {the aim, } other {}}{questions, plural, =0 {no new research questions} one {# research question} other {# research questions}} and {statements, plural, =0 {no new hypotheses} one {# hypothesis} other {# hypotheses}}",
+      "foundInFile": "Read the file: {aim, select, yes {the aim, } other {}}{questions, plural, =0 {no research questions} one {# research question} other {# research questions}} and {statements, plural, =0 {no hypotheses} one {# hypothesis} other {# hypotheses}}. They replace what the brief had.",
       "foundNothing": "File attached. No aim, research questions or hypotheses were recognised; add them below.",
-      "unreadable": "File attached, but no text could be read from it (a scanned PDF?). Add the brief below.",
-      "alreadyInBrief": "Read the file. Everything it lists is already in your brief."
+      "unreadable": "File attached, but no text could be read from it (a scanned PDF?). Add the brief below."
     }
   },
   "notifications": {
@@ -2179,5 +2193,79 @@
     "qual": "{passages} passages · {people} people",
     "sharedFrom": "A report from {project}",
     "titleLabel": "Report title"
+  },
+  "ai": {
+    "mode": "Generation mode",
+    "useAi": "Use AI",
+    "useAiNoKey": "Use AI (no key yet)",
+    "placeholder": "Placeholder",
+    "notSetUp": "Set up AI"
+  },
+  "settingsTabs": {
+    "label": "Settings sections",
+    "general": "General",
+    "members": "Members",
+    "ai": "AI",
+    "api": "API & webhooks"
+  },
+  "aiSettings": {
+    "title": "AI",
+    "subtitle": "Connect Claude to draft questionnaires, guides, codebooks and written analyses, suggest codes and summarise sessions.",
+    "statusWorkspace": "Using this workspace's key (…{hint})",
+    "statusServer": "Using the server's key",
+    "statusNone": "No API key yet",
+    "statusHint": "Keys are encrypted before they are stored and never shown again. Text you send to AI goes to Anthropic.",
+    "check": "Check key",
+    "keyWorks": "The key works",
+    "apiKey": "Anthropic API key",
+    "replaceKey": "Replace the key",
+    "keyHelp": "Create one at console.anthropic.com → API keys. Leave empty to keep the current key and only change the model.",
+    "model": "Model",
+    "models": {
+      "claude-opus": "Claude Opus 5.5 (best writing)",
+      "claude-sonnet": "Claude Sonnet 5.5 (faster)",
+      "claude-haiku": "Claude Haiku 4.5 (cheapest)"
+    },
+    "save": "Save",
+    "saved": "AI settings saved",
+    "remove": "Remove key",
+    "removed": "Key removed",
+    "ownersOnly": "Only workspace owners can change the AI key.",
+    "placeholderNote": "Owners and developers can also choose Placeholder next to each Generate button: Lyze's built-in, offline generator, useful for testing without spending tokens.",
+    "checkResult": {
+      "missing": "No key to check",
+      "rejected": "Anthropic rejected this key",
+      "unreachable": "Couldn't reach Anthropic from the server"
+    }
+  },
+  "apiSettings": {
+    "title": "API & webhooks",
+    "subtitle": "Read your data from other tools, and get told when something happens.",
+    "keys": "API keys",
+    "keysHint": "Read-only access to this workspace's projects, studies and responses.",
+    "copyNow": "Copy this key now. It won't be shown again.",
+    "newKey": "New API key",
+    "copy": "Copy",
+    "copied": "Copied",
+    "lastUsed": "Used",
+    "neverUsed": "Never used",
+    "revoke": "Revoke {name}",
+    "revoked": "Key revoked",
+    "noKeys": "No keys yet.",
+    "keyName": "Key name, e.g. R script",
+    "createKey": "Create key",
+    "webhooks": "Webhooks",
+    "webhooksHint": "Lyze POSTs a JSON event to your URL, signed with HMAC-SHA256 in the X-Lyze-Signature header.",
+    "notYet": "Not called yet",
+    "lastOk": "Last call: {status}",
+    "lastFailed": "Last call failed ({status})",
+    "deleteHook": "Delete webhook",
+    "signingSecret": "Signing secret",
+    "copySecret": "Copy signing secret",
+    "noHooks": "No webhooks yet.",
+    "hookUrl": "Webhook URL",
+    "events": "Events",
+    "addHook": "Add webhook",
+    "hookCreated": "Webhook added"
   }
 }

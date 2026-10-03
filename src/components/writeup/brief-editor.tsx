@@ -44,7 +44,7 @@ export function BriefEditor({ scope, brief, canEdit }: { scope: Scope; brief: Br
       form.set("file", f);
       const result = await attachProposalAction(scope, form);
       const found = result.ok ? result.data.found : null;
-      const message = !result.ok ? undefined : !result.data.readable ? t("unreadable") : found && (found.aim || found.questions || found.statements) ? t("foundInFile", { questions: found.questions, statements: found.statements, aim: found.aim ? "yes" : "no" }) : found?.recognised ? t("alreadyInBrief") : t("foundNothing");
+      const message = !result.ok ? undefined : !result.data.readable ? t("unreadable") : found && (found.aim || found.questions || found.statements) ? t("foundInFile", { questions: found.questions, statements: found.statements, aim: found.aim ? "yes" : "no" }) : t("foundNothing");
       if (feedback(result, message)) router.refresh();
     });
 
@@ -92,7 +92,7 @@ export function BriefEditor({ scope, brief, canEdit }: { scope: Scope; brief: Br
         <legend className="mb-1 text-sm font-medium">{t("questions")}</legend>
         {questions.map((q, i) => (
           <div key={q.id} className="flex items-start gap-2">
-            <span className="mt-2.5 w-8 shrink-0 text-xs font-semibold text-section-writeup">RQ{i + 1}</span>
+            <span className="mt-2.5 w-8 shrink-0 text-xs font-semibold text-muted-foreground">RQ{i + 1}</span>
             <Textarea rows={1} className="min-h-10" aria-label={t("questionN", { n: i + 1 })} value={q.text} disabled={!canEdit} onChange={(e) => (setQuestions((xs) => xs.map((x) => (x.id === q.id ? { ...x, text: e.target.value } : x))), touch())} />
             {canEdit && (
               <Button variant="ghost" size="icon-sm" className="mt-1" aria-label={t("removeQuestion", { n: i + 1 })} onClick={() => (setQuestions((xs) => xs.filter((x) => x.id !== q.id)), touch())}>

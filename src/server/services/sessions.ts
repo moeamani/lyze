@@ -1,3 +1,4 @@
+import { dispatchWebhooks } from "./api";
 import { mockProvider } from "@/server/transcription/mock";
 import { membersWithRoles, notify, studyLink } from "./notifications";
 import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
@@ -436,6 +437,7 @@ export async function runTranscription(transcriptId: string, provider: Transcrip
     const assigned = assignSpeakers(result.segments, ctx);
     await db.transaction((tx) => writeTranscript(tx, { workspaceId: session.workspaceId, sessionId: session.id, provider: provider.name, language: result.language, ...assigned }));
     await notifyTranscript(session, "transcript");
+    void dispatchWebhooks(session.workspaceId, "transcript.ready", { sessionId: session.id, studyId: session.studyId });
   } catch (error) {
     console.error("Transcription failed", transcriptId, error);
     const [t] = await db.select({ sessionId: transcripts.sessionId }).from(transcripts).where(eq(transcripts.id, transcriptId)).limit(1).catch(() => []);

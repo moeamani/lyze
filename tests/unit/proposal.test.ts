@@ -8,7 +8,7 @@ import { createWorkspace } from "@/server/services/workspaces";
 import { createProject } from "@/server/services/projects";
 import { attachProposal, buildContext, generateWriteup, getBrief } from "@/server/services/writeup";
 import { pdfText } from "@/lib/writeup/pdf";
-import { extractBrief, mergeBrief } from "@/lib/writeup/brief-extract";
+import { applyExtracted, extractBrief } from "@/lib/writeup/brief-extract";
 import { composeArticle, midpointTest } from "@/lib/writeup/article";
 import { proseIssues } from "@/lib/writeup/style";
 import { newId } from "@/lib/ids";
@@ -38,8 +38,9 @@ describe("reading a proposal", () => {
     const b = extractBrief("A study of dropout\n\n1.2 Purpose of the study\nThis research seeks to explain why students drop out of online courses.\n\n1.3 Research Questions\n1. How do students describe their reasons for leaving?\n\n1.4 Hypotheses\nWorkload is positively associated with dropout.\nH0: there is no effect.\nIt is expected that peer support lowers dropout.");
     expect(b.questions).toEqual(["How do students describe their reasons for leaving?"]);
     expect(b.statements.map((s) => s.text)).toEqual(["Workload is positively associated with dropout.", "Peer support lowers dropout."]);
-    const merged = mergeBrief({ aim: "", questions: [{ id: "a", text: "How do students describe their reasons for leaving?" }], statements: [] }, b, () => newId("x"));
-    expect(merged.added).toEqual({ aim: true, questions: 0, statements: 2, recognised: 4 });
+    const applied = applyExtracted({ aim: "", questions: [{ id: "a", text: "How do students describe their reasons for leaving?" }, { id: "b", text: "An old question?" }], statements: [] }, b, () => newId("x"));
+    expect(applied.questions).toEqual([{ id: "a", text: "How do students describe their reasons for leaving?" }]);
+    expect(applied.statements).toHaveLength(2);
   });
 
   it("fills an empty brief from an uploaded PDF", async () => {
@@ -49,9 +50,72 @@ describe("reading a proposal", () => {
     const file = new File([pdf()], "proposal.pdf", { type: "application/pdf" });
     const r = await attachProposal(u!.id, ws.id, project.id, file);
     expect(r).toMatchObject({ readable: true, found: { aim: true, questions: 3, statements: 3 } });
+    // A second upload of the same file replaces rather than doubles the brief.
+    await attachProposal(u!.id, ws.id, project.id, new File([pdf()], "proposal.pdf", { type: "application/pdf" }));
     const brief = await getBrief(ws.id, project.id);
     expect(brief.questions).toHaveLength(3);
     expect(brief.proposalText).toContain("Research questions");
+  });
+});
+
+describe("finding only the real research questions", () => {
+  it("ignores rhetorical, reviewed, restated and appendix questions", () => {
+    const thesis = `Remote Work and Loneliness Among Junior Staff
+A thesis submitted for the degree of Master of Science
+
+Chapter 1. Introduction
+Why do so many new graduates feel alone at work? Since 2020, remote work has become common. Is the office still needed? This thesis examines loneliness among junior staff who mostly work from home.
+
+1.1 Purpose of the study
+The purpose of this study is to examine how remote work relates to loneliness among junior employees and which practices reduce it.
+
+1.2 Research questions
+This study addresses the following questions:
+RQ1: How do junior employees describe their experience of loneliness when working remotely?
+RQ2: To what extent is the number of remote days per week associated with loneliness?
+RQ3: Which team practices do junior employees see as reducing isolation?
+
+1.3 Hypotheses
+H1: More remote days per week are associated with higher loneliness scores.
+H2: Regular one-to-one meetings with a manager are associated with lower loneliness.
+
+Chapter 2. Literature review
+Earlier work asked whether loneliness predicts turnover? Smith (2019) wondered how onboarding shapes belonging? We expect that the review will show mixed findings.
+
+Chapter 3. Methodology
+Participants were asked questions such as: How many days did you work from home last week?
+H3: This is a numbered item in a method table and not a hypothesis.
+
+Chapter 5. Discussion
+RQ1: How do junior staff experience loneliness when they work remotely?
+Turning to RQ2, the association was moderate.
+
+References
+Smith, J. (2019). What makes people stay? Journal of Work, 4(2), 1 to 20.
+
+Appendix A. Questionnaire
+Q1. How old are you?
+Q2. How many days per week do you work remotely?
+Q3. How lonely do you feel at work?`;
+    const b = extractBrief(thesis);
+    expect(b.title).toBe("Remote Work and Loneliness Among Junior Staff");
+    expect(b.aim).toMatch(/^The purpose of this study is to examine/);
+    expect(b.questions).toEqual([
+      "How do junior employees describe their experience of loneliness when working remotely?",
+      "To what extent is the number of remote days per week associated with loneliness?",
+      "Which team practices do junior employees see as reducing isolation?",
+    ]);
+    expect(b.statements.map((s) => s.text)).toEqual([
+      "More remote days per week are associated with higher loneliness scores.",
+      "Regular one-to-one meetings with a manager are associated with lower loneliness.",
+    ]);
+  });
+
+  it("uses a section's questions when nothing is labelled, and the introduction only as a last resort", () => {
+    const sectioned = extractBrief("Title here\n\nResearch questions\nThe study asks two questions.\n1. How do nurses decide when to escalate care?\n2. What gets in the way of escalation?\n\nMethod\nInterviews will ask: What did you do next?");
+    expect(sectioned.questions).toEqual(["How do nurses decide when to escalate care?", "What gets in the way of escalation?"]);
+    const intro = extractBrief("A short proposal\n\nIntroduction\nHow do small farms adopt drip irrigation in dry regions? Would you buy it? We look at three villages.\n\nMethods\nWhat did farmers pay for their first system?");
+    expect(intro.questions).toEqual(["How do small farms adopt drip irrigation in dry regions?"]);
   });
 });
 

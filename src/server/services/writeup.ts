@@ -7,9 +7,9 @@ import { summarizeQuestion } from "@/lib/analysis/summary";
 import type { WriteupContext } from "@/lib/writeup/context";
 import { PROPOSAL_MAX_BYTES, PROPOSAL_MAX_CHARS, PROPOSAL_TYPES, proposalText } from "@/lib/writeup/extract";
 import { pdfText } from "@/lib/writeup/pdf";
-import { extractBrief, mergeBrief } from "@/lib/writeup/brief-extract";
+import { applyExtracted, extractBrief } from "@/lib/writeup/brief-extract";
 import { cleanProse } from "@/lib/writeup/style";
-import { assistProvider } from "@/server/ai";
+import { assistProvider, type AssistProvider } from "@/server/ai";
 import { storage, storageFor } from "@/server/storage";
 import { requireWorkspace } from "./access";
 import { recordAudit } from "./audit";
@@ -82,7 +82,7 @@ export async function attachProposal(userId: string, workspaceId: string, projec
   await db.insert(files).values({ id, workspaceId, storage: store.name, key, name: file.name.slice(0, 200), mime: mime || "application/octet-stream", size: file.size, uploadedById: userId });
   const brief = await getBrief(workspaceId, projectId);
   // Read the aim, research questions and hypotheses straight out of the document.
-  const merged = text ? mergeBrief(brief, extractBrief(text), () => newId("rq")) : null;
+  const merged = text ? applyExtracted(brief, extractBrief(text), () => newId("rq")) : null;
   const values = {
     proposalFileId: id,
     proposalName: file.name.slice(0, 200),
@@ -202,7 +202,7 @@ export async function buildContext(workspaceId: string, projectId: string): Prom
 
 const LANGUAGES: Record<string, string> = { en: "English", fa: "Persian (Farsi)", ar: "Arabic" };
 
-export async function generateWriteup(userId: string, workspaceId: string, projectId: string, locale = "en") {
+export async function generateWriteup(userId: string, workspaceId: string, projectId: string, locale = "en", provider: AssistProvider = assistProvider()) {
   await requireWorkspace(userId, workspaceId, "content:analyze");
   const context = await buildContext(workspaceId, projectId);
   const brief = await getBrief(workspaceId, projectId);
@@ -214,7 +214,6 @@ export async function generateWriteup(userId: string, workspaceId: string, proje
       if (obj) pdf = obj.body instanceof Uint8Array ? obj.body : new Uint8Array(await new Response(obj.body).arrayBuffer());
     }
   }
-  const provider = assistProvider();
   const { title, body } = await provider.writeAnalysis({ context, language: LANGUAGES[locale] ?? "English", proposalPdf: pdf });
   const [row] = await db.insert(writeups).values({ workspaceId, projectId, title: title.slice(0, 200), body, provider: provider.name, createdById: userId }).returning();
   await recordAudit(db, { workspaceId, actorId: userId, action: "writeup.created", entityType: "writeup", entityId: row!.id, metadata: { name: row!.title } });

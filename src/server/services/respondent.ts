@@ -9,6 +9,7 @@ import { findQuestion, type FormDoc } from "@/lib/forms/schema";
 import { storage, storageFor } from "@/server/storage";
 import { getPublishedDoc } from "./forms";
 import { requireWorkspace } from "./access";
+import { dispatchWebhooks } from "./api";
 import { membersWithRoles, notify, studyLink } from "./notifications";
 
 /** Respondent-facing failures. Codes are i18n keys in the `respondent` namespace. */
@@ -299,6 +300,7 @@ export async function submitResponse(
     if (link) {
       const people = await membersWithRoles(link.workspaceId, ["owner", "editor"]);
       await notify(people, { workspaceId: link.workspaceId, kind: "responses", data: { study: link.studyName }, href: `${link.base}/responses`, groupKey: `responses:${response.studyId}` });
+      void dispatchWebhooks(link.workspaceId, "response.submitted", { responseId: response.id, studyId: response.studyId, projectId: link.projectId });
     }
   }
 

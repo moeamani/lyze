@@ -103,13 +103,13 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
           "flex h-10 items-center gap-3 rounded-xl border bg-card px-3 text-sm text-muted-foreground shadow-soft transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40",
           collapsed && "justify-center px-0",
         )}
-        aria-label={ts("search")}
+        aria-label={collapsed ? ts("search") : undefined}
       >
-        <SearchIcon className="size-4" />
+        <SearchIcon className="size-4" aria-hidden />
         {!collapsed && (
           <>
             <span className="flex-1 text-start">{ts("search")}</span>
-            <Kbd>⌘K</Kbd>
+            <Kbd aria-hidden>⌘K</Kbd>
           </>
         )}
       </button>

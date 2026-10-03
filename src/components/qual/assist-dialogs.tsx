@@ -1,5 +1,6 @@
 "use client";
 
+import { AiModeSelect, useAiMode } from "@/components/common/ai-mode";
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2Icon, PlusIcon, ScrollTextIcon, SparklesIcon, CheckIcon, ShapesIcon } from "lucide-react";
@@ -32,16 +33,18 @@ export function SummarizeButton({ scope, sessionId, studyId, canSave, assistant 
   const [open, setOpen] = useState(false);
   const [points, setPoints] = useState<string[] | null>(null);
   const [pending, startTransition] = useTransition();
+  const [mode] = useAiMode();
   const run = () =>
     startTransition(async () => {
       setOpen(true);
       setPoints(null);
-      const result = await summarizeSessionAction(scope, sessionId);
+      const result = await summarizeSessionAction(scope, sessionId, mode);
       if (feedback(result) && result.ok) setPoints(result.data.points);
       else setOpen(false);
     });
   return (
     <>
+      <AiModeSelect />
       <Button variant="outline" size="sm" onClick={run} disabled={pending}>
         {pending ? <Loader2Icon className="animate-spin" /> : <ScrollTextIcon />}
         {t("summarize")}
@@ -103,16 +106,18 @@ export function ClusterButton({ scope, studyId, questionId, assistant, codesCoun
   const [open, setOpen] = useState(false);
   const [clusters, setClusters] = useState<(Cluster & { name: string; done: boolean })[] | null>(null);
   const [pending, startTransition] = useTransition();
+  const [mode] = useAiMode();
   const run = () =>
     startTransition(async () => {
       setOpen(true);
       setClusters(null);
-      const result = await clusterQuestionAction(scope, studyId, questionId);
+      const result = await clusterQuestionAction(scope, studyId, questionId, mode);
       if (feedback(result) && result.ok) setClusters(result.data.clusters.map((c) => ({ ...c, name: c.label.replace(/\s*\/\s*/g, " & ").slice(0, 80), done: false })));
       else setOpen(false);
     });
   return (
     <>
+      <AiModeSelect />
       <Button variant="outline" size="sm" onClick={run} disabled={pending}>
         {pending && !open ? <Loader2Icon className="animate-spin" /> : <ShapesIcon />}
         {t("cluster")}

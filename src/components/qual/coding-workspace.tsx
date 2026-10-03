@@ -1,5 +1,6 @@
 "use client";
 
+import { AiModeSelect, useAiMode } from "@/components/common/ai-mode";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -605,7 +606,10 @@ function SuggestButton({ scope, docKey, hasCodes, assistant }: { scope: Scope; d
   const t = useTranslations("coding.assist");
   const feedback = useActionFeedback();
   const [pending, startTransition] = useTransition();
+  const [mode] = useAiMode();
   return (
+    <>
+    <AiModeSelect />
     <Button
       variant="outline"
       size="sm"
@@ -613,7 +617,7 @@ function SuggestButton({ scope, docKey, hasCodes, assistant }: { scope: Scope; d
       title={hasCodes ? t(assistant === "claude" ? "suggestHintClaude" : "suggestHint") : t("needCodes")}
       onClick={() =>
         startTransition(async () => {
-          const result = await suggestCodingsAction(scope, docKey);
+          const result = await suggestCodingsAction(scope, docKey, mode);
           if (result.ok) feedback(result, result.data.created ? t("suggested", { count: result.data.created }) : t("noSuggestions"));
           else feedback(result);
         })
@@ -622,6 +626,7 @@ function SuggestButton({ scope, docKey, hasCodes, assistant }: { scope: Scope; d
       {pending ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
       {t("suggest")}
     </Button>
+    </>
   );
 }
 

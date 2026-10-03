@@ -80,7 +80,7 @@ async function Joint({ workspaceId, projectId }: { workspaceId: string; projectI
           <li key={k} className={cn("rounded-lg px-3 py-2", CONVERGENCE[k])}>
             <p className="text-2xl font-semibold tabular-nums">{counts[k]}</p>
             <p className="text-sm">{t(`convergence.${k}`)}</p>
-            <p className="text-xs text-muted-foreground">{t(`convergenceHint.${k}`)}</p>
+            <p className="text-xs text-foreground/75">{t(`convergenceHint.${k}`)}</p>
           </li>
         ))}
       </ul>

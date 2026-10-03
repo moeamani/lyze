@@ -6,27 +6,31 @@ import { requireUser } from "@/server/auth";
 import * as create from "@/server/services/create";
 import { generateSampleTranscript } from "@/server/services/sessions";
 import { attempt } from "./result";
+import { providerFor, type AiMode } from "@/server/ai";
 
 export type CreateScope = { workspaceId: string; slug: string; projectId: string; studyId?: string; sessionId?: string };
 export type CreateKind = "questionnaire" | "guide" | "responses" | "participants" | "codebook" | "transcript";
+const TEST_DATA: CreateKind[] = ["responses", "participants", "transcript"];
 
 /** Generate something from the brief (or test data), per kind. Returns a short summary for the toast. */
-export async function generateAction(scope: CreateScope, kind: CreateKind, count = 30) {
+export async function generateAction(scope: CreateScope, kind: CreateKind, count = 30, mode: AiMode = "ai") {
   const user = await requireUser();
   const locale = await getLocale();
   const s = scope.studyId ?? "";
   const result = await attempt(async (): Promise<Record<string, number>> => {
+    // Made-up data (responses, people, transcripts) is a placeholder tool: owners and developers only.
+    const provider = await providerFor(user.id, scope.workspaceId, TEST_DATA.includes(kind) ? "placeholder" : mode);
     switch (kind) {
       case "questionnaire":
-        return { count: (await create.generateQuestionnaire(user.id, scope.workspaceId, s, locale)).questions };
+        return { count: (await create.generateQuestionnaire(user.id, scope.workspaceId, s, locale, provider)).questions };
       case "guide":
-        return { count: (await create.generateGuide(user.id, scope.workspaceId, s, locale)).sections };
+        return { count: (await create.generateGuide(user.id, scope.workspaceId, s, locale, provider)).sections };
       case "responses":
         return create.generateResponses(user.id, scope.workspaceId, s, count);
       case "participants":
         return { count: (await create.generateParticipants(user.id, scope.workspaceId, s, count)).created };
       case "codebook":
-        return { count: (await create.generateCodebook(user.id, scope.workspaceId, scope.projectId, locale)).created };
+        return { count: (await create.generateCodebook(user.id, scope.workspaceId, scope.projectId, locale, provider)).created };
       case "transcript":
         return { count: (await generateSampleTranscript(user.id, scope.workspaceId, s, scope.sessionId ?? "")).segments };
     }
