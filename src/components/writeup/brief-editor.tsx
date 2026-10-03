@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useActionFeedback } from "@/components/common/use-action-feedback";
+import { directUpload } from "@/lib/direct-upload";
 import { attachProposalAction, removeProposalAction, saveBriefAction } from "@/server/actions/writeup";
 
 type Scope = { workspaceId: string; slug: string; projectId: string };
@@ -41,7 +42,13 @@ export function BriefEditor({ scope, brief, canEdit }: { scope: Scope; brief: Br
   const upload = (f: File) =>
     startTransition(async () => {
       const form = new FormData();
-      form.set("file", f);
+      // On Vercel the file goes straight to Blob storage first; the server then reads it from there.
+      const pathname = await directUpload(f, f.name, { kind: "proposal", workspaceId: scope.workspaceId, projectId: scope.projectId }).catch(() => undefined);
+      if (pathname === undefined) return void feedback({ ok: false, error: "unknown" });
+      if (pathname) {
+        form.set("blob", pathname);
+        form.set("name", f.name);
+      } else form.set("file", f);
       const result = await attachProposalAction(scope, form);
       const found = result.ok ? result.data.found : null;
       const message = !result.ok ? undefined : !result.data.readable ? t("unreadable") : found && (found.aim || found.questions || found.statements) ? t("foundInFile", { questions: found.questions, statements: found.statements, aim: found.aim ? "yes" : "no" }) : t("foundNothing");

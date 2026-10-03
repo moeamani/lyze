@@ -1,4 +1,4 @@
-// CLI: `npm run db:migrate` — applies migrations to DATABASE_URL (or the local PGlite DB).
+// CLI: `npm run db:migrate` — applies migrations to DATABASE_URL / POSTGRES_URL (or the local PGlite DB).
 import { runMigrations } from "./migrations";
 
 runMigrations()

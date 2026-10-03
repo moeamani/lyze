@@ -37,6 +37,8 @@ test("mixed methods, written analysis, groups, notifications and activity", asyn
 
   // The brief frames a written analysis; re-reading the demo proposal finds nothing new.
   await page.goto(`${base}/writeup`);
+  // The file input only reacts once the page's scripts have loaded.
+  await page.waitForLoadState("networkidle");
   await page.locator('input[type="file"]').setInputFiles("tests/fixtures/proposal.pdf");
   await expect(page.getByText(/Read the file: the aim, 3 research questions and 3 hypotheses/)).toBeVisible();
   await expect(page.getByText("proposal.pdf")).toBeVisible();

@@ -11,6 +11,8 @@ import { applyExtracted, extractBrief } from "@/lib/writeup/brief-extract";
 import { cleanProse } from "@/lib/writeup/style";
 import { assistProvider, type AssistProvider } from "@/server/ai";
 import { storage, storageFor } from "@/server/storage";
+import { claimUpload } from "@/server/storage/direct";
+import { proposalTarget } from "./upload-targets";
 import { requireWorkspace } from "./access";
 import { recordAudit } from "./audit";
 import { AppError } from "./errors";
@@ -66,20 +68,41 @@ export async function saveBrief(userId: string, workspaceId: string, projectId: 
   await recordAudit(db, { workspaceId, actorId: userId, action: "brief.updated", entityType: "brief", entityId: projectId, metadata: { questions: values.questions.length } });
 }
 
-export async function attachProposal(userId: string, workspaceId: string, projectId: string, file: File) {
+/**
+ * Attach the proposal and read the brief out of it. The file comes through the server (`File`) or,
+ * with direct uploads, is already in Blob storage (`{ blob, name }`).
+ */
+export async function attachProposal(userId: string, workspaceId: string, projectId: string, input: File | { blob: string; name: string }) {
   await requireWorkspace(userId, workspaceId, "content:edit");
   await getProject(workspaceId, projectId);
-  const mime = file.type || (file.name.endsWith(".md") ? "text/markdown" : "");
-  const kind = PROPOSAL_TYPES[mime] ?? (file.name.toLowerCase().endsWith(".md") ? "md" : null);
-  if (!kind) throw new AppError("invalid");
-  if (file.size > PROPOSAL_MAX_BYTES) throw new AppError("invalid");
-  const data = new Uint8Array(await file.arrayBuffer());
-  const text = kind === "pdf" ? pdfText(data, PROPOSAL_MAX_CHARS) || null : proposalText(kind, data);
-  const store = storage();
   const id = newId("fil");
-  const key = `${workspaceId}/projects/${projectId}/${id}-${file.name.replace(/[^\w.-]+/g, "_").slice(0, 80)}`;
-  await store.put(key, data, mime || "application/octet-stream");
-  await db.insert(files).values({ id, workspaceId, storage: store.name, key, name: file.name.slice(0, 200), mime: mime || "application/octet-stream", size: file.size, uploadedById: userId });
+  let file: { name: string; size: number; mime: string; key: string; storage: string; data: Uint8Array };
+  if (input instanceof File) {
+    const mime = input.type || (input.name.toLowerCase().endsWith(".md") ? "text/markdown" : "");
+    if (input.size > PROPOSAL_MAX_BYTES) throw new AppError("invalid");
+    const key = `${workspaceId}/projects/${projectId}/${id}-${input.name.replace(/[^\w.-]+/g, "_").slice(0, 80)}`;
+    file = { name: input.name, size: input.size, mime, key, storage: "", data: new Uint8Array(await input.arrayBuffer()) };
+  } else {
+    const stored = await claimUpload(input.blob, proposalTarget(workspaceId, projectId));
+    const object = await storageFor("blob").get(stored.key);
+    if (!object) throw new AppError("invalid");
+    const data = object.body instanceof Uint8Array ? object.body : new Uint8Array(await new Response(object.body).arrayBuffer());
+    file = { name: input.name || stored.key.split("/").pop()!, size: stored.size, mime: stored.mime, key: stored.key, storage: "blob", data };
+  }
+  const mime = file.mime === "application/octet-stream" && file.name.toLowerCase().endsWith(".md") ? "text/markdown" : file.mime;
+  const kind = PROPOSAL_TYPES[mime] ?? (file.name.toLowerCase().endsWith(".md") ? "md" : null);
+  if (!kind) {
+    if (file.storage === "blob") await storageFor("blob").delete(file.key);
+    throw new AppError("invalid");
+  }
+  const { data } = file;
+  const text = kind === "pdf" ? pdfText(data, PROPOSAL_MAX_CHARS) || null : proposalText(kind, data);
+  if (!file.storage) {
+    const store = storage();
+    await store.put(file.key, data, mime || "application/octet-stream");
+    file.storage = store.name;
+  }
+  await db.insert(files).values({ id, workspaceId, storage: file.storage, key: file.key, name: file.name.slice(0, 200), mime: mime || "application/octet-stream", size: file.size, uploadedById: userId });
   const brief = await getBrief(workspaceId, projectId);
   // Read the aim, research questions and hypotheses straight out of the document.
   const merged = text ? applyExtracted(brief, extractBrief(text), () => newId("rq")) : null;

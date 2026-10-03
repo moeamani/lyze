@@ -28,6 +28,23 @@ That's it — no database or email server needed for local development:
 Choose **Create account**, pick a username and password, name your workspace, and tick “Add a demo
 project” — it includes a published survey you can open, share and answer right away.
 
+## Deploy to Vercel
+
+1. **Import the repository** in Vercel (framework: Next.js; defaults are fine).
+2. **Storage → Create Database → Neon** (Postgres, free tier) and connect it to the project. This
+   sets `DATABASE_URL`. Pick the region closest to your functions.
+3. **Storage → Create → Blob** and connect it. This sets `BLOB_READ_WRITE_TOKEN`; recordings,
+   attachments and proposals then upload straight to Blob storage, so the ~4.5 MB limit on
+   serverless request bodies doesn't apply.
+4. **Settings → Environment Variables**: add `AUTH_SECRET` (`openssl rand -base64 32`; never change
+   it later, it also encrypts stored API keys) and `LYZE_AI_KEY` (a Google Gemini key).
+5. **Redeploy.** The build applies database migrations before `next build` (`scripts/prebuild.mjs`).
+
+Until the database and `AUTH_SECRET` are set, every page shows a short setup checklist instead of
+an error. Pages that generate with AI allow up to 300 seconds (`maxDuration`), which needs Fluid
+compute (on by default for new projects). Rate limits are kept per instance, so they're looser on
+Vercel than on a single server.
+
 ## Environment variables
 
 Copy `.env.example` to `.env.local` and fill in what you need.
@@ -36,7 +53,7 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | --- | --- | --- |
 | `AUTH_SECRET` | prod | Auth.js secret (`npx auth secret`). A dev-only fallback is used locally. |
 | `APP_URL` | prod | Public base URL used in emails and share links. |
-| `DATABASE_URL` | prod | Postgres connection string. Empty → embedded PGlite. |
+| `DATABASE_URL` (or `POSTGRES_URL`) | prod | Postgres connection string. Empty → embedded PGlite (not on Vercel). |
 | `PGLITE_DIR` | no | PGlite data directory (default `./.data/pglite`, `memory://` for in-memory). |
 | `DB_AUTO_MIGRATE` | no | `1` to apply migrations on boot when using `DATABASE_URL`. |
 | `EMAIL_SERVER` | prod | SMTP URL for magic links, e.g. `smtp://user:pass@host:587`. |
@@ -44,7 +61,8 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | no | Enables “Continue with Google”. |
 | `AUTH_TRUST_HOST` | no | Set to `false` to stop trusting `X-Forwarded-Host`. |
 | `LYZE_DEV_MAILBOX` | no | `1` exposes `/dev/mailbox` outside development (used by e2e). Never enable in real production. |
-| `UPLOADS_DIR` | no | Local folder for uploaded files when S3 isn't configured (default `./.data/uploads`). |
+| `BLOB_READ_WRITE_TOKEN` | Vercel | Set by Vercel when a Blob store is connected. Uploads go straight from the browser to Blob storage (private). |
+| `UPLOADS_DIR` | no | Local folder for uploaded files when neither Blob nor S3 is configured (default `./.data/uploads`). |
 | `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | prod | Any S3-compatible storage for uploads and recordings. |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | no | Enables the optional captcha on public forms. |
 | `MEDIA_MAX_MB` | no | Largest session recording accepted (default 500 MB). |

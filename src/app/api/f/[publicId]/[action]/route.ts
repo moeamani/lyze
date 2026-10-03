@@ -72,8 +72,11 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/f/[publ
     if (action === "upload") {
       const form = await request.formData();
       const file = form.get("file");
+      const blob = form.get("blob");
       const t = token.parse(form.get("token"));
       const questionId = z.string().max(64).parse(form.get("questionId"));
+      // Direct uploads: the browser already put the file in Blob storage and sends its path.
+      if (typeof blob === "string" && blob) return json(await uploadAnswerFile(publicId, t, questionId, { blob, name: String(form.get("name") ?? "").slice(0, 200) }));
       if (!(file instanceof File)) return json({ error: "invalid" }, 400);
       return json(await uploadAnswerFile(publicId, t, questionId, file));
     }

@@ -7,6 +7,9 @@ import { AiModeProvider } from "@/components/common/ai-mode";
 import { aiStatus } from "@/server/services/ai-settings";
 import { SIDEBAR_COOKIE } from "@/lib/constants";
 
+/** AI generation (often 20–60 s on free tiers) runs in server actions on these pages; allow it time on serverless hosts. */
+export const maxDuration = 300;
+
 export default async function WorkspaceLayout({ children, params }: LayoutProps<"/w/[ws]">) {
   const { ws } = await params;
   const { user, workspace, role } = await getWorkspaceContext(ws);

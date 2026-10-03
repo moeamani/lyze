@@ -22,6 +22,9 @@ export async function saveBriefAction(scope: Scope, input: BriefInput) {
 }
 export async function attachProposalAction(scope: Scope, form: FormData) {
   return run(scope, (u) => {
+    // With direct uploads the browser already put the file in Blob storage and sends its path.
+    const blob = form.get("blob");
+    if (typeof blob === "string" && blob) return attachProposal(u, scope.workspaceId, scope.projectId, { blob, name: String(form.get("name") ?? "") });
     const file = form.get("file");
     if (!(file instanceof File) || !file.size) throw new AppError("invalid");
     return attachProposal(u, scope.workspaceId, scope.projectId, file);

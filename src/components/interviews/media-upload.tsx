@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { DirectUploadError, directUpload } from "@/lib/direct-upload";
 import { FileTextIcon, Loader2Icon, MicIcon, SparklesIcon, UploadCloudIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,16 @@ export function uploadMedia(sessionId: string, file: Blob, name: string, duratio
   });
 }
 
+/** Record a recording that was uploaded straight to Blob storage. */
+async function reportMedia(sessionId: string, pathname: string, name: string, durationMs: number) {
+  const res = await fetch(`/api/sessions/${sessionId}/media`, {
+    method: "POST",
+    headers: { "x-blob-pathname": encodeURIComponent(pathname), "x-file-name": encodeURIComponent(name), "x-duration-ms": String(Math.round(durationMs)) },
+  });
+  const body = (await res.json().catch(() => ({}))) as { error?: string; maxMb?: number };
+  return { ok: res.ok, status: res.status, body };
+}
+
 export function useMediaUpload(sessionId: string) {
   const t = useTranslations("sessionPage.upload");
   const router = useRouter();
@@ -76,7 +87,15 @@ export function useMediaUpload(sessionId: string) {
     }
     setProgress(0);
     const duration = await mediaDuration(file);
-    const res = await uploadMedia(sessionId, file, name, duration, setProgress);
+    let res: Awaited<ReturnType<typeof uploadMedia>>;
+    try {
+      // On Vercel the file goes straight to Blob storage; the server then records it.
+      const pathname = await directUpload(file, name, { kind: "media", sessionId }, setProgress);
+      res = pathname ? await reportMedia(sessionId, pathname, name, duration) : await uploadMedia(sessionId, file, name, duration, setProgress);
+    } catch (e) {
+      const tooBig = e instanceof DirectUploadError && e.status === 413;
+      res = { ok: false, status: tooBig ? 413 : 0, body: tooBig && e.maxBytes ? { maxMb: Math.round(e.maxBytes / 1048576) } : {} };
+    }
     setProgress(null);
     if (!res.ok) {
       toast.error(res.status === 413 ? t("tooLarge", { mb: res.body.maxMb ?? 500 }) : res.body.error === "fileType" ? t("wrongType") : t("failed"));

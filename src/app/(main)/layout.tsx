@@ -6,6 +6,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Providers } from "@/components/providers";
 import { direction, type Locale } from "@/i18n/config";
+import { setupProblems } from "@/server/setup";
+import { SetupNeeded } from "@/components/setup-needed";
 import "../globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,12 +32,17 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = (await getLocale()) as Locale;
   const dir = direction(locale);
+  const problems = setupProblems();
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} ${peyda.variable}`}>
       <body className="min-h-dvh font-sans">
-        <NextIntlClientProvider>
-          <Providers dir={dir}>{children}</Providers>
-        </NextIntlClientProvider>
+        {problems.length ? (
+          <SetupNeeded problems={problems} />
+        ) : (
+          <NextIntlClientProvider>
+            <Providers dir={dir}>{children}</Providers>
+          </NextIntlClientProvider>
+        )}
       </body>
     </html>
   );
