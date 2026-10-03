@@ -8,9 +8,9 @@ import * as api from "@/server/services/api";
 
 type Scope = { workspaceId: string; slug: string };
 
-export async function saveAiSettingsAction(scope: Scope, input: { apiKey?: string; model: string }) {
+export async function saveAiSettingsAction(scope: Scope, input: { provider: string; apiKey?: string; model: string; baseUrl?: string }) {
   const user = await requireUser();
-  const r = await attempt(() => saveAiSettings(user.id, scope.workspaceId, { apiKey: input.apiKey || undefined, model: input.model as "claude-opus-5-5" }));
+  const r = await attempt(() => saveAiSettings(user.id, scope.workspaceId, { provider: input.provider as "anthropic", apiKey: input.apiKey || undefined, model: input.model, baseUrl: input.baseUrl || undefined }));
   if (r.ok) revalidatePath(`/w/${scope.slug}`, "layout");
   return r;
 }

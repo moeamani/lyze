@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getWorkspaceContext } from "@/server/queries/workspace";
-import { AI_MODELS, aiStatus } from "@/server/services/ai-settings";
+import { aiStatus } from "@/server/services/ai-settings";
 import { can } from "@/lib/permissions";
 import { PageContainer, PageHeader } from "@/components/common/page-header";
 import { AiSettingsForm } from "@/components/settings/ai-settings-form";
@@ -19,7 +19,7 @@ export default async function AiSettingsPage({ params }: PageProps<"/w/[ws]/sett
   return (
     <PageContainer className="max-w-3xl">
       <PageHeader title={t("title")} description={t("subtitle")} />
-      <AiSettingsForm scope={{ workspaceId: workspace.id, slug: workspace.slug }} status={status} models={AI_MODELS} canManage={can(role, "workspace:manage")} />
+      <AiSettingsForm scope={{ workspaceId: workspace.id, slug: workspace.slug }} status={status} canManage={can(role, "workspace:manage")} />
     </PageContainer>
   );
 }

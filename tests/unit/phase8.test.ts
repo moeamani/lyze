@@ -38,19 +38,22 @@ beforeAll(async () => {
 describe("AI settings", () => {
   it("encrypts keys at rest and decides between AI and placeholder", async () => {
     expect(unseal(seal("secret value"))).toBe("secret value");
-    expect(unseal(seal("x").replace(/.$/, "A"))).toBeNull();
+    // Change a whole ciphertext byte (the last base64 character can be padding bits only).
+    const [v, iv, tag, data] = seal("x").split(".");
+    const flipped = Buffer.from(data!, "base64url").map((b) => b ^ 0xff);
+    expect(unseal([v, iv, tag, Buffer.from(flipped).toString("base64url")].join("."))).toBeNull();
 
     const { user, ws } = await owner(false);
     const analyst = await member(ws.id, user.id, "analyst");
     await code(providerFor(user.id, ws.id, "ai"), "aiNotConfigured");
     expect((await providerFor(user.id, ws.id, "placeholder")).name).toBe("builtin");
 
-    await code(saveAiSettings(analyst.id, ws.id, { apiKey: "sk-ant-test-0000000000000000000000001234" }), "forbidden");
-    await saveAiSettings(user.id, ws.id, { apiKey: "sk-ant-test-0000000000000000000000001234", model: "claude-sonnet-5-5" });
+    await code(saveAiSettings(analyst.id, ws.id, { provider: "anthropic", model: "claude-opus-5-5", apiKey: "sk-ant-test-0000000000000000000000001234" }), "forbidden");
+    await saveAiSettings(user.id, ws.id, { provider: "anthropic", apiKey: "sk-ant-test-0000000000000000000000001234", model: "claude-sonnet-5-5" });
     const [row] = await db.select().from(workspaceAi).where(eq(workspaceAi.workspaceId, ws.id));
     expect(row!.apiKeyEnc).not.toContain("sk-ant");
     expect(await aiStatus(ws.id)).toMatchObject({ configured: true, source: "workspace", hint: "1234", model: "claude-sonnet-5-5" });
-    expect(await aiCredentials(ws.id)).toEqual({ apiKey: "sk-ant-test-0000000000000000000000001234", model: "claude-sonnet-5-5" });
+    expect(await aiCredentials(ws.id)).toMatchObject({ provider: "anthropic", apiKey: "sk-ant-test-0000000000000000000000001234", model: "claude-sonnet-5-5" });
     expect((await providerFor(analyst.id, ws.id, "ai")).name).toBe("claude");
     await removeAiKey(user.id, ws.id);
     expect((await aiStatus(ws.id)).configured).toBe(false);

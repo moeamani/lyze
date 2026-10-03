@@ -70,17 +70,17 @@ export function AiModeSelect({ className }: { className?: string }) {
     );
   return (
     <Select value={mode} onValueChange={(v) => setMode(v as AiMode)}>
-      <SelectTrigger size="sm" className={cn("h-8 w-auto gap-1.5 text-xs", className)} aria-label={t("mode")}>
+      <SelectTrigger size="sm" className={cn("h-8 w-auto max-w-44 shrink gap-1.5 text-xs", className)} aria-label={t("mode")}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="ai">
           <SparklesIcon className="text-section-coding" />
-          {ctx.configured ? t("useAi") : t("useAiNoKey")}
+          <span>{ctx.configured ? t("useAi") : t("useAiNoKey")}</span>
         </SelectItem>
         <SelectItem value="placeholder">
           <FlaskConicalIcon className="text-section-interviews" />
-          {t("placeholder")}
+          <span>{t("placeholder")}</span>
         </SelectItem>
       </SelectContent>
     </Select>

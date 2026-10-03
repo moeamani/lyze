@@ -86,7 +86,7 @@ export function CodingWorkspace({
   base: string;
   canCode: boolean;
   canEditStudy: boolean;
-  assistant: "builtin" | "claude";
+  assistant: string;
   docs: WorkspaceDoc[];
   doc: { key: string; title: string; kind: DocKind; studyName: string; studyId: string; sessionId: string | null; questionId: string | null; href: string; units: Unit[] };
   codings: Coding[];
@@ -602,7 +602,7 @@ function UnitMemos({ scope, memos, canCode }: { scope: Scope; memos: Memo[]; can
   );
 }
 
-function SuggestButton({ scope, docKey, hasCodes, assistant }: { scope: Scope; docKey: string; hasCodes: boolean; assistant: "builtin" | "claude" }) {
+function SuggestButton({ scope, docKey, hasCodes, assistant }: { scope: Scope; docKey: string; hasCodes: boolean; assistant: string }) {
   const t = useTranslations("coding.assist");
   const feedback = useActionFeedback();
   const [pending, startTransition] = useTransition();
@@ -614,7 +614,7 @@ function SuggestButton({ scope, docKey, hasCodes, assistant }: { scope: Scope; d
       variant="outline"
       size="sm"
       disabled={pending || !hasCodes}
-      title={hasCodes ? t(assistant === "claude" ? "suggestHintClaude" : "suggestHint") : t("needCodes")}
+      title={hasCodes ? t(assistant !== "builtin" ? "suggestHintClaude" : "suggestHint") : t("needCodes")}
       onClick={() =>
         startTransition(async () => {
           const result = await suggestCodingsAction(scope, docKey, mode);

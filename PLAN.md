@@ -396,9 +396,14 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 
 ### Phase 8 notes
 
-- **AI settings** (Settings → AI): owners paste an Anthropic API key (encrypted at rest, only the
-  last four characters are ever shown again), pick the model, and can check the key (lists models,
-  spends no tokens). The server's `ANTHROPIC_API_KEY` is a fallback.
+- **AI settings** (Settings → AI): owners pick a provider, paste its key (encrypted at rest, only
+  the last four characters are ever shown again), pick the model, and can check the key (lists
+  models, spends no tokens). The server's `ANTHROPIC_API_KEY` is a fallback.
+- **Providers** (`src/lib/ai-providers.ts`, `src/server/ai/llm.ts`): Anthropic (SDK, structured
+  output), Google Gemini (REST, JSON mode, reads PDFs), and OpenAI-compatible chat completions for
+  Groq, OpenRouter, Mistral, OpenAI, Ollama and any custom endpoint. Providers without
+  schema-constrained output get the JSON Schema in the prompt; the answer is validated with zod and
+  retried once with the error. Migration `0008` adds `workspace_ai.base_url`.
 - **Use AI / Placeholder** next to every generate button (questionnaire, guide, codebook, write-up,
   code suggestions, session summary, answer grouping, theme description). `providerFor()` resolves
   the choice on the server: "ai" needs a key (otherwise a clear "AI isn't set up" message);
@@ -485,3 +490,4 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 49 | AI keys are stored per workspace, encrypted with a key derived from AUTH_SECRET | Each team pays for its own usage; a database leak alone doesn't expose keys. Rotating AUTH_SECRET makes stored keys unreadable (owners re-enter them). |
 | 50 | Placeholder generation is owner/dev-only | It's a testing tool; real users should get real AI or a clear message, never canned text they might mistake for analysis. |
 | 51 | The public API is read-only in v1 | Covers the common needs (R/Python scripts, dashboards) without opening write paths; writes can come later with scoped keys. |
+| 52 | Several AI providers behind one small `Llm` interface (JSON + write), not one SDK per feature | Researchers without a budget can use free tiers (Gemini, Groq, OpenRouter, Ollama); most providers speak the OpenAI protocol, so one client covers them. |

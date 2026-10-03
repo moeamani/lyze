@@ -1763,7 +1763,7 @@
     "assist": {
       "suggest": "Suggest codes",
       "suggestHint": "The built-in assistant matches your codes' names and definitions against the text.",
-      "suggestHintClaude": "Claude reads the passages and proposes codes from your codebook.",
+      "suggestHintClaude": "The AI reads the passages and proposes codes from your codebook.",
       "needCodes": "Create a few codes first — suggestions use your codebook.",
       "suggested": "{count, plural, one {# suggestion} other {# suggestions}} to review",
       "noSuggestions": "No new suggestions for this document.",
@@ -1784,7 +1784,7 @@
       "created": "Created",
       "clusterCoded": "{count, plural, one {# answer} other {# answers}} coded",
       "byBuiltin": "Suggestion · built-in assistant",
-      "byClaude": "Suggestion · Claude"
+      "byClaude": "Suggestion · {name}"
     }
   },
   "codebook": {
@@ -1953,7 +1953,7 @@
     "writing": "Writing…",
     "generated": "Draft ready",
     "providerBuiltin": "The analysis is written inside Lyze, with no AI service or API key: an article-style data analysis and results section with the sample, descriptive statistics, hypothesis tests, themes with quotes and answers to each research question, all computed from this project.",
-    "providerClaude": "Claude writes the analysis from your brief, the proposal, codes, quotes and survey results, in the language you're using Lyze in.",
+    "providerClaude": "{name} writes the analysis from your brief, the proposal, codes, quotes and survey results, in the language you're using Lyze in.",
     "drafts": "Drafts",
     "noDrafts": "No drafts yet. Fill in the brief and press Write analysis.",
     "builtin": "Built-in",
@@ -1965,7 +1965,7 @@
     "titleLabel": "Title",
     "bodyLabel": "Text (Markdown)",
     "draftNoticeBuiltin": "Written by Lyze's built-in writer from your project's data, without an AI service. Every number comes from the data; check the interpretation before you use it.",
-    "draftNoticeClaude": "A draft written by Claude from your data. Check every claim and quote against the sources before you use it.",
+    "draftNoticeClaude": "A draft written by {name} from your data. Check every claim and quote against the sources before you use it.",
     "deleteTitle": "Delete this draft?",
     "deleteBody": "The draft is removed. Your data and brief stay.",
     "brief": {
@@ -2197,7 +2197,7 @@
   "ai": {
     "mode": "Generation mode",
     "useAi": "Use AI",
-    "useAiNoKey": "Use AI (no key yet)",
+    "useAiNoKey": "AI (no key yet)",
     "placeholder": "Placeholder",
     "notSetUp": "Set up AI"
   },
@@ -2210,22 +2210,17 @@
   },
   "aiSettings": {
     "title": "AI",
-    "subtitle": "Connect Claude to draft questionnaires, guides, codebooks and written analyses, suggest codes and summarise sessions.",
-    "statusWorkspace": "Using this workspace's key (…{hint})",
+    "subtitle": "Connect an AI model (several have free tiers) to draft questionnaires, guides, codebooks and written analyses, suggest codes and summarise sessions.",
+    "statusWorkspace": "Using {provider} with this workspace's key (…{hint})",
     "statusServer": "Using the server's key",
     "statusNone": "No API key yet",
-    "statusHint": "Keys are encrypted before they are stored and never shown again. Text you send to AI goes to Anthropic.",
+    "statusHint": "Keys are encrypted before they are stored and never shown again. Text you send to AI goes to the provider you pick.",
     "check": "Check key",
     "keyWorks": "The key works",
     "apiKey": "Anthropic API key",
     "replaceKey": "Replace the key",
-    "keyHelp": "Create one at console.anthropic.com → API keys. Leave empty to keep the current key and only change the model.",
+    "keyHelp": "Paste the key from the provider's dashboard. It's encrypted before it's stored.",
     "model": "Model",
-    "models": {
-      "claude-opus": "Claude Opus 5.5 (best writing)",
-      "claude-sonnet": "Claude Sonnet 5.5 (faster)",
-      "claude-haiku": "Claude Haiku 4.5 (cheapest)"
-    },
     "save": "Save",
     "saved": "AI settings saved",
     "remove": "Remove key",
@@ -2236,6 +2231,26 @@
       "missing": "No key to check",
       "rejected": "Anthropic rejected this key",
       "unreachable": "Couldn't reach Anthropic from the server"
+    },
+    "provider": "Provider",
+    "free": "Free tier",
+    "getKey": "Get a key",
+    "getOllama": "Download Ollama",
+    "optional": "(optional)",
+    "keepKey": "Leave empty to keep the saved key.",
+    "baseUrl": "Endpoint",
+    "baseUrlHint": "The server's OpenAI-compatible base URL, ending in /v1.",
+    "baseUrlOllama": "Ollama listens on http://localhost:11434/v1 on the machine that runs it. It must be reachable from the Lyze server.",
+    "modelHint": "Pick a suggestion or type any model name the provider offers. Names change; check the provider's model list if one stops working.",
+    "providerHint": {
+      "anthropic": "Claude writes the strongest analyses and reads PDFs directly. Paid, billed per use.",
+      "gemini": "Google AI Studio gives a free API key with daily limits; Gemini also reads PDFs directly.",
+      "groq": "Free tier with rate limits; very fast open models such as Llama.",
+      "openrouter": "One key for many models; the ones ending in :free cost nothing (rate-limited).",
+      "mistral": "Free Experiment plan with rate limits; paid plans for heavier use.",
+      "openai": "GPT models, billed per use.",
+      "ollama": "Free and private: models run on your own computer or server, no key needed.",
+      "custom": "Any service that speaks the OpenAI chat-completions API (LM Studio, vLLM, Together, DeepSeek and others)."
     }
   },
   "apiSettings": {

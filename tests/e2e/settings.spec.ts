@@ -21,9 +21,14 @@ test("AI key, generation mode, API keys, webhooks and account data", async ({ pa
   // Add a key in Settings → AI; the key itself never comes back.
   await page.goto(`${ws}/settings/ai`);
   await expect(page.getByText("No API key yet")).toBeVisible();
-  await page.getByLabel("Anthropic API key").fill("sk-ant-api03-not-a-real-key-000000000000abcd");
+  // Pick a provider with a free tier: Google Gemini.
+  await page.getByRole("combobox", { name: "Provider" }).click();
+  await page.getByRole("option", { name: /Google Gemini/ }).click();
+  await expect(page.getByRole("link", { name: "Get a key" })).toHaveAttribute("href", /aistudio\.google\.com/);
+  await expect(page.getByLabel("Model")).toHaveValue("gemini-2.5-flash");
+  await page.getByLabel("API key").fill("AIza-not-a-real-key-000000000000abcd");
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Using this workspace's key (…abcd)")).toBeVisible();
+  await expect(page.getByText("Using Google Gemini with this workspace's key (…abcd)")).toBeVisible();
   expect(await page.content()).not.toContain("not-a-real-key");
   await expectNoHorizontalScroll(page);
   await page.goto(`${base}/writeup`);

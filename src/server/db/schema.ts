@@ -843,6 +843,8 @@ export const workspaceAi = pgTable("workspace_ai", {
   /** Last four characters, to show which key is saved. */
   keyHint: text("key_hint").notNull(),
   model: text("model"),
+  /** Endpoint for Ollama and other OpenAI-compatible servers. */
+  baseUrl: text("base_url"),
   updatedById: text("updated_by_id").references(() => users.id, { onDelete: "set null" }),
   updatedAt: updatedAt(),
 });

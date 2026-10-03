@@ -95,7 +95,7 @@ export function CreateOptions({
             {t(`generate.${kind}`)}
           </p>
           <p className="flex-1 text-sm text-pretty text-muted-foreground">{t(`generateHint.${kind}`)}</p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {COUNTED.includes(kind) && (
               <Input type="number" min={1} max={kind === "participants" ? 100 : 500} value={count} onChange={(e) => setCount(Number(e.target.value) || 1)} className="h-9 w-20" aria-label={t("howMany")} />
             )}

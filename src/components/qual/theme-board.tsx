@@ -43,7 +43,7 @@ type BoardTheme = { id: string; name: string; description: string | null; color:
 const UNSORTED = "unsorted";
 
 /** Themes as columns, codes as cards: drag codes into the theme they belong to. */
-export function ThemeBoard({ scope, base, themes, codes, canEdit, assistant }: { scope: Scope; base: string; themes: BoardTheme[]; codes: BoardCode[]; canEdit: boolean; assistant: "builtin" | "claude" }) {
+export function ThemeBoard({ scope, base, themes, codes, canEdit, assistant }: { scope: Scope; base: string; themes: BoardTheme[]; codes: BoardCode[]; canEdit: boolean; assistant: string }) {
   const t = useTranslations("themes");
   const feedback = useActionFeedback();
   const [pending, startTransition] = useTransition();
@@ -264,7 +264,7 @@ function CardBody({ code, overlay }: { code: BoardCode; overlay?: boolean }) {
   );
 }
 
-function ThemeDialog({ scope, theme, count, onClose, assistant }: { scope: Scope; theme?: BoardTheme; count: number; onClose: () => void; assistant: "builtin" | "claude" }) {
+function ThemeDialog({ scope, theme, count, onClose, assistant }: { scope: Scope; theme?: BoardTheme; count: number; onClose: () => void; assistant: string }) {
   const t = useTranslations("themes");
   const tc = useTranslations("common");
   const feedback = useActionFeedback();

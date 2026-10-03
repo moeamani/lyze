@@ -10,7 +10,8 @@ import type { GuideDoc } from "@/lib/interviews/guide";
 import type { WriteupContext } from "@/lib/writeup/context";
 import type { CodeHint, CodingSuggestion, Unit } from "@/lib/qual/suggest";
 import { builtinProvider } from "./builtin";
-import { claudeProvider } from "./claude";
+import { claudeProvider, modelProvider } from "./claude";
+import { createLlm } from "./llm";
 
 export type DraftBrief = { aim: string; questions: { text: string }[]; statements: { text: string; kind: string }[] };
 
@@ -21,7 +22,8 @@ export type ClusterResult = { label: string; description: string | null; members
  * until a person accepts them, and summaries/clusters/descriptions are shown for review first.
  */
 export interface AssistProvider {
-  readonly name: "builtin" | "claude";
+  /** "builtin", or the provider id ("claude" for Anthropic, "gemini", "groq"…). */
+  readonly name: string;
   suggestCodings(input: { units: Unit[]; codes: CodeHint[]; existing: ReadonlySet<string> }): Promise<CodingSuggestion[]>;
   summarize(input: { title: string; paragraphs: { who: string; text: string }[] }): Promise<string[]>;
   cluster(input: { question: string; texts: string[] }): Promise<ClusterResult[]>;
@@ -46,7 +48,7 @@ export function canUsePlaceholder(role: Role | null | undefined) {
   return role === "owner" || process.env.NODE_ENV !== "production" || process.env.LYZE_DEV_TOOLS === "1";
 }
 
-/** The assistant for one request: Claude with the workspace's key ("ai"), or the built-in placeholder. */
+/** The assistant for one request: the workspace's AI provider ("ai"), or the built-in placeholder. */
 export async function providerFor(userId: string, workspaceId: string, mode: AiMode): Promise<AssistProvider> {
   const role = await roleIn(userId, workspaceId);
   if (mode === "placeholder") {
@@ -55,7 +57,7 @@ export async function providerFor(userId: string, workspaceId: string, mode: AiM
   }
   const creds = await aiCredentials(workspaceId);
   if (!creds) throw new AppError("aiNotConfigured");
-  return claudeProvider(creds);
+  return modelProvider(createLlm(creds));
 }
 
 /** Without an explicit choice (scripts, tests): AI_PROVIDER=claude uses the server key; anything else stays on-device. */

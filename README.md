@@ -47,7 +47,7 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | `MEDIA_MAX_MB` | no | Largest session recording accepted (default 500 MB). |
 | `TRANSCRIPTION_PROVIDER` | no | Empty → mock transcripts (dev). `openai` → any OpenAI-compatible speech-to-text endpoint. |
 | `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_API_URL`, `TRANSCRIPTION_MODEL` | with `openai` | Key, base URL (default `https://api.openai.com/v1`) and model (default `whisper-1`). |
-| `ANTHROPIC_API_KEY` | no | Server-wide fallback key. Usually each workspace adds its own in Settings → AI instead. |
+| `ANTHROPIC_API_KEY` | no | Server-wide fallback Anthropic key. Usually each workspace picks a provider and adds its own key in Settings → AI instead. |
 | `AI_MODEL` | no | Model for the server-wide key (default `claude-opus-5-5`). |
 | `AI_PROVIDER` | no | `claude` makes scripts and background jobs without an explicit choice use the server key. |
 | `LYZE_DEV_TOOLS` | no | `1` lets every member use Placeholder generation and test data in production (normally owners only). |
@@ -172,8 +172,24 @@ All prose Lyze writes follows the humanize skill in `docs/skills/humanize`.
 
 ## AI
 
-Owners add an Anthropic API key in **Settings → AI** (stored encrypted; only its last four
-characters are shown) and pick a model. Every generate button then has a **Use AI / Placeholder**
+Owners pick a provider in **Settings → AI**, paste its key (stored encrypted; only its last four
+characters are shown) and pick a model. Supported providers:
+
+| Provider | Free option | Where to get a key |
+| --- | --- | --- |
+| Google Gemini | yes, rate-limited free tier | <https://aistudio.google.com/apikey> |
+| Groq | yes, rate-limited free tier | <https://console.groq.com/keys> |
+| OpenRouter | yes, models ending in `:free` | <https://openrouter.ai/settings/keys> |
+| Mistral | yes, free "Experiment" plan | <https://console.mistral.ai/api-keys> |
+| Ollama | free, runs on your own computer, no key | <https://ollama.com/download> |
+| Anthropic Claude | paid | <https://console.anthropic.com/settings/keys> |
+| OpenAI | paid | <https://platform.openai.com/api-keys> |
+| Other | any OpenAI-compatible endpoint (LM Studio, vLLM, Together…) | — |
+
+Claude and Gemini read uploaded proposal PDFs directly; the others get the extracted text. Free
+tiers have rate limits and some use your prompts to improve their models, so check the provider's
+terms before sending real participant data. Model names change often: the model field is free text
+with suggestions. Every generate button then has a **Use AI / Placeholder**
 choice: Placeholder is Lyze's built-in offline generator, shown only to workspace owners and in
 development, for testing without spending tokens.
 

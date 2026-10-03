@@ -3,33 +3,52 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2Icon, KeyRoundIcon, Loader2Icon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
+import { CheckCircle2Icon, ExternalLinkIcon, KeyRoundIcon, Loader2Icon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useActionFeedback } from "@/components/common/use-action-feedback";
 import { checkAiKeyAction, removeAiKeyAction, saveAiSettingsAction } from "@/server/actions/settings";
+import { AI_PROVIDERS, AI_PROVIDER_IDS, type AiProviderId } from "@/lib/ai-providers";
 
-type Status = { configured: boolean; source: "workspace" | "server" | null; hint: string | null; model: string };
+type Status = { configured: boolean; source: "workspace" | "server" | null; provider: AiProviderId; hint: string | null; model: string; baseUrl: string | null };
 
-/** Add or replace the workspace's Anthropic API key and pick the model. The key never comes back to the browser. */
-export function AiSettingsForm({ scope, status, models, canManage }: { scope: { workspaceId: string; slug: string }; status: Status; models: readonly string[]; canManage: boolean }) {
+/** Pick an AI provider (several have free tiers), paste its key, choose a model. The key never comes back to the browser. */
+export function AiSettingsForm({ scope, status, canManage }: { scope: { workspaceId: string; slug: string }; status: Status; canManage: boolean }) {
   const t = useTranslations("aiSettings");
   const feedback = useActionFeedback();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [provider, setProvider] = useState<AiProviderId>(status.provider);
   const [key, setKey] = useState("");
   const [model, setModel] = useState(status.model);
+  const [baseUrl, setBaseUrl] = useState(status.baseUrl ?? AI_PROVIDERS[status.provider].baseUrl ?? "");
+  const info = AI_PROVIDERS[provider];
+  const saved = status.source === "workspace" && status.provider === provider;
+  const keyRequired = info.needsKey === true && !saved;
+
+  const choose = (p: AiProviderId) => {
+    setProvider(p);
+    // A model from another provider would never work: switch to this provider's first suggestion.
+    setModel(p === status.provider ? status.model : (AI_PROVIDERS[p].models[0] ?? ""));
+    setBaseUrl(p === status.provider && status.baseUrl ? status.baseUrl : (AI_PROVIDERS[p].baseUrl ?? ""));
+  };
 
   return (
-    <div className="grid gap-5">
-      <div className="flex items-start gap-3 rounded-xl border bg-card p-4">
-        <KeyRoundIcon className="mt-0.5 size-5 text-section-coding" aria-hidden />
-        <div className="min-w-0 flex-1 text-sm">
-          <p className="font-medium">{status.source === "workspace" ? t("statusWorkspace", { hint: status.hint ?? "" }) : status.source === "server" ? t("statusServer") : t("statusNone")}</p>
-          <p className="text-muted-foreground">{t("statusHint")}</p>
+    <div className="grid grid-cols-1 gap-5">
+      <div className="flex flex-wrap items-start gap-3 rounded-xl border bg-card p-4">
+        <KeyRoundIcon className="mt-0.5 size-5 shrink-0 text-section-coding" aria-hidden />
+        <div className="min-w-0 flex-1 basis-56 text-sm">
+          <p className="font-medium">
+            {status.source === "workspace"
+              ? t("statusWorkspace", { provider: AI_PROVIDERS[status.provider].label, hint: status.hint ?? "" })
+              : status.source === "server"
+                ? t("statusServer")
+                : t("statusNone")}
+          </p>
+          <p className="text-pretty text-muted-foreground">{t("statusHint")}</p>
         </div>
         {status.configured && canManage && (
           <Button
@@ -52,11 +71,11 @@ export function AiSettingsForm({ scope, status, models, canManage }: { scope: { 
 
       {canManage ? (
         <form
-          className="grid gap-4 rounded-xl border bg-card p-4"
+          className="grid grid-cols-1 gap-4 rounded-xl border bg-card p-4"
           onSubmit={(e) => {
             e.preventDefault();
             startTransition(async () => {
-              if (feedback(await saveAiSettingsAction(scope, { apiKey: key.trim(), model }), t("saved"))) {
+              if (feedback(await saveAiSettingsAction(scope, { provider, apiKey: key.trim(), model: model.trim(), baseUrl: baseUrl.trim() }), t("saved"))) {
                 setKey("");
                 router.refresh();
               }
@@ -64,25 +83,63 @@ export function AiSettingsForm({ scope, status, models, canManage }: { scope: { 
           }}
         >
           <div className="grid gap-2">
-            <Label htmlFor="ai-key">{status.source === "workspace" ? t("replaceKey") : t("apiKey")}</Label>
-            <Input id="ai-key" type="password" autoComplete="off" spellCheck={false} placeholder="sk-ant-…" value={key} onChange={(e) => setKey(e.target.value)} />
-            <p className="text-xs text-muted-foreground">{t("keyHelp")}</p>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="ai-model">{t("model")}</Label>
-            <Select value={model} onValueChange={setModel}>
-              <SelectTrigger id="ai-model" className="w-full sm:w-72">
+            <Label htmlFor="ai-provider">{t("provider")}</Label>
+            <Select value={provider} onValueChange={(v) => choose(v as AiProviderId)}>
+              <SelectTrigger id="ai-provider" className="w-full sm:w-80">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {models.map((m) => (
-                  <SelectItem key={m} value={m}>{t(`models.${m.split("-").slice(0, 2).join("-") as "claude-opus"}`)}</SelectItem>
+                {AI_PROVIDER_IDS.map((id) => (
+                  <SelectItem key={id} value={id}>
+                    <span className="truncate">{AI_PROVIDERS[id].label}</span>
+                    {AI_PROVIDERS[id].free && <span className="ms-auto rounded bg-success/15 px-1.5 text-[0.7rem] font-medium text-success">{t("free")}</span>}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-pretty text-muted-foreground">
+              {t(`providerHint.${provider}`)}{" "}
+              {info.keyUrl && (
+                <a href={info.keyUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-medium text-foreground underline-offset-2 hover:underline">
+                  {provider === "ollama" ? t("getOllama") : t("getKey")}
+                  <ExternalLinkIcon className="size-3" aria-hidden />
+                </a>
+              )}
+            </p>
           </div>
+
+          {info.needsKey !== false && (
+            <div className="grid gap-2">
+              <Label htmlFor="ai-key">
+                {saved ? t("replaceKey") : t("apiKey")}
+                {info.needsKey === "optional" && <span className="font-normal text-muted-foreground"> {t("optional")}</span>}
+              </Label>
+              <Input id="ai-key" type="password" autoComplete="off" spellCheck={false} dir="ltr" placeholder={saved ? `…${status.hint ?? ""}` : ""} value={key} onChange={(e) => setKey(e.target.value)} />
+              <p className="text-xs text-muted-foreground">{saved ? t("keepKey") : t("keyHelp")}</p>
+            </div>
+          )}
+
+          {info.editableUrl && (
+            <div className="grid gap-2">
+              <Label htmlFor="ai-url">{t("baseUrl")}</Label>
+              <Input id="ai-url" dir="ltr" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://…/v1" />
+              <p className="text-xs text-muted-foreground">{t(provider === "ollama" ? "baseUrlOllama" : "baseUrlHint")}</p>
+            </div>
+          )}
+
+          <div className="grid gap-2">
+            <Label htmlFor="ai-model">{t("model")}</Label>
+            <Input id="ai-model" dir="ltr" list="ai-model-options" className="w-full sm:w-80" value={model} onChange={(e) => setModel(e.target.value)} />
+            <datalist id="ai-model-options">
+              {info.models.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+            <p className="text-xs text-muted-foreground">{t("modelHint")}</p>
+          </div>
+
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={pending || (!key.trim() && status.source !== "workspace")}>
+            <Button type="submit" disabled={pending || !model.trim() || (keyRequired && !key.trim()) || (info.editableUrl && !baseUrl.trim())}>
               {pending && <Loader2Icon className="animate-spin" />}
               {t("save")}
             </Button>
