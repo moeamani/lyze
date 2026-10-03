@@ -7,6 +7,7 @@ import { validateSubmission } from "@/lib/forms/logic";
 import { matchingQuotas } from "@/lib/forms/quotas";
 import { findQuestion, type FormDoc } from "@/lib/forms/schema";
 import { storage, storageFor } from "@/server/storage";
+import { claimUpload, discardUpload, type UploadTarget } from "@/server/storage/direct";
 import { getPublishedDoc } from "./forms";
 import { requireWorkspace } from "./access";
 import { dispatchWebhooks } from "./api";
@@ -346,27 +347,53 @@ const ACCEPT: Record<string, (mime: string) => boolean> = {
 const BLOCKED_MIME = /^(application\/(x-msdownload|x-sh|x-executable|javascript)|text\/html)/;
 const MEDIA_MAX_MB = 100;
 
-export async function uploadAnswerFile(publicId: string, token: string, questionId: string, file: File) {
+async function answerUpload(publicId: string, token: string, questionId: string) {
   await requireOpenForm(publicId);
   const response = await requirePartial(publicId, token);
   const doc = await docFor(response);
   const question = findQuestion(doc, questionId);
   if (!question || (question.type !== "file_upload" && question.type !== "media")) throw new RespondentError("invalid");
-
   const maxMb = question.type === "file_upload" ? question.config.maxSizeMb : MEDIA_MAX_MB;
-  if (file.size > maxMb * 1024 * 1024) throw new RespondentError("tooLarge");
-  const mime = file.type || "application/octet-stream";
   const accept = question.type === "file_upload" ? question.config.accept : question.config.mediaKind;
-  if (BLOCKED_MIME.test(mime) || !ACCEPT[accept]!(mime)) throw new RespondentError("fileType");
+  const target: UploadTarget = { prefix: `${response.workspaceId}/responses/${response.id}/`, maxBytes: maxMb * 1024 * 1024 };
+  return { response, target, allows: (mime: string) => !BLOCKED_MIME.test(mime) && ACCEPT[accept]!(mime) };
+}
 
+/** Where a respondent's file for this question may be uploaded directly (see /api/uploads). */
+export async function answerUploadTarget(publicId: string, token: string, questionId: string): Promise<UploadTarget> {
+  return (await answerUpload(publicId, token, questionId)).target;
+}
+
+/**
+ * Attach a file to an answer: sent through the server (`File`), or already uploaded straight to
+ * Blob storage by the browser (`{ blob, name }`).
+ */
+export async function uploadAnswerFile(publicId: string, token: string, questionId: string, file: File | { blob: string; name: string }) {
+  const { response, target, allows } = await answerUpload(publicId, token, questionId);
   const id = newId("fil");
-  const safeName = file.name.replace(/[^\w.\-]+/g, "_").slice(-80) || "file";
-  const key = `${response.workspaceId}/responses/${response.id}/${id}-${safeName}`;
-  const store = storage();
-  await store.put(key, new Uint8Array(await file.arrayBuffer()), mime);
+  let stored: { key: string; size: number; mime: string; storage: string; name: string };
+  if (file instanceof File) {
+    if (file.size > target.maxBytes) throw new RespondentError("tooLarge");
+    const mime = file.type || "application/octet-stream";
+    if (!allows(mime)) throw new RespondentError("fileType");
+    const safeName = file.name.replace(/[^\w.\-]+/g, "_").slice(-80) || "file";
+    const key = `${target.prefix}${id}-${safeName}`;
+    const store = storage();
+    await store.put(key, new Uint8Array(await file.arrayBuffer()), mime);
+    stored = { key, size: file.size, mime, storage: store.name, name: file.name };
+  } else {
+    const blob = await claimUpload(file.blob, target).catch(() => {
+      throw new RespondentError("invalid");
+    });
+    if (!allows(blob.mime)) {
+      await discardUpload(blob.key);
+      throw new RespondentError("fileType");
+    }
+    stored = { ...blob, storage: "blob", name: file.name || blob.key.split("/").pop()! };
+  }
   const [row] = await db
     .insert(files)
-    .values({ id, workspaceId: response.workspaceId, responseId: response.id, storage: store.name, key, name: file.name.slice(0, 200), mime, size: file.size })
+    .values({ id, workspaceId: response.workspaceId, responseId: response.id, storage: stored.storage, key: stored.key, name: stored.name.slice(0, 200), mime: stored.mime, size: stored.size })
     .returning({ id: files.id, name: files.name, size: files.size, mime: files.mime });
   return row!;
 }

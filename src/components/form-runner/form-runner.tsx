@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DirectUploadError, directUpload } from "@/lib/direct-upload";
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon, Loader2Icon, RotateCcwIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AnswerError, Answers, AnswerValue } from "@/lib/forms/answers";
@@ -327,7 +328,17 @@ export function FormRunner({
       const body = new FormData();
       body.set("token", t);
       body.set("questionId", questionId);
-      body.set("file", file);
+      // On Vercel the file goes straight to Blob storage first; the server then records it.
+      let pathname: string | null = null;
+      try {
+        pathname = await directUpload(file, file.name, { kind: "answer", publicId, token: t, questionId });
+      } catch (e) {
+        throw new Error(e instanceof DirectUploadError && e.status === 413 ? labels.fileTooLarge : labels.errorMessage);
+      }
+      if (pathname) {
+        body.set("blob", pathname);
+        body.set("name", file.name);
+      } else body.set("file", file);
       const res = await fetch(`/api/f/${publicId}/upload`, { method: "POST", body });
       const data = (await res.json().catch(() => ({}))) as UploadedFile & { error?: string };
       if (!res.ok) {

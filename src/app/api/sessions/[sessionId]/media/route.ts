@@ -2,12 +2,18 @@ import { NextResponse, after, type NextRequest } from "next/server";
 import { currentUser } from "@/server/auth";
 import { isAppError } from "@/server/services/errors";
 import { attachMedia, mediaMaxBytes, runTranscription, sessionForMember } from "@/server/services/sessions";
+import { claimUpload } from "@/server/storage/direct";
+import { mediaTarget } from "@/server/services/upload-targets";
 
 /**
- * Upload a session recording as the raw request body (audio/* or video/*).
+ * Upload a session recording as the raw request body (audio/* or video/*), or, with direct uploads,
+ * report one the browser already put in Blob storage (x-blob-pathname, empty body).
  * Headers: content-type, x-file-name (URI-encoded), x-duration-ms (from the browser's media element).
  * Transcription starts after the response is sent.
  */
+/** Transcription runs after the response (`after`), within this time limit on serverless hosts. */
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/sessions/[sessionId]/media">) {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -23,6 +29,18 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/session
 
   try {
     const session = await sessionForMember(user.id, sessionId, "content:edit");
+    const blob = request.headers.get("x-blob-pathname");
+    if (blob) {
+      const stored = await claimUpload(safeDecode(blob), mediaTarget(session.workspaceId, session.id));
+      const { transcriptId, fileId } = await attachMedia(user.id, session.workspaceId, session.studyId, session.id, {
+        stored,
+        mime: stored.mime,
+        name: safeDecode(request.headers.get("x-file-name")!),
+        durationMs: Number(request.headers.get("x-duration-ms")) || null,
+      });
+      after(() => runTranscription(transcriptId));
+      return NextResponse.json({ ok: true, fileId, transcriptId });
+    }
     const data = await readLimited(request, max);
     if (!data) return NextResponse.json({ error: "fileSize", maxMb: Math.round(max / 1048576) }, { status: 413 });
     const { transcriptId, fileId } = await attachMedia(user.id, session.workspaceId, session.studyId, session.id, {

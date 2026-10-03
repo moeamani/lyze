@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/prebuild.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -26,6 +27,8 @@
     "@electric-sql/pglite": "^0.5.8",
     "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-table": "^8.21.3",
+    "@vercel/blob": "^2.8.0",
+    "@vercel/functions": "^3.9.11",
     "aws4fetch": "^1.0.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

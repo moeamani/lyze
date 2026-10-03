@@ -437,6 +437,23 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
   contrast on success text, labels on tinted cards); toasts no longer overflow small phones;
   settings pages share a tab bar.
 
+
+### Vercel notes
+
+- **Database**: `DATABASE_URL` or `POSTGRES_URL` (Neon via Vercel Storage). On Vercel the pool keeps
+  3 connections per instance with a short idle timeout and `attachDatabasePool` closes idle ones
+  before an instance suspends. The embedded PGlite is never used there (its disk isn't kept).
+- **Migrations** run in `prebuild` on Vercel (the build machine has the SQL files; cold starts
+  don't migrate). A Postgres advisory lock makes concurrent runs safe.
+- **Setup page**: missing database or `AUTH_SECRET` renders a checklist from the root layouts
+  instead of a crash (`src/server/setup.ts`).
+- **Uploads**: with `BLOB_READ_WRITE_TOKEN`, files go browser → Vercel Blob (private). `/api/uploads`
+  first checks permission and returns the allowed path prefix, then issues a client token limited
+  to that prefix, the content types and the size. The browser reports the stored path; the server
+  checks it is under the prefix and exists (`claimUpload`) before recording it. Files remember
+  their storage (`blob` / `s3` / `local`), and are served through `/api/files` as before.
+- `maxDuration = 300` for workspace pages (AI in server actions) and the media route
+  (transcription in `after()`).
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |

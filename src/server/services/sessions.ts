@@ -7,6 +7,7 @@ import { db } from "@/server/db";
 import { userHandle } from "@/server/db/user-handle";
 import { files, participants, researchSessions, segments, sessionNotes, sessionParticipants, transcripts, users, type ResearchSession } from "@/server/db/schema";
 import { storage, storageFor } from "@/server/storage";
+import { discardUpload, type StoredUpload } from "@/server/storage/direct";
 import { newId } from "@/lib/ids";
 import { isConversation, maxParticipants, SESSION_KINDS, SESSION_STATUSES, SPEAKER_ROLES, type SessionKind, type SessionStatus, type Speakers } from "@/lib/interviews/sessions";
 import { parseTranscript, type SegmentInput } from "@/lib/interviews/transcript";
@@ -381,25 +382,37 @@ export async function attachMedia(
   workspaceId: string,
   studyId: string,
   sessionId: string,
-  media: { data: Uint8Array; mime: string; name: string; durationMs: number | null },
+  /** The bytes, or (with direct uploads) a file the browser already put in Blob storage. */
+  media: ({ data: Uint8Array } | { stored: StoredUpload }) & { mime: string; name: string; durationMs: number | null },
 ) {
   await requireWorkspace(userId, workspaceId, "content:edit");
   const session = await getSessionRow(workspaceId, studyId, sessionId);
   const mime = media.mime.split(";")[0]!.trim().toLowerCase();
-  if (!ALLOWED_MEDIA.test(mime)) throw new AppError("invalid", "fileType");
-  if (!media.data.byteLength || media.data.byteLength > mediaMaxBytes()) throw new AppError("invalid", "fileSize");
-  const store = storage();
+  const size = "data" in media ? media.data.byteLength : media.stored.size;
   const fileId = newId("fil");
-  const ext = (media.name.match(/\.([a-z0-9]{1,5})$/i)?.[1] ?? mime.split("/")[1]!.replace(/[^a-z0-9]/g, "")).toLowerCase();
-  const key = `${workspaceId}/sessions/${sessionId}/${fileId}.${ext}`;
-  await store.put(key, media.data, mime);
+  if (!ALLOWED_MEDIA.test(mime) || !size || size > mediaMaxBytes()) {
+    if ("stored" in media) await discardUpload(media.stored.key);
+    throw new AppError("invalid", ALLOWED_MEDIA.test(mime) ? "fileSize" : "fileType");
+  }
+  let key: string;
+  let storageName: string;
+  if ("data" in media) {
+    const store = storage();
+    const ext = (media.name.match(/\.([a-z0-9]{1,5})$/i)?.[1] ?? mime.split("/")[1]!.replace(/[^a-z0-9]/g, "")).toLowerCase();
+    key = `${workspaceId}/sessions/${sessionId}/${fileId}.${ext}`;
+    await store.put(key, media.data, mime);
+    storageName = store.name;
+  } else {
+    key = media.stored.key;
+    storageName = "blob";
+  }
   const durationMs = media.durationMs && Number.isFinite(media.durationMs) && media.durationMs > 0 ? Math.round(media.durationMs) : null;
   return db.transaction(async (tx) => {
-    await tx.insert(files).values({ id: fileId, workspaceId, storage: store.name, key, name: media.name.slice(0, 200) || `recording.${ext}`, mime, size: media.data.byteLength, uploadedById: userId });
+    await tx.insert(files).values({ id: fileId, workspaceId, storage: storageName, key, name: media.name.slice(0, 200) || `recording${key.match(/\.[a-z0-9]{1,5}$/i)?.[0] ?? ""}`, mime, size, uploadedById: userId });
     await tx.update(researchSessions).set({ mediaFileId: fileId, mediaDurationMs: durationMs }).where(eq(researchSessions.id, sessionId));
     if (session.mediaFileId) await removeFile(tx, session.mediaFileId);
     const transcriptId = await writeTranscript(tx, { workspaceId, sessionId, provider: transcriptionProvider().name, language: null, segments: [], speakers: {}, status: "processing" });
-    await recordAudit(tx, { workspaceId, actorId: userId, action: "session.media_uploaded", entityType: "session", entityId: sessionId, metadata: { mime, size: media.data.byteLength } });
+    await recordAudit(tx, { workspaceId, actorId: userId, action: "session.media_uploaded", entityType: "session", entityId: sessionId, metadata: { mime, size } });
     return { fileId, transcriptId };
   });
 }

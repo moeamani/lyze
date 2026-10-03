@@ -1,6 +1,8 @@
 import type { Viewport } from "next";
 import { peyda } from "@/app/fonts";
 import { GeistSans } from "geist/font/sans";
+import { setupProblems } from "@/server/setup";
+import { SetupNeeded } from "@/components/setup-needed";
 import "../globals.css";
 
 export const viewport: Viewport = {
@@ -18,6 +20,7 @@ export const viewport: Viewport = {
  * just the stylesheet, one font and a 1-line script that follows the system color scheme.
  */
 export default function RespondentLayout({ children }: { children: React.ReactNode }) {
+  const problems = setupProblems();
   return (
     <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${peyda.variable}`}>
       <head>
@@ -27,7 +30,7 @@ export default function RespondentLayout({ children }: { children: React.ReactNo
           }}
         />
       </head>
-      <body className="min-h-dvh font-sans">{children}</body>
+      <body className="min-h-dvh font-sans">{problems.length ? <SetupNeeded problems={problems} /> : children}</body>
     </html>
   );
 }

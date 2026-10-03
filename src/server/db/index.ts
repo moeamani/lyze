@@ -3,15 +3,32 @@ import { NodePgDatabase, drizzle as drizzlePg } from "drizzle-orm/node-postgres"
 import { PgliteDatabase, drizzle as drizzlePglite } from "drizzle-orm/pglite";
 import { PGlite } from "@electric-sql/pglite";
 import { Pool } from "pg";
+import { attachDatabasePool } from "@vercel/functions";
 import path from "node:path";
 import fs from "node:fs";
 import * as schema from "./schema";
 
 export type Database = ReturnType<typeof drizzlePglite<typeof schema>>;
 
-type DbState = { db: Database; driver: "postgres" | "pglite"; pglite?: PGlite };
+type DbState = { db: Database; driver: "postgres" | "pglite"; pglite?: PGlite; pool?: Pool };
 
 const globalForDb = globalThis as unknown as { __lyzeDb?: DbState };
+
+/**
+ * The Postgres connection string. Vercel's Neon / Supabase / Postgres integrations set
+ * DATABASE_URL or POSTGRES_URL, so either works.
+ */
+export function databaseUrl(): string | undefined {
+  return process.env.DATABASE_URL?.trim() || process.env.POSTGRES_URL?.trim() || undefined;
+}
+
+/** Thrown when the app runs on a serverless host with no database configured. */
+export class DatabaseNotConfiguredError extends Error {
+  constructor() {
+    super("No database configured. On Vercel, connect a Postgres database (e.g. Neon) so DATABASE_URL is set.");
+    this.name = "DatabaseNotConfiguredError";
+  }
+}
 
 function pgliteDir(): string {
   const dir = process.env.PGLITE_DIR?.trim();
@@ -22,12 +39,18 @@ function pgliteDir(): string {
 }
 
 function create(): DbState {
-  const url = process.env.DATABASE_URL?.trim();
+  const url = databaseUrl();
   if (url) {
-    const pool = new Pool({ connectionString: url, max: 10 });
+    const serverless = !!process.env.VERCEL;
+    // Serverless instances are many and short-lived: keep few connections each and let idle ones go.
+    const pool = new Pool({ connectionString: url, max: serverless ? 3 : 10, idleTimeoutMillis: serverless ? 5_000 : 30_000, connectionTimeoutMillis: 10_000 });
+    // On Vercel, close idle connections before an instance is suspended.
+    if (serverless) attachDatabasePool(pool);
     // Both drivers expose the same Drizzle query API for the pg dialect.
-    return { db: drizzlePg(pool, { schema }) as unknown as Database, driver: "postgres" };
+    return { db: drizzlePg(pool, { schema }) as unknown as Database, driver: "postgres", pool };
   }
+  // The embedded database writes to local disk, which serverless hosts don't keep (or can't write).
+  if (process.env.VERCEL) throw new DatabaseNotConfiguredError();
   const pglite = new PGlite(pgliteDir());
   return { db: drizzlePglite(pglite, { schema }), driver: "pglite", pglite };
 }
@@ -54,12 +77,17 @@ export const db: Database = new Proxy({} as Database, {
   // Lets `instanceof` / Drizzle's `is()` checks (the Auth.js adapter runs one at import time) see the
   // right class without opening a connection.
   getPrototypeOf() {
-    return (process.env.DATABASE_URL?.trim() ? NodePgDatabase : PgliteDatabase).prototype;
+    return (databaseUrl() ? NodePgDatabase : PgliteDatabase).prototype;
   },
 });
 
 export function dbDriver() {
   return state().driver;
+}
+
+/** The Postgres pool (null for the embedded database). */
+export function dbPool() {
+  return state().pool ?? null;
 }
 
 export { schema };
