@@ -26,10 +26,30 @@ export function Markdown({ source }: { source: string }) {
       {blocks.map((raw, i) => {
         const block = raw.trim();
         if (!block) return null;
+        if (block.startsWith("#### ")) return <h5 key={i} className="mt-1 font-semibold">{inline(block.slice(5))}</h5>;
         if (block.startsWith("### ")) return <h4 key={i} className="mt-2 text-base font-semibold">{inline(block.slice(4))}</h4>;
         if (block.startsWith("## ")) return <h3 key={i} className="mt-4 border-b pb-1 text-lg font-semibold">{inline(block.slice(3))}</h3>;
         if (block.startsWith("# ")) return <h2 key={i} className="text-xl font-semibold">{inline(block.slice(2))}</h2>;
         const lines = block.split("\n");
+        if (lines.length >= 2 && lines.every((l) => l.trim().startsWith("|"))) {
+          const cells = (l: string) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+          const [head, , ...rows] = lines;
+          const numeric = (c: string) => /^[−-]?\d[\d.,%]*$/.test(c);
+          return (
+            <div key={i} className="overflow-x-auto">
+              <table className="w-full border-y text-sm">
+                <thead>
+                  <tr className="border-b">{cells(head!).map((c, j) => <th key={j} className="px-2 py-1.5 text-start font-semibold">{inline(c)}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, j) => (
+                    <tr key={j}>{cells(r).map((c, k) => <td key={k} className={numeric(c) ? "px-2 py-1 text-end tabular-nums" : "px-2 py-1"}>{inline(c)}</td>)}</tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
         if (lines.every((l) => l.startsWith(">")))
           return (
             <blockquote key={i} dir="auto" className="border-s-[3px] border-section-writeup/60 ps-4 text-[0.95rem] text-foreground/85">

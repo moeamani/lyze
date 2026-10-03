@@ -376,6 +376,22 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - Fixed: the responses table could push the page sideways (scroll container not positioned, grid
   without `grid-cols-1`).
 
+### After Phase 7: proposal reading and the article-style writer
+
+- **Upload the thesis or proposal and the brief fills itself in.** PDF text comes from a small
+  built-in extractor (`src/lib/writeup/pdf.ts`: Flate and object streams, ToUnicode CMaps, text
+  operators; scanned PDFs have no text). `extractBrief` finds the aim ("The aim of this study is…",
+  an Aims section), research questions (RQ labels, a Research questions section, real questions)
+  and hypotheses, propositions and assumptions (H1/P1 labels, a Hypotheses section, "we
+  hypothesise / expect / assume that…"). Results merge into the brief without duplicates.
+- **The built-in writer produces a "Data analysis and results" section** (`src/lib/writeup/article.ts`)
+  with no AI service: an analysis paragraph, the sample (completion rate, demographics), a table of
+  numeric and rating items, descriptive results in APA style, themes with quotes, a comparison of
+  the two strands, a one-sample t-test against the scale midpoint for each hypothesis the survey
+  measures (t, df, p, Cohen's d) combined with the qualitative evidence into a cautious verdict,
+  an answer to each research question, and specific limitations. All numbers come from the
+  project; the text goes through the humanize clean-up. Claude (`AI_PROVIDER=claude`) stays optional.
+
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |

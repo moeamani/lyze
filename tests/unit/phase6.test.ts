@@ -81,11 +81,10 @@ describe("written analysis", () => {
 
     await saveBrief(user.id, ws.id, project.id, { aim: "Why do people pause?", questions: [{ text: "When do people take their pause?" }], statements: [] });
     const file = new File(["Chapter 1. The pause."], "proposal.txt", { type: "text/plain" });
-    expect(await attachProposal(user.id, ws.id, project.id, file)).toEqual({ name: "proposal.txt", readable: true });
+    expect(await attachProposal(user.id, ws.id, project.id, file)).toMatchObject({ name: "proposal.txt", readable: true });
     const w = await generateWriteup(user.id, ws.id, project.id);
     expect(w.provider).toBe("builtin");
     expect(w.body).toContain("When do people take their pause?");
-    expect(w.body).toContain("proposal.txt");
     expect((await listWriteups(ws.id, project.id)).map((x) => x.id)).toContain(w.id);
     const events = await listAuditEvents(ws.id, { categories: ["writeup"] });
     expect(events.map((e) => e.action)).toEqual(expect.arrayContaining(["writeup.created", "brief.updated"]));

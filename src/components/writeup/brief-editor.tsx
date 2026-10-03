@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { FileTextIcon, Loader2Icon, PlusIcon, Trash2Icon, UploadIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export function BriefEditor({ scope, brief, canEdit }: { scope: Scope; brief: Br
   const t = useTranslations("writeup.brief");
   const tc = useTranslations("common");
   const feedback = useActionFeedback();
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [aim, setAim] = useState(brief.aim);
   const [questions, setQuestions] = useState(brief.questions);
@@ -41,7 +43,9 @@ export function BriefEditor({ scope, brief, canEdit }: { scope: Scope; brief: Br
       const form = new FormData();
       form.set("file", f);
       const result = await attachProposalAction(scope, form);
-      feedback(result, result.ok && !result.data.readable ? t("uploadedPdf") : t("uploaded"));
+      const found = result.ok ? result.data.found : null;
+      const message = !result.ok ? undefined : !result.data.readable ? t("unreadable") : found && (found.aim || found.questions || found.statements) ? t("foundInFile", { questions: found.questions, statements: found.statements, aim: found.aim ? "yes" : "no" }) : found?.recognised ? t("alreadyInBrief") : t("foundNothing");
+      if (feedback(result, message)) router.refresh();
     });
 
   return (
@@ -49,6 +53,34 @@ export function BriefEditor({ scope, brief, canEdit }: { scope: Scope; brief: Br
       <div>
         <h3 id="brief-title" className="font-semibold">{t("title")}</h3>
         <p className="text-sm text-muted-foreground">{t("hint")}</p>
+      </div>
+
+      <div className="grid gap-2 rounded-lg border border-dashed border-section-writeup/50 bg-section-writeup/5 p-3">
+        <p className="text-sm font-medium">{t("proposal")}</p>
+        <p className="-mt-1 text-xs text-pretty text-muted-foreground">{t("proposalAuto")}</p>
+        {brief.proposalName ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+            <FileTextIcon className="size-4 text-section-writeup" aria-hidden />
+            <span className="min-w-0 flex-1 truncate">{brief.proposalName}</span>
+            <span className="text-xs text-muted-foreground">{brief.proposalReadable ? t("readable") : t("pdfOnlyAi")}</span>
+            {canEdit && (
+              <Button variant="ghost" size="icon-sm" aria-label={t("removeProposal")} disabled={pending} onClick={() => startTransition(async () => void feedback(await removeProposalAction(scope)))}>
+                <Trash2Icon />
+              </Button>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("noProposal")}</p>
+        )}
+        {canEdit && (
+          <>
+            <input ref={file} type="file" hidden accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+            <Button variant="outline" size="sm" className="w-fit" disabled={pending} onClick={() => file.current?.click()}>
+              <UploadIcon /> {brief.proposalName ? t("replaceProposal") : t("uploadProposal")}
+            </Button>
+            <p className="text-xs text-muted-foreground">{t("proposalHint")}</p>
+          </>
+        )}
       </div>
 
       <div className="grid gap-2">
@@ -105,33 +137,6 @@ export function BriefEditor({ scope, brief, canEdit }: { scope: Scope; brief: Br
           </Button>
         )}
       </fieldset>
-
-      <div className="grid gap-2">
-        <p className="text-sm font-medium">{t("proposal")}</p>
-        {brief.proposalName ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-            <FileTextIcon className="size-4 text-section-writeup" aria-hidden />
-            <span className="min-w-0 flex-1 truncate">{brief.proposalName}</span>
-            <span className="text-xs text-muted-foreground">{brief.proposalReadable ? t("readable") : t("pdfOnlyAi")}</span>
-            {canEdit && (
-              <Button variant="ghost" size="icon-sm" aria-label={t("removeProposal")} disabled={pending} onClick={() => startTransition(async () => void feedback(await removeProposalAction(scope)))}>
-                <Trash2Icon />
-              </Button>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t("noProposal")}</p>
-        )}
-        {canEdit && (
-          <>
-            <input ref={file} type="file" hidden accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
-            <Button variant="outline" size="sm" className="w-fit" disabled={pending} onClick={() => file.current?.click()}>
-              <UploadIcon /> {brief.proposalName ? t("replaceProposal") : t("uploadProposal")}
-            </Button>
-            <p className="text-xs text-muted-foreground">{t("proposalHint")}</p>
-          </>
-        )}
-      </div>
 
       {canEdit && (
         <div className="flex items-center gap-3 border-t pt-4">

@@ -32,6 +32,7 @@ export default async function WriteupPage({ params }: PageProps<"/w/[ws]/p/[proj
         <SectionIntro section="writeup" icon={PenLineIcon} title={t("title")} description={t("intro")} actions={canAnalyze && <GenerateButton scope={scope} base={base} />} />
         <p className="rounded-lg bg-section-writeup/8 px-3 py-2 text-sm text-pretty">{ai === "claude" ? t("providerClaude") : t("providerBuiltin")}</p>
         <BriefEditor
+          key={brief.updatedAt.toISOString()}
           scope={scope}
           canEdit={can(role, "content:edit")}
           brief={{ aim: brief.aim, questions: brief.questions, statements: brief.statements, proposalName: brief.proposalName, proposalReadable: brief.proposalText !== null }}

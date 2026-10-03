@@ -21,5 +21,23 @@ export type WriteupContext = {
   }[];
   themes: { name: string; description: string | null; codes: string[] }[];
   survey: { study: string; question: string; summary: string }[];
+  /** Survey questions with their numbers, for writing a results section. */
+  items: {
+    study: string;
+    page: string;
+    question: string;
+    type: string;
+    kind: "choice" | "multi" | "scale" | "text";
+    n: number;
+    total: number;
+    mean: number | null;
+    sd: number | null;
+    /** Scale range for agreement/rating items (null for counts like "cups per day"). */
+    bounds: [number, number] | null;
+    categories: { label: string; count: number; percent: number }[];
+    words: string[];
+  }[];
+  /** Survey responses started (all statuses), next to `respondents` who completed. */
+  started: number;
   memos: string[];
 };

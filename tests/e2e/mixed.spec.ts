@@ -35,8 +35,11 @@ test("mixed methods, written analysis, groups, notifications and activity", asyn
   await expect(page.getByText("2 of 5 participants appear in both")).toBeVisible();
   await expectNoHorizontalScroll(page);
 
-  // The brief frames a written analysis.
+  // The brief frames a written analysis; re-reading the demo proposal finds nothing new.
   await page.goto(`${base}/writeup`);
+  await page.locator('input[type="file"]').setInputFiles("tests/fixtures/proposal.pdf");
+  await expect(page.getByText("Read the file. Everything it lists is already in your brief.")).toBeVisible();
+  await expect(page.getByText("proposal.pdf")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Research question 1" })).toHaveValue(/ritual/);
   await page.getByRole("button", { name: "Add a research question" }).click();
   await page.getByRole("textbox", { name: "Research question 4" }).fill("Where do people drink their coffee?");
@@ -44,8 +47,9 @@ test("mixed methods, written analysis, groups, notifications and activity", asyn
   await expect(page.getByText("Brief saved")).toBeVisible();
   await page.getByRole("button", { name: "Write analysis" }).click();
   await expect(page).toHaveURL(/\/writeup\/wrt/);
-  await expect(page.getByRole("heading", { name: "Coffee habits (demo): written analysis" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "4. Where do people drink their coffee?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Coffee habits (demo): data analysis and results" })).toBeVisible();
+  await expect(page.getByText(/asked: Where do people drink their coffee\?/)).toBeVisible();
+  await expect(page.getByText("Table 1.")).toBeVisible();
   expect(await page.locator("article").innerText()).not.toMatch(/[–—]/);
   await expectNoHorizontalScroll(page);
 

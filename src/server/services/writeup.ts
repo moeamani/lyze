@@ -5,7 +5,9 @@ import { files, researchSessions, projectBriefs, studies, writeups, type Project
 import { newId } from "@/lib/ids";
 import { summarizeQuestion } from "@/lib/analysis/summary";
 import type { WriteupContext } from "@/lib/writeup/context";
-import { PROPOSAL_MAX_BYTES, PROPOSAL_TYPES, proposalText } from "@/lib/writeup/extract";
+import { PROPOSAL_MAX_BYTES, PROPOSAL_MAX_CHARS, PROPOSAL_TYPES, proposalText } from "@/lib/writeup/extract";
+import { pdfText } from "@/lib/writeup/pdf";
+import { extractBrief, mergeBrief } from "@/lib/writeup/brief-extract";
 import { cleanProse } from "@/lib/writeup/style";
 import { assistProvider } from "@/server/ai";
 import { storage, storageFor } from "@/server/storage";
@@ -13,7 +15,7 @@ import { requireWorkspace } from "./access";
 import { recordAudit } from "./audit";
 import { AppError } from "./errors";
 import { getProject } from "./projects";
-import { loadStudyDataset } from "./analysis";
+import { loadStudyDataset, rawStatusCounts } from "./analysis";
 import { listCodes } from "./codebook";
 import { listQuotes } from "./coding";
 import { listThemes } from "./themes";
@@ -72,19 +74,25 @@ export async function attachProposal(userId: string, workspaceId: string, projec
   if (!kind) throw new AppError("invalid");
   if (file.size > PROPOSAL_MAX_BYTES) throw new AppError("invalid");
   const data = new Uint8Array(await file.arrayBuffer());
-  const text = proposalText(kind, data);
+  const text = kind === "pdf" ? pdfText(data, PROPOSAL_MAX_CHARS) || null : proposalText(kind, data);
   const store = storage();
   const id = newId("fil");
   const key = `${workspaceId}/projects/${projectId}/${id}-${file.name.replace(/[^\w.-]+/g, "_").slice(0, 80)}`;
   await store.put(key, data, mime || "application/octet-stream");
   await db.insert(files).values({ id, workspaceId, storage: store.name, key, name: file.name.slice(0, 200), mime: mime || "application/octet-stream", size: file.size, uploadedById: userId });
   const brief = await getBrief(workspaceId, projectId);
-  await db
-    .insert(projectBriefs)
-    .values({ projectId, workspaceId, proposalFileId: id, proposalName: file.name.slice(0, 200), proposalText: text })
-    .onConflictDoUpdate({ target: projectBriefs.projectId, set: { proposalFileId: id, proposalName: file.name.slice(0, 200), proposalText: text, updatedAt: new Date() } });
+  // Read the aim, research questions and hypotheses straight out of the document.
+  const merged = text ? mergeBrief(brief, extractBrief(text), () => newId("rq")) : null;
+  const values = {
+    proposalFileId: id,
+    proposalName: file.name.slice(0, 200),
+    proposalText: text,
+    ...(merged ? { aim: merged.aim, questions: merged.questions, statements: merged.statements } : {}),
+  };
+  await db.insert(projectBriefs).values({ projectId, workspaceId, ...values }).onConflictDoUpdate({ target: projectBriefs.projectId, set: { ...values, updatedAt: new Date() } });
   if (brief.proposalFileId) await removeFile(brief.proposalFileId);
-  return { name: file.name, readable: text !== null };
+  await recordAudit(db, { workspaceId, actorId: userId, action: "brief.updated", entityType: "brief", entityId: projectId, metadata: { questions: merged?.questions.length ?? brief.questions.length } });
+  return { name: file.name, readable: text !== null, found: merged?.added ?? { aim: false, questions: 0, statements: 0, recognised: 0 } };
 }
 
 async function removeFile(fileId: string) {
@@ -122,12 +130,35 @@ export async function buildContext(workspaceId: string, projectId: string): Prom
   ]);
   const byCode = new Map(joint.rows.map((r) => [r.codeId, r]));
   const survey: WriteupContext["survey"] = [];
+  const items: WriteupContext["items"] = [];
   const studyInfo: WriteupContext["studies"] = [];
+  let started = 0;
   for (const s of studyRows) {
     const data = await loadStudyDataset(workspaceId, s.id);
+    started += (await rawStatusCounts(workspaceId, s.id)).length;
+    const pageOf = new Map((data.doc?.pages ?? []).flatMap((pg) => pg.questions.map((q) => [q.id, pg.title ?? ""] as const)));
     for (const { question, number } of data.questions.values()) {
-      const text = describe(summarizeQuestion(question, number, data.rows));
+      const sum = summarizeQuestion(question, number, data.rows);
+      const text = describe(sum);
       if (text) survey.push({ study: s.name, question: question.title, summary: text });
+      const c = question.config as Record<string, unknown>;
+      const bounds: [number, number] | null =
+        question.type === "likert" ? [1, (c.labels as string[]).length] : question.type === "rating" ? [1, Number(c.max)] : question.type === "nps" ? [0, 10] : question.type === "slider" ? [Number(c.min), Number(c.max)] : null;
+      if (sum.kind === "choice" || sum.kind === "multi" || sum.kind === "scale" || sum.kind === "text")
+        items.push({
+          study: s.name,
+          page: pageOf.get(question.id) ?? "",
+          question: question.title,
+          type: question.type,
+          kind: sum.kind,
+          n: sum.answered,
+          total: sum.total,
+          mean: sum.kind === "scale" ? sum.stats.mean : null,
+          sd: sum.kind === "scale" ? sum.stats.sd : null,
+          bounds,
+          categories: sum.kind === "text" ? [] : (sum.categories ?? []).map((x) => ({ label: x.label, count: x.count, percent: x.percent })),
+          words: sum.kind === "text" ? sum.words.slice(0, 8).map((w) => w.word) : [],
+        });
     }
     const sessions = await db.$count(researchSessions, eq(researchSessions.studyId, s.id));
     studyInfo.push({ name: s.name, type: s.type, responses: data.rows.length, sessions });
@@ -161,6 +192,8 @@ export async function buildContext(workspaceId: string, projectId: string): Prom
     }),
     themes: themes.map((t) => ({ name: t.name, description: t.description, codes: codes.filter((c) => c.themeId === t.id).map((c) => codeName.get(c.id)!) })),
     survey: survey.slice(0, 40),
+    items: items.slice(0, 60),
+    started,
     memos: memos.slice(0, 20).map((m) => [m.title, m.body].filter(Boolean).join(": ").slice(0, 600)),
   };
 }

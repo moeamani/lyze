@@ -1,7 +1,7 @@
 import { clusterTexts, extractiveSummary } from "@/lib/qual/nlp";
 import { draftFormRows } from "@/lib/create/form";
 import { draftGuide } from "@/lib/create/misc";
-import { composeWriteup } from "@/lib/writeup/compose";
+import { composeArticle } from "@/lib/writeup/article";
 import { draftThemeDescription, suggestCodings } from "@/lib/qual/suggest";
 import type { AssistProvider } from "./index";
 
@@ -33,7 +33,7 @@ export function builtinProvider(): AssistProvider {
       return clusters.map((c) => ({ name: c.label, parent: null, definition: c.description ?? "" }));
     },
     async writeAnalysis({ context }) {
-      return composeWriteup(context);
+      return composeArticle(context);
     },
   };
 }
