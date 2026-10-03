@@ -1,22 +1,35 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 
-export function uniqueEmail(testInfo: TestInfo, label = "user") {
-  return `${label}-${testInfo.project.name}-${Date.now()}-${Math.floor(Math.random() * 1e4)}@example.com`;
+/** A fresh, valid username (3–32 characters) per test run. */
+export function uniqueUser(testInfo: TestInfo, label = "user") {
+  return `${label.slice(0, 10)}-${testInfo.project.name.slice(0, 1)}${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
 }
+/** Kept for older call sites: the same as uniqueUser. */
+export const uniqueEmail = uniqueUser;
 
-/** Sign in through the real magic-link flow, picking the link up from the dev mailbox. */
-export async function signIn(page: Page, email: string, callbackUrl?: string) {
+export const TEST_PASSWORD = "test-password-123";
+
+/**
+ * Create a username/password account and land signed in. Dev Mode is turned on by default so tests
+ * generate with the offline Placeholder instead of a real AI service.
+ */
+export async function signIn(page: Page, username: string, callbackUrl?: string, { devMode = true }: { devMode?: boolean } = {}) {
   await page.goto(callbackUrl ? `/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/sign-in");
-  await page.getByLabel("Email").fill(email);
-  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
-  await expect(page).toHaveURL(/\/sign-in\/check-email$/);
-  await expect(page.getByRole("heading", { name: "Check your inbox" })).toBeVisible();
-
-  await page.goto("/dev/mailbox");
-  const mail = page.getByRole("listitem").filter({ has: page.getByTestId("mail-to").getByText(email, { exact: true }) }).first();
-  const href = await mail.getByTestId("mail-link").getAttribute("href");
-  expect(href).toBeTruthy();
-  await page.goto(href!);
+  await page.getByRole("tab", { name: "Create account" }).click();
+  const form = page.getByRole("tabpanel", { name: "Create account" });
+  await form.getByLabel("Username").fill(username);
+  await form.getByLabel("Password").fill(TEST_PASSWORD);
+  await form.getByRole("button", { name: "Create account" }).click();
+  await expect(page).not.toHaveURL(/\/sign-in/);
+  if (devMode) {
+    const back = page.url();
+    await page.goto("/account");
+    const toggle = page.getByRole("switch", { name: "Dev Mode" });
+    await toggle.click();
+    await expect(toggle).toBeChecked();
+    await expect(toggle).toBeEnabled();
+    await page.goto(back);
+  }
 }
 
 /** Layouts must never scroll sideways, at any width. */

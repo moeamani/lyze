@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { CheckCircle2Icon, ExternalLinkIcon, KeyRoundIcon, Loader2Icon, Trash2Icon } from "lucide-react";
+import { CheckCircle2Icon, ExternalLinkIcon, KeyRoundIcon, Loader2Icon, SparklesIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,44 +13,53 @@ import { useActionFeedback } from "@/components/common/use-action-feedback";
 import { checkAiKeyAction, removeAiKeyAction, saveAiSettingsAction } from "@/server/actions/settings";
 import { AI_PROVIDERS, AI_PROVIDER_IDS, type AiProviderId } from "@/lib/ai-providers";
 
-type Status = { configured: boolean; source: "workspace" | "server" | null; provider: AiProviderId; hint: string | null; model: string; baseUrl: string | null };
+type Status = { lyze: boolean; own: { provider: AiProviderId; hint: string | null; model: string; baseUrl: string | null } | null };
 
-/** Pick an AI provider (several have free tiers), paste its key, choose a model. The key never comes back to the browser. */
+/** Lyze AI works without a key; owners can add their own provider and key as a second choice. The key never comes back to the browser. */
 export function AiSettingsForm({ scope, status, canManage }: { scope: { workspaceId: string; slug: string }; status: Status; canManage: boolean }) {
   const t = useTranslations("aiSettings");
   const feedback = useActionFeedback();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [provider, setProvider] = useState<AiProviderId>(status.provider);
+  const own = status.own;
+  const initial: AiProviderId = own?.provider ?? "gemini";
+  const [provider, setProvider] = useState<AiProviderId>(initial);
   const [key, setKey] = useState("");
-  const [model, setModel] = useState(status.model);
-  const [baseUrl, setBaseUrl] = useState(status.baseUrl ?? AI_PROVIDERS[status.provider].baseUrl ?? "");
+  const [model, setModel] = useState(own?.model ?? AI_PROVIDERS[initial].models[0] ?? "");
+  const [baseUrl, setBaseUrl] = useState(own?.baseUrl ?? AI_PROVIDERS[initial].baseUrl ?? "");
   const info = AI_PROVIDERS[provider];
-  const saved = status.source === "workspace" && status.provider === provider;
+  const saved = !!own && own.provider === provider;
   const keyRequired = info.needsKey === true && !saved;
 
   const choose = (p: AiProviderId) => {
     setProvider(p);
     // A model from another provider would never work: switch to this provider's first suggestion.
-    setModel(p === status.provider ? status.model : (AI_PROVIDERS[p].models[0] ?? ""));
-    setBaseUrl(p === status.provider && status.baseUrl ? status.baseUrl : (AI_PROVIDERS[p].baseUrl ?? ""));
+    setModel(p === own?.provider ? own.model : (AI_PROVIDERS[p].models[0] ?? ""));
+    setBaseUrl(p === own?.provider && own.baseUrl ? own.baseUrl : (AI_PROVIDERS[p].baseUrl ?? ""));
   };
 
   return (
     <div className="grid grid-cols-1 gap-5">
+      <div className="flex items-start gap-3 rounded-xl border bg-card p-4">
+        <SparklesIcon className="mt-0.5 size-5 shrink-0 text-section-coding" aria-hidden />
+        <div className="min-w-0 flex-1 text-sm">
+          <p className="font-medium">{status.lyze ? t("lyzeOn") : t("lyzeOff")}</p>
+          <p className="text-pretty text-muted-foreground">{status.lyze ? t("lyzeOnHint") : t("lyzeOffHint")}</p>
+        </div>
+      </div>
+
+      <div className="grid gap-1">
+        <h2 className="text-base font-semibold">{t("ownTitle")}</h2>
+        <p className="text-sm text-pretty text-muted-foreground">{t("ownHint")}</p>
+      </div>
+
       <div className="flex flex-wrap items-start gap-3 rounded-xl border bg-card p-4">
-        <KeyRoundIcon className="mt-0.5 size-5 shrink-0 text-section-coding" aria-hidden />
+        <KeyRoundIcon className="mt-0.5 size-5 shrink-0 text-section-writeup" aria-hidden />
         <div className="min-w-0 flex-1 basis-56 text-sm">
-          <p className="font-medium">
-            {status.source === "workspace"
-              ? t("statusWorkspace", { provider: AI_PROVIDERS[status.provider].label, hint: status.hint ?? "" })
-              : status.source === "server"
-                ? t("statusServer")
-                : t("statusNone")}
-          </p>
+          <p className="font-medium">{own ? t("statusWorkspace", { provider: AI_PROVIDERS[own.provider].label, hint: own.hint ?? "" }) : t("statusNone")}</p>
           <p className="text-pretty text-muted-foreground">{t("statusHint")}</p>
         </div>
-        {status.configured && canManage && (
+        {own && canManage && (
           <Button
             size="sm"
             variant="outline"
@@ -114,7 +123,7 @@ export function AiSettingsForm({ scope, status, canManage }: { scope: { workspac
                 {saved ? t("replaceKey") : t("apiKey")}
                 {info.needsKey === "optional" && <span className="font-normal text-muted-foreground"> {t("optional")}</span>}
               </Label>
-              <Input id="ai-key" type="password" autoComplete="off" spellCheck={false} dir="ltr" placeholder={saved ? `…${status.hint ?? ""}` : ""} value={key} onChange={(e) => setKey(e.target.value)} />
+              <Input id="ai-key" type="password" autoComplete="off" spellCheck={false} dir="ltr" placeholder={saved ? `…${own?.hint ?? ""}` : ""} value={key} onChange={(e) => setKey(e.target.value)} />
               <p className="text-xs text-muted-foreground">{saved ? t("keepKey") : t("keyHelp")}</p>
             </div>
           )}
@@ -143,7 +152,7 @@ export function AiSettingsForm({ scope, status, canManage }: { scope: { workspac
               {pending && <Loader2Icon className="animate-spin" />}
               {t("save")}
             </Button>
-            {status.source === "workspace" && (
+            {own && (
               <Button
                 type="button"
                 variant="ghost"

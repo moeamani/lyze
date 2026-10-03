@@ -25,7 +25,7 @@ export type AiProviderInfo = {
 
 export const AI_PROVIDERS: Record<AiProviderId, AiProviderInfo> = {
   anthropic: { label: "Anthropic Claude", free: false, needsKey: true, protocol: "anthropic", baseUrl: null, editableUrl: false, models: ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5-20251001"], keyUrl: "https://console.anthropic.com/settings/keys", readsPdf: true },
-  gemini: { label: "Google Gemini", free: true, needsKey: true, protocol: "gemini", baseUrl: null, editableUrl: false, models: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"], keyUrl: "https://aistudio.google.com/apikey", readsPdf: true },
+  gemini: { label: "Google Gemini", free: true, needsKey: true, protocol: "gemini", baseUrl: null, editableUrl: false, models: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"], keyUrl: "https://aistudio.google.com/apikey", readsPdf: true },
   groq: { label: "Groq", free: true, needsKey: true, protocol: "openai", baseUrl: "https://api.groq.com/openai/v1", editableUrl: false, models: ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3-32b"], keyUrl: "https://console.groq.com/keys", readsPdf: false },
   openrouter: { label: "OpenRouter", free: true, needsKey: true, protocol: "openai", baseUrl: "https://openrouter.ai/api/v1", editableUrl: false, models: ["meta-llama/llama-3.3-70b-instruct:free", "deepseek/deepseek-chat-v3-0324:free", "google/gemma-3-27b-it:free"], keyUrl: "https://openrouter.ai/settings/keys", readsPdf: false },
   mistral: { label: "Mistral", free: true, needsKey: true, protocol: "openai", baseUrl: "https://api.mistral.ai/v1", editableUrl: false, models: ["mistral-small-latest", "mistral-medium-latest", "mistral-large-latest"], keyUrl: "https://console.mistral.ai/api-keys", readsPdf: false },
@@ -40,5 +40,6 @@ export const isProviderId = (v: unknown): v is AiProviderId => typeof v === "str
 export function providerLabel(id: string | null | undefined): string {
   if (!id || id === "builtin") return "Built-in";
   if (id === "claude") return "Claude";
+  if (id === "lyze") return "Lyze AI";
   return isProviderId(id) ? AI_PROVIDERS[id].label.replace(/\s*\(.*\)$/, "") : id;
 }

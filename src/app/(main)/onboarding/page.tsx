@@ -18,7 +18,7 @@ export default async function OnboardingPage() {
   const workspaces = await listUserWorkspaces(user.id);
   const first = workspaces.length === 0;
   const firstName = user.name?.split(" ")[0];
-  const suggested = first ? t("suggestedName", { name: firstName ?? user.email.split("@")[0]! }) : "";
+  const suggested = first ? t("suggestedName", { name: firstName ?? user.handle.split("@")[0]! }) : "";
 
   return (
     <div className="flex min-h-dvh flex-col bg-[radial-gradient(ellipse_at_top,var(--accent-soft),transparent_60%)]">

@@ -5,9 +5,9 @@ import { db } from "@/server/db";
 import { runMigrations } from "@/server/db/migrations";
 import { users } from "@/server/db/schema";
 import { createWorkspace } from "@/server/services/workspaces";
-import { aiCredentials, aiStatus, assistantName, saveAiSettings } from "@/server/services/ai-settings";
+import { aiCredentials, aiStatus, saveAiSettings } from "@/server/services/ai-settings";
 import { providerFor } from "@/server/ai";
-import { createLlm, extractJson, pingLlm } from "@/server/ai/llm";
+import { RETRY_DELAYS, createLlm, extractJson, pingLlm } from "@/server/ai/llm";
 import { AppError } from "@/server/services/errors";
 import { AI_PROVIDERS, AI_PROVIDER_IDS, providerLabel } from "@/lib/ai-providers";
 import { newId } from "@/lib/ids";
@@ -17,7 +17,7 @@ beforeAll(async () => {
 });
 
 /** A stand-in for any OpenAI-compatible server (Ollama, Groq, OpenRouter…). */
-async function fakeOpenAi(replies: string[]) {
+async function fakeOpenAi(replies: (string | number)[]) {
   const seen: { path: string; auth?: string; body: Record<string, unknown> }[] = [];
   const server = http.createServer((req, res) => {
     let raw = "";
@@ -26,7 +26,12 @@ async function fakeOpenAi(replies: string[]) {
       seen.push({ path: req.url ?? "", auth: req.headers.authorization, body: raw ? JSON.parse(raw) : {} });
       res.setHeader("content-type", "application/json");
       if (req.url?.endsWith("/models")) return res.end(JSON.stringify({ data: [{ id: "m" }] }));
-      res.end(JSON.stringify({ choices: [{ message: { content: replies.shift() ?? "{}" }, finish_reason: "stop" }] }));
+      // A number is an HTTP error status, e.g. 503 for "overloaded".
+      if (typeof replies[0] === "number") {
+        res.statusCode = replies.shift() as number;
+        return res.end(JSON.stringify({ error: { message: "busy" } }));
+      }
+      res.end(JSON.stringify({ choices: [{ message: { content: (replies.shift() as string | undefined) ?? "{}" }, finish_reason: "stop" }] }));
     });
   });
   await new Promise<void>((r) => server.listen(0, r));
@@ -65,22 +70,37 @@ describe("AI providers", () => {
     }
   });
 
+  it("waits out a busy provider, then falls back to the lighter model", async () => {
+    RETRY_DELAYS.splice(0, RETRY_DELAYS.length, 10, 10);
+    const fake = await fakeOpenAi([503, '{"ok": true}', 503, 503, 503, "Light model answer."]);
+    try {
+      const llm = createLlm({ provider: "custom", apiKey: "", model: "big", baseUrl: fake.url, fallbackModel: "light" });
+      // One 503, then success on the retry.
+      expect(await llm.json(z.object({ ok: z.boolean() }), "s", "p")).toEqual({ ok: true });
+      // Three 503s use up the retries; the fallback model answers.
+      expect(await llm.write("s", "p")).toBe("Light model answer.");
+      expect(fake.seen.map((s) => s.body.model)).toEqual(["big", "big", "big", "big", "big", "light"]);
+    } finally {
+      fake.close();
+      RETRY_DELAYS.splice(0, RETRY_DELAYS.length, 1500, 4000);
+    }
+  });
+
   it("saves any provider, and Ollama needs no key", async () => {
     const [u] = await db.insert(users).values({ name: "o", email: `o-${newId("t")}@example.com` }).returning();
     const ws = await createWorkspace(u!.id, { name: "Providers", withDemo: false });
     await expect(saveAiSettings(u!.id, ws.id, { provider: "gemini", model: "gemini-2.5-flash" })).rejects.toBeInstanceOf(AppError);
     await saveAiSettings(u!.id, ws.id, { provider: "gemini", model: "gemini-2.5-flash", apiKey: "AIza-test-key-0000000000000000wxyz" });
-    expect(await aiStatus(ws.id)).toMatchObject({ provider: "gemini", hint: "wxyz", model: "gemini-2.5-flash" });
-    expect(await assistantName(ws.id)).toBe("gemini");
+    expect((await aiStatus(ws.id)).own).toMatchObject({ provider: "gemini", hint: "wxyz", model: "gemini-2.5-flash" });
     // Changing only the model keeps the key.
     await saveAiSettings(u!.id, ws.id, { provider: "gemini", model: "gemini-2.5-pro" });
-    expect(await aiCredentials(ws.id)).toMatchObject({ apiKey: "AIza-test-key-0000000000000000wxyz", model: "gemini-2.5-pro" });
+    expect(await aiCredentials(ws.id, "own")).toMatchObject({ apiKey: "AIza-test-key-0000000000000000wxyz", model: "gemini-2.5-pro" });
 
     const fake = await fakeOpenAi(['{"description": "A protected moment before the day starts."}']);
     try {
       await saveAiSettings(u!.id, ws.id, { provider: "ollama", model: "llama3.1", baseUrl: fake.url });
-      expect(await aiCredentials(ws.id)).toMatchObject({ provider: "ollama", apiKey: "", baseUrl: fake.url });
-      const assistant = await providerFor(u!.id, ws.id, "ai");
+      expect(await aiCredentials(ws.id, "own")).toMatchObject({ provider: "ollama", apiKey: "", baseUrl: fake.url });
+      const assistant = await providerFor(u!.id, ws.id, "own");
       expect(assistant.name).toBe("ollama");
       const text = await assistant.draftTheme({ name: "Pause", codes: [{ name: "Pause", definition: null, count: 3 }], quotes: ["ten minutes"] });
       expect(text).toBe("A protected moment before the day starts.");

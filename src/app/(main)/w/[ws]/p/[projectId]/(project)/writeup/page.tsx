@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { FileTextIcon, PenLineIcon } from "lucide-react";
 import { getProjectContext } from "@/server/queries/workspace";
 import { getBrief, listWriteups } from "@/server/services/writeup";
-import { aiStatus } from "@/server/services/ai-settings";
+import { AiSourceNote } from "@/components/common/ai-mode";
 import { providerLabel } from "@/lib/ai-providers";
 import { can } from "@/lib/permissions";
 import { SectionIntro } from "@/components/common/section-icon";
@@ -24,14 +24,13 @@ export default async function WriteupPage({ params }: PageProps<"/w/[ws]/p/[proj
   const [brief, list] = await Promise.all([getBrief(workspace.id, project.id), listWriteups(workspace.id, project.id)]);
   const scope = { workspaceId: workspace.id, slug: workspace.slug, projectId: project.id };
   const base = `/w/${ws}/p/${projectId}/writeup`;
-  const ai = await aiStatus(workspace.id);
   const canAnalyze = can(role, "content:analyze");
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="grid min-w-0 grid-cols-1 content-start gap-5">
         <SectionIntro section="writeup" icon={PenLineIcon} title={t("title")} description={t("intro")} actions={canAnalyze && <GenerateButton scope={scope} base={base} />} />
-        <p className="rounded-lg bg-section-writeup/8 px-3 py-2 text-sm text-pretty">{ai.configured ? t("providerClaude", { name: providerLabel(ai.provider) }) : t("providerBuiltin")}</p>
+        <AiSourceNote className="rounded-lg bg-section-writeup/8 px-3 py-2 text-sm text-pretty" />
         <BriefEditor
           key={brief.updatedAt.toISOString()}
           scope={scope}

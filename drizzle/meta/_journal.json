@@ -64,6 +64,13 @@
       "when": 1791020919435,
       "tag": "0008_ai_providers",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791021900846,
+      "tag": "0009_password_accounts",
+      "breakpoints": true
     }
   ]
 }

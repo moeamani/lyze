@@ -3,44 +3,68 @@ import { z } from "zod";
 import { db } from "@/server/db";
 import { workspaceAi } from "@/server/db/schema";
 import { seal, unseal } from "@/server/crypto";
-import { AI_PROVIDERS, AI_PROVIDER_IDS, type AiProviderId } from "@/lib/ai-providers";
+import { AI_PROVIDERS, AI_PROVIDER_IDS, isProviderId, type AiProviderId } from "@/lib/ai-providers";
 import type { LlmConfig } from "@/server/ai/llm";
 import { requireWorkspace } from "./access";
 import { recordAudit } from "./audit";
 import { AppError } from "./errors";
 
 export const DEFAULT_MODEL = "claude-opus-5-5";
+/** Lyze AI's default when LYZE_AI_KEY is a Google Gemini key. */
+export const LYZE_DEFAULT_MODEL = "gemini-3.8-flash";
+/** Used when the default is overloaded (common on free tiers). */
+export const LYZE_FALLBACK_MODEL = "gemini-3.5-flash-lite";
 
-export type AiStatus = { configured: boolean; source: "workspace" | "server" | null; provider: AiProviderId; hint: string | null; model: string; baseUrl: string | null };
+/** The workspace's own provider and key, as shown in settings (never the key itself). */
+export type OwnAi = { provider: AiProviderId; hint: string | null; model: string; baseUrl: string | null };
+export type AiStatus = {
+  /** Lyze's built-in model is available (the server has a key), so nobody needs their own. */
+  lyze: boolean;
+  /** The workspace's own key, if an owner added one. */
+  own: OwnAi | null;
+};
 
-/** Whether this workspace can use AI, and with what: its own provider and key, or the server's Anthropic key. */
-export async function aiStatus(workspaceId: string): Promise<AiStatus> {
-  const [row] = await db.select().from(workspaceAi).where(eq(workspaceAi.workspaceId, workspaceId)).limit(1);
-  if (row) {
-    const provider = (AI_PROVIDER_IDS as readonly string[]).includes(row.provider) ? (row.provider as AiProviderId) : "anthropic";
-    return { configured: true, source: "workspace", provider, hint: row.keyHint || null, model: row.model || AI_PROVIDERS[provider].models[0] || "", baseUrl: row.baseUrl };
-  }
-  if (process.env.ANTHROPIC_API_KEY) return { configured: true, source: "server", provider: "anthropic", hint: null, model: process.env.AI_MODEL || DEFAULT_MODEL, baseUrl: null };
-  return { configured: false, source: null, provider: "anthropic", hint: null, model: DEFAULT_MODEL, baseUrl: null };
-}
-
-/** The id generated drafts and suggestions are labelled with ("builtin" when no AI is set up). */
-export async function assistantName(workspaceId: string) {
-  const s = await aiStatus(workspaceId);
-  return !s.configured ? "builtin" : s.provider === "anthropic" ? "claude" : s.provider;
-}
-
-/** What to call the model with, or null when AI isn't set up. Server-only: includes the secret. */
-export async function aiCredentials(workspaceId: string): Promise<LlmConfig | null> {
-  const [row] = await db.select().from(workspaceAi).where(eq(workspaceAi.workspaceId, workspaceId)).limit(1);
-  if (row) {
-    const provider = (AI_PROVIDER_IDS as readonly string[]).includes(row.provider) ? (row.provider as AiProviderId) : "anthropic";
-    const apiKey = unseal(row.apiKeyEnc);
-    if (apiKey === null) return null;
-    return { provider, apiKey, model: row.model || AI_PROVIDERS[provider].models[0] || "", baseUrl: row.baseUrl };
+/**
+ * Lyze AI: the model the server provides for everyone, set with LYZE_AI_KEY (a Google Gemini key by
+ * default; LYZE_AI_PROVIDER, LYZE_AI_MODEL and LYZE_AI_BASE_URL pick something else). An older
+ * ANTHROPIC_API_KEY setup still works as the fallback.
+ */
+export function lyzeCredentials(): LlmConfig | null {
+  const key = process.env.LYZE_AI_KEY?.trim();
+  const provider = isProviderId(process.env.LYZE_AI_PROVIDER) ? process.env.LYZE_AI_PROVIDER : "gemini";
+  if (key || (process.env.LYZE_AI_PROVIDER && AI_PROVIDERS[provider].needsKey !== true)) {
+    const model = process.env.LYZE_AI_MODEL?.trim() || (provider === "gemini" ? LYZE_DEFAULT_MODEL : AI_PROVIDERS[provider].models[0] || "");
+    const fallbackModel = process.env.LYZE_AI_FALLBACK_MODEL?.trim() || (provider === "gemini" ? LYZE_FALLBACK_MODEL : null);
+    return { provider, apiKey: key ?? "", model, baseUrl: process.env.LYZE_AI_BASE_URL || null, fallbackModel };
   }
   if (process.env.ANTHROPIC_API_KEY) return { provider: "anthropic", apiKey: process.env.ANTHROPIC_API_KEY, model: process.env.AI_MODEL || DEFAULT_MODEL };
   return null;
+}
+
+async function ownRow(workspaceId: string) {
+  const [row] = await db.select().from(workspaceAi).where(eq(workspaceAi.workspaceId, workspaceId)).limit(1);
+  if (!row) return null;
+  const provider: AiProviderId = isProviderId(row.provider) ? row.provider : "anthropic";
+  return { row, provider, model: row.model || AI_PROVIDERS[provider].models[0] || "" };
+}
+
+/** What AI this workspace can use: Lyze AI, its own key, both, or neither. */
+export async function aiStatus(workspaceId: string): Promise<AiStatus> {
+  const own = await ownRow(workspaceId);
+  return {
+    lyze: lyzeCredentials() !== null,
+    own: own ? { provider: own.provider, hint: own.row.keyHint || null, model: own.model, baseUrl: own.row.baseUrl } : null,
+  };
+}
+
+/** What to call the model with, or null when that source isn't set up. Server-only: includes the secret. */
+export async function aiCredentials(workspaceId: string, source: "lyze" | "own"): Promise<LlmConfig | null> {
+  if (source === "lyze") return lyzeCredentials();
+  const own = await ownRow(workspaceId);
+  if (!own) return null;
+  const apiKey = unseal(own.row.apiKeyEnc);
+  if (apiKey === null) return null;
+  return { provider: own.provider, apiKey, model: own.model, baseUrl: own.row.baseUrl };
 }
 
 const settingsSchema = z.object({
@@ -87,7 +111,7 @@ export async function removeAiKey(userId: string, workspaceId: string) {
 /** Check the saved key and endpoint by listing models (no tokens spent). */
 export async function checkAiKey(userId: string, workspaceId: string) {
   await requireWorkspace(userId, workspaceId, "workspace:manage");
-  const creds = await aiCredentials(workspaceId);
+  const creds = await aiCredentials(workspaceId, "own");
   if (!creds) return { ok: false as const, reason: "missing" as const };
   const { pingLlm } = await import("@/server/ai/llm");
   const result = await pingLlm(creds);

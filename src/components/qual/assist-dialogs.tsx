@@ -1,7 +1,7 @@
 "use client";
 
 import { providerLabel } from "@/lib/ai-providers";
-import { AiModeSelect, useAiMode } from "@/components/common/ai-mode";
+import { AiModeSelect, useAiMode, useAssistant } from "@/components/common/ai-mode";
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2Icon, PlusIcon, ScrollTextIcon, SparklesIcon, CheckIcon, ShapesIcon } from "lucide-react";
@@ -17,7 +17,8 @@ import { CODE_COLORS } from "@/lib/qual/codes";
 type Scope = { workspaceId: string; slug: string; projectId: string };
 
 /** Badge that marks everything the assistant produced as a suggestion. */
-export function SuggestionBadge({ assistant }: { assistant: string }) {
+export function SuggestionBadge() {
+  const assistant = useAssistant();
   const t = useTranslations("coding.assist");
   return (
     <Badge variant="outline" className="gap-1">
@@ -27,7 +28,7 @@ export function SuggestionBadge({ assistant }: { assistant: string }) {
   );
 }
 
-export function SummarizeButton({ scope, sessionId, studyId, canSave, assistant }: { scope: Scope; sessionId: string; studyId: string; canSave: boolean; assistant: string }) {
+export function SummarizeButton({ scope, sessionId, studyId, canSave }: { scope: Scope; sessionId: string; studyId: string; canSave: boolean }) {
   const t = useTranslations("coding.assist");
   const tc = useTranslations("common");
   const feedback = useActionFeedback();
@@ -55,7 +56,7 @@ export function SummarizeButton({ scope, sessionId, studyId, canSave, assistant 
           <DialogHeader>
             <div className="flex flex-wrap items-center gap-2">
               <DialogTitle>{t("summaryTitle")}</DialogTitle>
-              <SuggestionBadge assistant={assistant} />
+              <SuggestionBadge />
             </div>
             <DialogDescription>{t("summaryHint")}</DialogDescription>
           </DialogHeader>
@@ -100,7 +101,7 @@ export function SummarizeButton({ scope, sessionId, studyId, canSave, assistant 
 
 type Cluster = { label: string; description: string | null; answerIds: string[]; example: string };
 
-export function ClusterButton({ scope, studyId, questionId, assistant, codesCount }: { scope: Scope; studyId: string; questionId: string; assistant: string; codesCount: number }) {
+export function ClusterButton({ scope, studyId, questionId, codesCount }: { scope: Scope; studyId: string; questionId: string; codesCount: number }) {
   const t = useTranslations("coding.assist");
   const tc = useTranslations("common");
   const feedback = useActionFeedback();
@@ -128,7 +129,7 @@ export function ClusterButton({ scope, studyId, questionId, assistant, codesCoun
           <DialogHeader>
             <div className="flex flex-wrap items-center gap-2">
               <DialogTitle>{t("clusterTitle")}</DialogTitle>
-              <SuggestionBadge assistant={assistant} />
+              <SuggestionBadge />
             </div>
             <DialogDescription>{t("clusterHint")}</DialogDescription>
           </DialogHeader>

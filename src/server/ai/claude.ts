@@ -74,10 +74,10 @@ export function claudeProvider(opts: { apiKey?: string; model?: string } = {}): 
  * The AI assistant on top of any provider's model: the same prompts and schemas for Claude, Gemini,
  * Groq, OpenRouter, Mistral, OpenAI or a local Ollama.
  */
-export function modelProvider(ctx: Llm): AssistProvider {
+export function modelProvider(ctx: Llm, name?: string): AssistProvider {
   return {
     // Drafts saved before other providers existed say "claude"; keep that id for Anthropic.
-    name: ctx.provider === "anthropic" ? "claude" : ctx.provider,
+    name: name ?? (ctx.provider === "anthropic" ? "claude" : ctx.provider),
     async suggestCodings({ units, codes, existing }) {
       if (!codes.length || !units.length) return [];
       const codebook = codes.map((c) => `- id=${c.id} · ${c.name}${c.definition ? ` — ${c.definition}` : ""}`).join("\n");

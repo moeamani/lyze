@@ -43,6 +43,12 @@ export const users = pgTable("users", {
   emailVerified: timestamp("email_verified", { withTimezone: true, mode: "date" }),
   image: text("image"),
   locale: text("locale"),
+  /** Sign-in name for password accounts (lowercase). Email accounts leave it empty. */
+  username: text("username").unique(),
+  /** scrypt hash; null for email and Google accounts. */
+  passwordHash: text("password_hash"),
+  /** Shows developer tools such as placeholder generation. */
+  devMode: boolean("dev_mode").notNull().default(false),
   createdAt: createdAt(),
 });
 

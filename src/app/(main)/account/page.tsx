@@ -8,6 +8,7 @@ import { lastWorkspaceSlug } from "@/server/preferences";
 import { ProfileForm } from "@/components/account/profile-form";
 import { Preferences } from "@/components/account/preferences";
 import { AccountData } from "@/components/account/account-data";
+import { DevModeToggle } from "@/components/account/dev-mode";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageContainer, PageHeader } from "@/components/common/page-header";
@@ -30,7 +31,7 @@ export default async function AccountPage() {
           {t("back")}
         </Link>
       </Button>
-      <PageHeader title={t("title")} description={user.email} />
+      <PageHeader title={t("title")} description={user.handle} />
       <Card>
         <CardHeader>
           <CardTitle>{t("profile")}</CardTitle>
@@ -51,10 +52,18 @@ export default async function AccountPage() {
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle>{t("devMode.title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DevModeToggle on={user.devMode} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>{t("data.title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <AccountData email={user.email} />
+          <AccountData email={user.handle} />
         </CardContent>
       </Card>
       <form action={signOutAction}>

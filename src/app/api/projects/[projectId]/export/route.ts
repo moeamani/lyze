@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/projects
       type = "text/csv; charset=utf-8";
       name = `${base}-quotes.csv`;
     } else {
-      body = (await buildProjectQdpx(workspace.id, project.id, { projectName: project.name, userName: user.name ?? user.email, lineEndings: format === "qdpx-maxqda" ? "crlf" : "lf" })) as BodyInit;
+      body = (await buildProjectQdpx(workspace.id, project.id, { projectName: project.name, userName: user.name ?? user.handle, lineEndings: format === "qdpx-maxqda" ? "crlf" : "lf" })) as BodyInit;
       type = "application/zip";
       name = `${base}${format === "qdpx-maxqda" ? "-maxqda" : ""}.qdpx`;
     }

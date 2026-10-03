@@ -24,6 +24,12 @@ export async function setLocaleAction(locale: string) {
   revalidatePath("/", "layout");
 }
 
+export async function setDevModeAction(on: boolean) {
+  const user = await requireUser();
+  await users.setDevMode(user.id, on === true);
+  revalidatePath("/", "layout");
+}
+
 export async function deleteAccountAction(confirmEmail: string) {
   const user = await requireUser();
   const { deleteAccount } = await import("@/server/services/users");

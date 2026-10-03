@@ -17,9 +17,12 @@ type Scope = { workspaceId: string; slug: string };
 export async function inviteMemberAction(scope: Scope, input: InviteInput) {
   const user = await requireUser();
   const result = await attempt(async () => {
-    const { invite, workspace } = await members.createInvite(user.id, scope.workspaceId, input);
+    const { invite, workspace, added } = await members.inviteOrAdd(user.id, scope.workspaceId, input);
+    // A username is added straight away; only email invites need a link.
+    if (!invite || !workspace) return { added: added!.name };
     const url = `${await appUrl()}/invite/${invite.token}`;
-    await sendMail({ to: invite.email, url, ...inviteEmail(url, workspace.name, user.name || user.email) });
+    await sendMail({ to: invite.email, url, ...inviteEmail(url, workspace.name, user.name || user.handle) });
+    return { added: null };
   });
   if (result.ok) revalidatePath(`/w/${scope.slug}/settings/members`);
   return result;

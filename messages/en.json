@@ -17,7 +17,11 @@
     "tooLong": "That's a little too long.",
     "email": "That doesn't look like an email address.",
     "slug": "Use lowercase letters, numbers and dashes.",
-    "slugReserved": "That address is reserved — try another."
+    "slugReserved": "That address is reserved — try another.",
+    "emailOrUsername": "That isn't an email address or a valid username.",
+    "usernameShort": "Usernames need at least 3 characters.",
+    "username": "Usernames use letters, numbers, dots, dashes or underscores.",
+    "passwordShort": "Passwords need at least 8 characters."
   },
   "errors": {
     "unauthorized": "Please sign in again.",
@@ -38,7 +42,10 @@
     "notFoundTitle": "Nothing to see here",
     "notFoundBody": "The page you're looking for moved, was deleted, or never existed.",
     "goHome": "Go home",
-    "aiNotConfigured": "AI isn't set up for this workspace yet. An owner can add an API key in Settings → AI."
+    "aiNotConfigured": "AI isn't available here yet. An owner can add an API key in Settings → AI.",
+    "noSuchUser": "No account has that username.",
+    "aiBusy": "The AI service is busy or out of free requests right now. Try again in a minute.",
+    "aiKeyRejected": "The AI service turned the API key down. An owner can check it in Settings → AI."
   },
   "landing": {
     "signIn": "Sign in",
@@ -66,7 +73,7 @@
   },
   "auth": {
     "signInTitle": "Welcome to Lyze",
-    "signInSubtitle": "Sign in or create an account with your email.",
+    "signInSubtitle": "Sign in or create an account.",
     "emailLabel": "Email",
     "emailPlaceholder": "you@university.edu",
     "sendLink": "Email me a sign-in link",
@@ -79,7 +86,27 @@
     "checkEmailBody": "We sent you a sign-in link. It works once and expires in 24 hours.",
     "devMailboxHint": "Running locally without an email server? Your link is waiting in the dev mailbox.",
     "openDevMailbox": "Open dev mailbox",
-    "useDifferentEmail": "Use a different email"
+    "useDifferentEmail": "Use a different email",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "nameLabel": "Your name",
+    "optional": "(optional)",
+    "usernameLabel": "Username",
+    "usernameHint": "3–32 characters: letters, numbers, dots, dashes or underscores.",
+    "passwordLabel": "Password",
+    "passwordHint": "At least 8 characters.",
+    "emailOption": "Continue with email",
+    "comingSoon": "Coming soon",
+    "passwordNote": "Pick a password you don't use anywhere else. Lyze can't email you a reset link yet, so keep it somewhere safe.",
+    "passwordErrors": {
+      "credentials": "That username and password don't match.",
+      "taken": "That username is taken. Try another.",
+      "username": "Usernames use letters, numbers, dots, dashes or underscores, and start with a letter or number.",
+      "usernameShort": "Usernames need at least 3 characters.",
+      "passwordShort": "Passwords need at least 8 characters.",
+      "tooMany": "Too many tries. Wait a few minutes and try again.",
+      "unknown": "Something went wrong. Please try again."
+    }
   },
   "devMailbox": {
     "title": "Dev mailbox",
@@ -136,6 +163,11 @@
       "deleteBody": "This can't be undone. If you own a workspace with other members, make someone else an owner first.",
       "typeEmail": "Type {email} to confirm",
       "deleteForever": "Delete forever"
+    },
+    "devMode": {
+      "title": "Developer",
+      "label": "Dev Mode",
+      "hint": "Adds Placeholder to every generate menu. Placeholder is Lyze's offline generator: it fills screens with sample drafts and made-up test data without using AI."
     }
   },
   "shell": {
@@ -463,7 +495,7 @@
     "subtitle": "{count, plural, one {# person} other {# people}} in this workspace.",
     "invite": "Invite",
     "inviteTitle": "Invite a teammate",
-    "inviteHint": "They'll get an email with a link to join. Invites expire after 7 days.",
+    "inviteHint": "Enter a username to add someone who already has a Lyze account, or an email to send an invite link (expires after 7 days).",
     "emailLabel": "Email",
     "roleLabel": "Role",
     "sendInvite": "Send invite",
@@ -491,7 +523,10 @@
     "leave": "Leave workspace",
     "leaveTitle": "Leave {name}?",
     "leaveBody": "You'll need a new invite to come back.",
-    "leaveConfirm": "Leave"
+    "leaveConfirm": "Leave",
+    "emailOrUsername": "Email or username",
+    "emailOrUsernamePlaceholder": "name@example.com or username",
+    "added": "{name} was added to the workspace"
   },
   "respondent": {
     "start": "Start",
@@ -2196,8 +2231,8 @@
   },
   "ai": {
     "mode": "Generation mode",
-    "useAi": "Use AI",
-    "useAiNoKey": "AI (no key yet)",
+    "lyze": "Lyze AI",
+    "own": "Your key · {provider}",
     "placeholder": "Placeholder",
     "notSetUp": "Set up AI"
   },
@@ -2210,10 +2245,9 @@
   },
   "aiSettings": {
     "title": "AI",
-    "subtitle": "Connect an AI model (several have free tiers) to draft questionnaires, guides, codebooks and written analyses, suggest codes and summarise sessions.",
+    "subtitle": "Lyze AI drafts questionnaires, guides, codebooks and written analyses, suggests codes and summarises sessions. No key needed.",
     "statusWorkspace": "Using {provider} with this workspace's key (…{hint})",
-    "statusServer": "Using the server's key",
-    "statusNone": "No API key yet",
+    "statusNone": "No key added",
     "statusHint": "Keys are encrypted before they are stored and never shown again. Text you send to AI goes to the provider you pick.",
     "check": "Check key",
     "keyWorks": "The key works",
@@ -2225,8 +2259,8 @@
     "saved": "AI settings saved",
     "remove": "Remove key",
     "removed": "Key removed",
-    "ownersOnly": "Only workspace owners can change the AI key.",
-    "placeholderNote": "Owners and developers can also choose Placeholder next to each Generate button: Lyze's built-in, offline generator, useful for testing without spending tokens.",
+    "ownersOnly": "Only workspace owners can add or change the workspace's own key.",
+    "placeholderNote": "Turn on Dev Mode in your account settings to also get Placeholder next to each Generate button: Lyze's offline generator for testing without AI.",
     "checkResult": {
       "missing": "No key to check",
       "rejected": "Anthropic rejected this key",
@@ -2251,7 +2285,13 @@
       "openai": "GPT models, billed per use.",
       "ollama": "Free and private: models run on your own computer or server, no key needed.",
       "custom": "Any service that speaks the OpenAI chat-completions API (LM Studio, vLLM, Together, DeepSeek and others)."
-    }
+    },
+    "lyzeOn": "Lyze AI is on",
+    "lyzeOnHint": "Everyone in this workspace can generate with Lyze's own model. Nobody needs an API key.",
+    "lyzeOff": "Lyze AI isn't set up on this server",
+    "lyzeOffHint": "Add your own key below to generate, or ask whoever runs this Lyze server to set LYZE_AI_KEY.",
+    "ownTitle": "Your own API key (optional)",
+    "ownHint": "Use your own provider, for example a paid plan or a model on your own computer. Once a key is saved, every Generate button lets you pick Lyze AI or your key."
   },
   "apiSettings": {
     "title": "API & webhooks",

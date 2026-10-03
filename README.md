@@ -19,10 +19,13 @@ That's it — no database or email server needed for local development:
 
 - The app uses an **embedded Postgres (PGlite)** stored in `./.data/pglite`, and
   applies migrations automatically on startup.
-- Sign-in links are printed to the server console and collected at
-  **[/dev/mailbox](http://localhost:3000/dev/mailbox)**.
+- Accounts use a **username and password** (no mail server needed). Email sign-in links show as
+  "Coming soon" until `AUTH_EMAIL_ENABLED=1`; when on, they're printed to the server console and
+  collected at **[/dev/mailbox](http://localhost:3000/dev/mailbox)**.
+- For AI, put a Google Gemini key in `.env.local` as `LYZE_AI_KEY` (see [AI](#ai)). Without it,
+  turn on **Dev Mode** in your account settings to generate offline placeholders.
 
-Sign in with any email address, name your workspace, and tick “Add a demo
+Choose **Create account**, pick a username and password, name your workspace, and tick “Add a demo
 project” — it includes a published survey you can open, share and answer right away.
 
 ## Environment variables
@@ -47,10 +50,13 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | `MEDIA_MAX_MB` | no | Largest session recording accepted (default 500 MB). |
 | `TRANSCRIPTION_PROVIDER` | no | Empty → mock transcripts (dev). `openai` → any OpenAI-compatible speech-to-text endpoint. |
 | `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_API_URL`, `TRANSCRIPTION_MODEL` | with `openai` | Key, base URL (default `https://api.openai.com/v1`) and model (default `whisper-1`). |
-| `ANTHROPIC_API_KEY` | no | Server-wide fallback Anthropic key. Usually each workspace picks a provider and adds its own key in Settings → AI instead. |
-| `AI_MODEL` | no | Model for the server-wide key (default `claude-opus-5-5`). |
-| `AI_PROVIDER` | no | `claude` makes scripts and background jobs without an explicit choice use the server key. |
-| `LYZE_DEV_TOOLS` | no | `1` lets every member use Placeholder generation and test data in production (normally owners only). |
+| `LYZE_AI_KEY` | no | Key for **Lyze AI**, the model every workspace uses without a key of its own. A Google Gemini key by default. Keep it in your host's secrets or `.env.local`, never in git. |
+| `LYZE_AI_PROVIDER` / `LYZE_AI_MODEL` / `LYZE_AI_BASE_URL` | no | Another provider, model (default `gemini-3.8-flash`) or endpoint for Lyze AI. |
+| `LYZE_AI_FALLBACK_MODEL` | no | Model to switch to when the main one is overloaded (default `gemini-3.5-flash-lite` for Gemini). |
+| `ANTHROPIC_API_KEY` | no | Older setups: used as Lyze AI when `LYZE_AI_KEY` is empty. |
+| `AI_MODEL` | no | Model for that Anthropic key (default `claude-opus-5-5`). |
+| `AI_PROVIDER` | no | `claude` makes scripts and background jobs without an explicit choice use the Anthropic key. |
+| `AUTH_EMAIL_ENABLED` | no | `1` offers email magic links on the sign-in page (needs `EMAIL_SERVER`). Off by default. |
 
 ## Scripts
 
@@ -172,8 +178,14 @@ All prose Lyze writes follows the humanize skill in `docs/skills/humanize`.
 
 ## AI
 
-Owners pick a provider in **Settings → AI**, paste its key (stored encrypted; only its last four
-characters are shown) and pick a model. Supported providers:
+Generation works out of the box with **Lyze AI**: the server's own model, set with `LYZE_AI_KEY`
+(a Google Gemini key, model `gemini-3.8-flash`). Nobody needs a key of their own. Free Gemini
+keys have daily limits shared by everyone on the server; when the model is busy Lyze retries, then
+switches to a lighter model, then tells the person to try again shortly.
+
+Owners can also add the workspace's own key in **Settings → AI** (stored encrypted; only its last
+four characters are shown). Once saved, every Generate button has a menu to pick **Lyze AI** or
+**Your key**. Supported providers:
 
 | Provider | Free option | Where to get a key |
 | --- | --- | --- |
@@ -189,9 +201,18 @@ characters are shown) and pick a model. Supported providers:
 Claude and Gemini read uploaded proposal PDFs directly; the others get the extracted text. Free
 tiers have rate limits and some use your prompts to improve their models, so check the provider's
 terms before sending real participant data. Model names change often: the model field is free text
-with suggestions. Every generate button then has a **Use AI / Placeholder**
-choice: Placeholder is Lyze's built-in offline generator, shown only to workspace owners and in
-development, for testing without spending tokens.
+with suggestions.
+
+**Placeholder** is Lyze's offline generator (sample drafts, made-up responses, participants and
+transcripts). It appears only for people who turn on **Dev Mode** in their account settings.
+
+## Accounts
+
+People create an account with a username and password (hashed with scrypt; sign-in attempts are
+rate-limited per account and per IP). Owners add a password account to a workspace by typing its
+username in **Members → Invite**; an email address still sends an invite link. Email magic links
+and Google sign-in can be turned on with `AUTH_EMAIL_ENABLED=1` and `AUTH_GOOGLE_ID` /
+`AUTH_GOOGLE_SECRET`. There's no password reset by email yet.
 
 ## API and webhooks
 
@@ -215,7 +236,7 @@ webhook's signing secret.
 ```
 src/
   app/                 Next.js App Router routes (thin: load data, render components)
-    (auth)/sign-in     Magic link + Google sign-in
+    (auth)/sign-in     Username/password, plus magic link + Google when enabled
     onboarding/        First workspace (+ optional demo project)
     w/[ws]/…           Authenticated app shell: dashboard, projects, studies, activity, settings
     invite/[token]     Accept a workspace invite

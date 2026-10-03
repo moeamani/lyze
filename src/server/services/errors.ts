@@ -1,4 +1,4 @@
-export type AppErrorCode = "unauthorized" | "forbidden" | "notFound" | "conflict" | "invalid" | "lastOwner" | "inviteInvalid" | "aiNotConfigured";
+export type AppErrorCode = "unauthorized" | "forbidden" | "notFound" | "conflict" | "invalid" | "lastOwner" | "inviteInvalid" | "aiNotConfigured" | "aiBusy" | "aiKeyRejected";
 
 /** Expected, user-facing failure. `code` doubles as an i18n key under `errors`. */
 export class AppError extends Error {

@@ -404,12 +404,23 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
   Groq, OpenRouter, Mistral, OpenAI, Ollama and any custom endpoint. Providers without
   schema-constrained output get the JSON Schema in the prompt; the answer is validated with zod and
   retried once with the error. Migration `0008` adds `workspace_ai.base_url`.
-- **Use AI / Placeholder** next to every generate button (questionnaire, guide, codebook, write-up,
-  code suggestions, session summary, answer grouping, theme description). `providerFor()` resolves
-  the choice on the server: "ai" needs a key (otherwise a clear "AI isn't set up" message);
-  "placeholder" (the built-in offline generator) is allowed only for workspace owners and in
-  development (`NODE_ENV !== production` or `LYZE_DEV_TOOLS=1`). Everyone else never sees it.
-  Made-up data (test responses, test participants, sample transcripts) is likewise owner/dev-only.
+- **Generation sources** next to every generate button (questionnaire, guide, codebook, write-up,
+  code suggestions, session summary, answer grouping, theme description): **Lyze AI** (the server's
+  model, `LYZE_AI_KEY`, Gemini `gemini-3.8-flash` with `gemini-3.5-flash-lite` as the fallback when
+  busy; no key needed from anyone), **Your key** (the workspace's own provider, once an owner saves
+  one) and **Placeholder** (the offline generator, only with Dev Mode on). The menu shows only when
+  there's more than one choice. `providerFor()` checks the choice on the server: Placeholder needs
+  `users.dev_mode`; a missing source gives "AI isn't available"; provider 429/5xx and 401/403 come
+  back as "busy" and "key rejected". Busy providers are retried twice with backoff first. Made-up
+  data (test responses, participants, sample transcripts) also needs Dev Mode.
+- **Accounts**: username + password (scrypt) instead of email magic links, which show as "Coming
+  soon" until `AUTH_EMAIL_ENABLED=1` (no mail provider yet). Auth.js credentials only work with JWT
+  sessions, so password sign-in creates the same database session row and cookie itself
+  (`startSession`). Sign-in is rate-limited per username and per client IP (per-IP limits are
+  skipped for loopback addresses, which would lump every visitor together). Owners add password
+  accounts to a workspace by username; email invites still work. Where an email used to be shown,
+  the person's email or username is shown (`userHandle`). Migration `0009` adds `users.username`,
+  `password_hash` and `dev_mode`.
 - **Proposal reading** got stricter: stops at References/Appendix (so questionnaire items in an
   appendix aren't research questions), takes "Q1." only inside a research-questions section,
   keeps the first occurrence of a label (RQ1 restated in the Discussion), drops near-duplicates,
@@ -488,6 +499,8 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 47 | Report blocks reference data instead of copying it | Reports and their public links stay current as coding and data change; deleted items show a clear placeholder. |
 | 48 | PDF via the browser's print (print stylesheet), not a server renderer | No headless browser in production; charts print as vector SVG. A server-side PDF/DOCX export can come later. |
 | 49 | AI keys are stored per workspace, encrypted with a key derived from AUTH_SECRET | Each team pays for its own usage; a database leak alone doesn't expose keys. Rotating AUTH_SECRET makes stored keys unreadable (owners re-enter them). |
-| 50 | Placeholder generation is owner/dev-only | It's a testing tool; real users should get real AI or a clear message, never canned text they might mistake for analysis. |
+| 50 | Placeholder generation needs Dev Mode, a per-person switch in account settings | It's a testing tool; real users should get real AI or a clear message, never canned text they might mistake for analysis. A switch is clearer than tying it to the owner role. |
 | 51 | The public API is read-only in v1 | Covers the common needs (R/Python scripts, dashboards) without opening write paths; writes can come later with scoped keys. |
 | 52 | Several AI providers behind one small `Llm` interface (JSON + write), not one SDK per feature | Researchers without a budget can use free tiers (Gemini, Groq, OpenRouter, Ollama); most providers speak the OpenAI protocol, so one client covers them. |
+| 53 | Lyze AI is a server-wide key (Gemini by default) every workspace uses unless it picks its own | Researchers can generate without signing up anywhere; teams that need their own provider or data terms can still bring a key. |
+| 54 | Username/password accounts with database sessions created by Lyze, not Auth.js credentials + JWT | Keeps sign-out-everywhere and account deletion working the same for every sign-in method; email links wait for a mail provider. |

@@ -88,7 +88,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/studies/
     case "qdpx-maxqda":
       body = writeQdpx(dataset, {
         projectName: study.name,
-        userName: user.name || user.email,
+        userName: user.name || user.handle,
         now,
         lineEndings: format === "qdpx-maxqda" ? "crlf" : "lf",
         description: study.description ?? undefined,

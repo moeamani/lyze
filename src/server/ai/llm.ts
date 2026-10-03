@@ -14,15 +14,34 @@ export interface Llm {
   write(system: string, prompt: string, pdf?: { data: Uint8Array; name: string } | null): Promise<string>;
 }
 
-export type LlmConfig = { provider: AiProviderId; apiKey: string; model: string; baseUrl?: string | null };
+export type LlmConfig = {
+  provider: AiProviderId;
+  apiKey: string;
+  model: string;
+  baseUrl?: string | null;
+  /** A lighter model to switch to when the main one is overloaded or rate-limited. */
+  fallbackModel?: string | null;
+};
 
 const TIMEOUT = 180_000;
 
 export function createLlm(cfg: LlmConfig): Llm {
+  if (cfg.fallbackModel && cfg.fallbackModel !== cfg.model) return withFallback(createLlm({ ...cfg, fallbackModel: null }), createLlm({ ...cfg, model: cfg.fallbackModel, fallbackModel: null }));
   const info = AI_PROVIDERS[cfg.provider];
   if (info.protocol === "anthropic") return anthropicLlm(cfg);
   if (info.protocol === "gemini") return geminiLlm(cfg);
   return openAiLlm({ ...cfg, baseUrl: cfg.baseUrl || info.baseUrl || "" });
+}
+
+/** Busy or rate-limited: worth waiting, or trying another model. */
+const isBusy = (e: unknown) => [429, 500, 502, 503, 504].includes((e as { status?: number }).status ?? 0);
+
+function withFallback(main: Llm, backup: Llm): Llm {
+  return {
+    provider: main.provider,
+    json: (schema, system, prompt, effort) => main.json(schema, system, prompt, effort).catch((e) => (isBusy(e) ? backup.json(schema, system, prompt, effort) : Promise.reject(e))),
+    write: (system, prompt, pdf) => main.write(system, prompt, pdf).catch((e) => (isBusy(e) ? backup.write(system, prompt, pdf) : Promise.reject(e))),
+  };
 }
 
 // ── Anthropic ───────────────────────────────────────────────────────────────
@@ -89,15 +108,21 @@ async function jsonWithRetry<T extends z.ZodType>(schema: T, ask: (extra: string
   }
 }
 
+/** Waits before retrying a busy provider (ms). Exported so tests can shorten them. */
+export const RETRY_DELAYS = [1500, 4000];
+
 async function postJson(url: string, headers: Record<string, string>, body: unknown) {
-  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(TIMEOUT) });
-  const text = await res.text();
-  if (!res.ok) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(TIMEOUT) });
+    const text = await res.text();
+    if (res.ok) return JSON.parse(text) as Record<string, unknown>;
     const err = new Error(`AI provider error ${res.status}: ${text.slice(0, 300)}`) as Error & { status: number };
     err.status = res.status;
-    throw err;
+    if (!isBusy(err) || attempt >= RETRY_DELAYS.length) throw err;
+    // Free tiers are often briefly overloaded: wait (as asked, up to 10 s) and try again.
+    const asked = Number(res.headers.get("retry-after")) * 1000;
+    await new Promise((r) => setTimeout(r, asked > 0 && asked <= 10_000 ? asked : RETRY_DELAYS[attempt]));
   }
-  return JSON.parse(text) as Record<string, unknown>;
 }
 
 // ── Google Gemini ───────────────────────────────────────────────────────────

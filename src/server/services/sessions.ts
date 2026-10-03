@@ -4,6 +4,7 @@ import { membersWithRoles, notify, studyLink } from "./notifications";
 import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { userHandle } from "@/server/db/user-handle";
 import { files, participants, researchSessions, segments, sessionNotes, sessionParticipants, transcripts, users, type ResearchSession } from "@/server/db/schema";
 import { storage, storageFor } from "@/server/storage";
 import { newId } from "@/lib/ids";
@@ -108,13 +109,13 @@ export async function getSessionDetail(workspaceId: string, studyId: string, ses
       .orderBy(asc(participants.code)),
     db.select().from(transcripts).where(eq(transcripts.sessionId, sessionId)).limit(1),
     db
-      .select({ id: sessionNotes.id, atMs: sessionNotes.atMs, tag: sessionNotes.tag, text: sessionNotes.text, createdAt: sessionNotes.createdAt, authorId: sessionNotes.authorId, authorName: users.name, authorEmail: users.email })
+      .select({ id: sessionNotes.id, atMs: sessionNotes.atMs, tag: sessionNotes.tag, text: sessionNotes.text, createdAt: sessionNotes.createdAt, authorId: sessionNotes.authorId, authorName: users.name, authorEmail: userHandle })
       .from(sessionNotes)
       .leftJoin(users, eq(users.id, sessionNotes.authorId))
       .where(eq(sessionNotes.sessionId, sessionId))
       .orderBy(asc(sessionNotes.atMs), asc(sessionNotes.createdAt)),
     session.mediaFileId ? db.select({ id: files.id, name: files.name, mime: files.mime, size: files.size }).from(files).where(eq(files.id, session.mediaFileId)).limit(1) : Promise.resolve([]),
-    session.interviewerId ? db.select({ id: users.id, name: users.name, email: users.email }).from(users).where(eq(users.id, session.interviewerId)).limit(1) : Promise.resolve([]),
+    session.interviewerId ? db.select({ id: users.id, name: users.name, email: userHandle }).from(users).where(eq(users.id, session.interviewerId)).limit(1) : Promise.resolve([]),
   ]);
   const segs = transcript
     ? await db
@@ -268,7 +269,7 @@ async function removeFile(executor: Pick<typeof db, "select" | "delete">, fileId
 }
 
 async function userName(userId: string) {
-  const [u] = await db.select({ name: users.name, email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  const [u] = await db.select({ name: users.name, email: userHandle }).from(users).where(eq(users.id, userId)).limit(1);
   return u?.name || u?.email?.split("@")[0] || "Researcher";
 }
 
