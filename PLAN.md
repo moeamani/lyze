@@ -454,6 +454,27 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
   their storage (`blob` / `s3` / `local`), and are served through `/api/files` as before.
 - `maxDuration = 300` for workspace pages (AI in server actions) and the media route
   (transcription in `after()`).
+
+### Word imports and interview patterns
+
+- **Transcripts**: `src/lib/docx.ts` reads Word files in the browser (paragraphs, list levels,
+  headings, bold, tables). The plain-text parser understands numbered, timed turns
+  (`N (hh:mm:ss) - Name: text`, missing dashes or spaces, three-digit seconds), joins follow-on
+  paragraphs to the turn in documents that number every turn, keeps "(Break)"-style notes as
+  speakerless segments, uses a heading before the first turn as the title, and splits turns over
+  4,000 characters at sentence ends. A review step (`TranscriptImportDialog`) suggests merging
+  spelling variants (case/accents, Damerau–Levenshtein ≤ 2 for names of 6+ letters), guesses roles
+  (first voice interviewer, group voices "other"), and can add participant voices as participants
+  (`speakerPlanSchema`, `planSpeakers`). Bulk import creates one completed session per file and
+  removes it again if the file has no turns.
+- **Codebooks**: `parseCodebookDocx` turns a table or an outline into the same rows as the CSV
+  import (two levels, like the CSV).
+- **Patterns** (`src/lib/qual/patterns.ts`, `/patterns`): approved codings on participant turns
+  (interviewer turns excluded). Group comparison defaults to small-sample tests; ANOVA is opt-in
+  and flagged when a group has under 10 people. Holm correction across codes. Co-occurrence is
+  per passage (segment) with Jaccard overlap. Cohen's kappa uses every participant turn in the
+  transcripts both coders worked in, per code and pooled. `/api/projects/:id/export?format=cases`
+  gives participant × code counts.
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |
@@ -521,3 +542,5 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 52 | Several AI providers behind one small `Llm` interface (JSON + write), not one SDK per feature | Researchers without a budget can use free tiers (Gemini, Groq, OpenRouter, Ollama); most providers speak the OpenAI protocol, so one client covers them. |
 | 53 | Lyze AI is a server-wide key (Gemini by default) every workspace uses unless it picks its own | Researchers can generate without signing up anywhere; teams that need their own provider or data terms can still bring a key. |
 | 54 | Username/password accounts with database sessions created by Lyze, not Auth.js credentials + JWT | Keeps sign-out-everywhere and account deletion working the same for every sign-in method; email links wait for a mail provider. |
+| 55 | Interview patterns default to rank and exact tests, with ANOVA opt-in and flagged | Interview samples are small and code counts skewed; examiners question ANOVA there, but some supervisors ask for it. |
+| 56 | Word files are parsed in the browser, then go through the existing import paths | One validation path on the server; nothing new to upload or store, and big documents don't hit serverless body limits. |

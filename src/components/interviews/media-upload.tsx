@@ -5,14 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { DirectUploadError, directUpload } from "@/lib/direct-upload";
+import { TranscriptImportDialog } from "./transcript-import";
 import { FileTextIcon, Loader2Icon, MicIcon, SparklesIcon, UploadCloudIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useActionFeedback } from "@/components/common/use-action-feedback";
-import { importTranscriptAction } from "@/server/actions/interviews";
 import { generateAction } from "@/server/actions/create";
 import { useCanPlaceholder } from "@/components/common/ai-mode";
 import { cn } from "@/lib/utils";
@@ -183,78 +180,24 @@ export function MediaStart({ scope, sessionId, liveHref, canEdit }: { scope: Sco
   );
 }
 
-export function ImportTranscriptButton({ scope, sessionId }: { scope: Scope; sessionId: string }) {
+/** "Import transcript" for one session, or (without a session) "Import transcripts" as new sessions. */
+export function ImportTranscriptButton({ scope, sessionId }: { scope: Scope; sessionId?: string }) {
   const t = useTranslations("sessionPage.import");
   const [open, setOpen] = useState(false);
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)}>
         <FileTextIcon />
-        {t("button")}
+        {sessionId ? t("button") : t("bulkButton")}
       </Button>
-      <ImportTranscriptDialog scope={scope} sessionId={sessionId} open={open} onOpenChange={setOpen} />
+      <TranscriptImportDialog scope={scope} sessionId={sessionId} open={open} onOpenChange={setOpen} />
     </>
   );
 }
 
-export function ImportTranscriptDialog({ scope, sessionId, open, onOpenChange }: { scope: Scope; sessionId: string; open: boolean; onOpenChange: (open: boolean) => void }) {
-  const t = useTranslations("sessionPage.import");
-  const tc = useTranslations("common");
-  const feedback = useActionFeedback();
-  const [text, setText] = useState("");
-  const [pending, startTransition] = useTransition();
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc("close")} className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{t("title")}</DialogTitle>
-          <DialogDescription>{t("hint")}</DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 gap-2">
-          <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="transcript-text">{t("paste")}</Label>
-            <Button asChild variant="ghost" size="sm">
-              <label className="cursor-pointer">
-                <UploadCloudIcon />
-                {t("file")}
-                <input
-                  type="file"
-                  accept=".vtt,.srt,.txt,text/vtt,text/plain"
-                  className="sr-only"
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    if (f) setText(await f.text());
-                  }}
-                />
-              </label>
-            </Button>
-          </div>
-          <Textarea id="transcript-text" rows={9} value={text} onChange={(e) => setText(e.target.value)} className="font-mono text-xs" placeholder={"WEBVTT\n\n00:00:01.000 --> 00:00:04.000\nJane: Thanks for joining…"} />
-          <p className="text-xs text-muted-foreground">{t("formats")}</p>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {tc("cancel")}
-          </Button>
-          <Button
-            disabled={pending || !text.trim()}
-            onClick={() =>
-              startTransition(async () => {
-                const result = await importTranscriptAction(scope, sessionId, text);
-                if (feedback(result, result.ok ? t("done", { count: result.data.segments }) : undefined)) {
-                  onOpenChange(false);
-                  setText("");
-                }
-              })
-            }
-          >
-            {pending && <Loader2Icon className="animate-spin" />}
-            {t("submit")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+/** Kept for existing call sites: the transcript import for one session. */
+export function ImportTranscriptDialog(props: { scope: Scope; sessionId: string; open: boolean; onOpenChange: (open: boolean) => void }) {
+  return <TranscriptImportDialog {...props} />;
 }
 
 /** "Generate sample": a made-up transcript built from the guide, for trying coding before real interviews. */

@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { DownloadIcon, Loader2Icon, PencilLineIcon, SparklesIcon, UploadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,7 +74,19 @@ export function CreateOptions({
 
   const upload = (f: File) =>
     run("upload", async () => {
-      const r = await uploadAction(scope, kind, await f.text());
+      let text: string;
+      if (/\.docx$/i.test(f.name)) {
+        // A Word codebook (table or outline) becomes the same rows as the CSV, read in the browser.
+        const [{ docxBlocks }, { codeRowsToCsv, parseCodebookDocx }] = await Promise.all([import("@/lib/docx"), import("@/lib/create/codebook-docx")]);
+        const parsed = parseCodebookDocx(docxBlocks(new Uint8Array(await f.arrayBuffer())));
+        if (!parsed.rows.length) {
+          if (file.current) file.current.value = "";
+          toast.error(t("noCodesInDocx"));
+          return false;
+        }
+        text = codeRowsToCsv(parsed.rows);
+      } else text = await f.text();
+      const r = await uploadAction(scope, kind, text);
       if (file.current) file.current.value = "";
       return feedback(r, r.ok ? (r.data.errors ? t("uploadedWithErrors", { count: r.data.count, errors: r.data.errors }) : t("uploaded", { count: r.data.count })) : undefined);
     });
@@ -114,11 +127,11 @@ export function CreateOptions({
             {t("upload")}
           </p>
           <p className="flex-1 text-sm text-pretty text-muted-foreground">{t(`uploadHint.${kind}`)}</p>
-          <input ref={file} type="file" accept=".csv,.tsv,.txt,text/csv" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+          <input ref={file} type="file" accept={kind === "codebook" ? ".csv,.tsv,.txt,.docx,text/csv" : ".csv,.tsv,.txt,text/csv"} hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" disabled={pending} onClick={() => file.current?.click()}>
               {busy === "upload" ? <Loader2Icon className="animate-spin" /> : <UploadIcon />}
-              {t("chooseCsv")}
+              {kind === "codebook" ? t("chooseCsvOrWord") : t("chooseCsv")}
             </Button>
             <Button size="sm" variant="ghost" onClick={example}>
               <DownloadIcon /> {t("example")}

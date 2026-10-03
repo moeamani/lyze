@@ -95,7 +95,7 @@ export async function participantSessions(participantId: string) {
     .orderBy(desc(researchSessions.scheduledAt));
 }
 
-async function codesIn(executor: Pick<typeof db, "select">, studyId: string) {
+export async function codesIn(executor: Pick<typeof db, "select">, studyId: string) {
   const rows = await executor.select({ code: participants.code }).from(participants).where(eq(participants.studyId, studyId));
   return rows.map((r) => r.code);
 }

@@ -13,6 +13,7 @@ import { LocalTime } from "@/components/common/local-time";
 import { TimelineIllustration } from "@/components/illustrations";
 import { SessionKindLabel, SessionStatusBadge } from "@/components/interviews/participant-bits";
 import { NewSessionButton } from "@/components/interviews/session-dialog";
+import { ImportTranscriptButton } from "@/components/interviews/media-upload";
 import { SessionKindIcon } from "@/components/interviews/kind-icon";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,6 +31,8 @@ export default async function SessionsPage({ params, searchParams }: PageProps<"
 
   const { upcoming, done, other } = groupSessions(sessions);
 
+  const conversations = kindsFor(study.type).some((k) => k === "interview" || k === "focus_group");
+  const importButton = canEdit && conversations && <ImportTranscriptButton scope={scope} />;
   const newButton = canEdit && (
     <NewSessionButton
       scope={scope}
@@ -46,7 +49,10 @@ export default async function SessionsPage({ params, searchParams }: PageProps<"
   if (sessions.length === 0) {
     return (
       <EmptyState illustration={<TimelineIllustration />} title={t("emptyTitle")} description={t("emptyBody")}>
-        {newButton}
+        <div className="flex flex-wrap justify-center gap-2">
+          {newButton}
+          {importButton}
+        </div>
       </EmptyState>
     );
   }
@@ -55,7 +61,10 @@ export default async function SessionsPage({ params, searchParams }: PageProps<"
     <div className="grid grid-cols-1 gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <p className="text-sm text-muted-foreground">{t("intro")}</p>
-        {newButton}
+        <div className="flex flex-wrap gap-2">
+          {importButton}
+          {newButton}
+        </div>
       </div>
       <Group title={t("upNext")} items={upcoming} base={base} empty={t("nothingUpcoming")} />
       {other.length > 0 && <Group title={t("needsUpdate")} items={other} base={base} />}

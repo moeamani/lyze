@@ -7,8 +7,10 @@ import { requireProjectById } from "@/server/services/qual-docs";
 import { exportCodebook } from "@/server/services/codebook";
 import { buildProjectQdpx, quotesCsv } from "@/server/services/qual-export";
 import { slugify } from "@/lib/slug";
+import { patternsData } from "@/server/services/patterns";
+import { caseCodeCsv } from "@/lib/qual/patterns";
 
-const FORMATS = ["qdpx", "qdpx-maxqda", "qdc", "quotes"] as const;
+const FORMATS = ["qdpx", "qdpx-maxqda", "qdc", "quotes", "cases"] as const;
 type Format = (typeof FORMATS)[number];
 
 /** Qualitative exports for a project: REFI-QDA project / codebook, and the quote bank as CSV. */
@@ -28,6 +30,12 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/projects
       body = await exportCodebook(workspace.id, project.id);
       type = "application/xml; charset=utf-8";
       name = `${base}-codebook.qdc`;
+    } else if (format === "cases") {
+      // One row per participant, their attributes and how often each code came up (for SPSS, R, Excel).
+      const data = await patternsData(workspace.id, project.id);
+      body = "\uFEFF" + caseCodeCsv(data.people, data.codings, data.codes);
+      type = "text/csv; charset=utf-8";
+      name = `${base}-codes-by-participant.csv`;
     } else if (format === "quotes") {
       const starred = request.nextUrl.searchParams.get("starred") === "1";
       body = await quotesCsv(workspace.id, project.id, { starred: starred || undefined, codeId: request.nextUrl.searchParams.get("code") });

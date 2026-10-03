@@ -127,13 +127,17 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 - **Live view** — timer, in-browser recording, the guide as a checklist with time budgets, and
   timestamped notes with quick tags (Alt+1–5).
 - **Transcripts** — upload audio/video for automatic transcription (mock provider in dev, any
-  OpenAI-compatible speech-to-text in production) or import a Zoom/Teams/Otter transcript
-  (.vtt, .srt, .txt). The transcript follows playback, timestamps seek the player (k / j / l
+  OpenAI-compatible speech-to-text in production) or import a transcript you already have: Word
+  (.docx), text, .vtt or .srt. Hand-typed transcripts with numbered, timed turns
+  ("12 (00:45:35) - Jane: …") are understood, including follow-on paragraphs, notes like
+  "(Break)" and sloppy times. **Import transcripts** on the Sessions tab takes many files at once
+  (one session each). Before anything is saved you confirm the speakers: spelling variants
+  ("Sofia"/"Sophia") are merged, roles set, and participant voices can be added as participants. The transcript follows playback, timestamps seek the player (k / j / l
   shortcuts), segments and speakers can be corrected, and transcripts download as .txt, .vtt or .srt.
 
 ## Qualitative analysis
 
-Every project has tabs for **Coding, Codebook, Themes, Quotes, Memos and Search**. Codes belong to
+Every project has tabs for **Coding, Codebook, Themes, Patterns, Quotes, Memos and Search**. Codes belong to
 the project, so one codebook covers its interviews, field notes, diaries and open-text survey
 answers.
 
@@ -142,6 +146,15 @@ answers.
   remove it or add a memo. On phones each passage has a **Code** button.
 - **Codebook** — nested codes (up to four levels) with colors and definitions; reorder, merge,
   and split selected passages into a new code. Import or export a REFI-QDA codebook (.qdc).
+- **Codebook from Word or CSV** — upload a CSV, or a Word file with a table (Code | Definition |
+  Category | Example…) or an outline (headings or bold lines for parent codes, bullets for codes,
+  "Name: definition" or definition lines such as "Definition:", "Example:", "Exclude:").
+- **Patterns** — numbers from coded interviews. *Compare groups*: codes by any participant
+  attribute (role, grade taught…), as people who mention a code (chi-square, or Fisher's exact
+  test for two small groups) or passages per person (Mann-Whitney / Kruskal-Wallis, or one-way
+  ANOVA with a warning), with Holm-adjusted p-values. *Codes together*: codes applied to the same
+  passage. *Coder agreement*: Cohen's kappa per code and pooled, for two people who coded the same
+  transcripts. Download codes by participant as CSV for SPSS or R.
 - **Themes** — a board: drag codes into themes (keyboard: Space to pick up, arrows, Space to drop).
 - **Quotes** — every coded passage, filterable by code, theme, study and participant; star, copy
   with its source, or download as CSV.
