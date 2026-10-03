@@ -1,14 +1,14 @@
 import { dispatchWebhooks } from "./api";
 import { mockProvider } from "@/server/transcription/mock";
 import { membersWithRoles, notify, studyLink } from "./notifications";
-import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { userHandle } from "@/server/db/user-handle";
 import { files, participants, researchSessions, segments, sessionNotes, sessionParticipants, transcripts, users, type ResearchSession } from "@/server/db/schema";
 import { storage, storageFor } from "@/server/storage";
 import { discardUpload, type StoredUpload } from "@/server/storage/direct";
-import { newId } from "@/lib/ids";
+import { newId, newToken } from "@/lib/ids";
 import { isConversation, maxParticipants, SESSION_KINDS, SESSION_STATUSES, SPEAKER_ROLES, type SessionKind, type SessionStatus, type Speakers } from "@/lib/interviews/sessions";
 import { parseTranscript, type SegmentInput } from "@/lib/interviews/transcript";
 import { transcriptionProvider, type TranscriptionProvider } from "@/server/transcription";
@@ -16,7 +16,9 @@ import { recordAudit } from "./audit";
 import { requireWorkspace } from "./access";
 import { AppError } from "./errors";
 import { getGuide } from "./guides";
-import { advanceParticipants, requireStudyIn } from "./participants";
+import { advanceParticipants, codesIn, requireStudyIn } from "./participants";
+import { nextParticipantCode } from "@/lib/interviews/participants";
+import { foldName, suggestRoles } from "@/lib/interviews/speaker-names";
 import { relocateSegmentCodings } from "./coding";
 
 const MAX_SEGMENTS = 5000;
@@ -473,18 +475,88 @@ async function notifyTranscript(session: ResearchSession, kind: "transcript" | "
 }
 
 /** Import a transcript file (WebVTT, SRT or text) from Zoom, Teams, Otter… */
-export async function importTranscript(userId: string, workspaceId: string, studyId: string, sessionId: string, raw: string) {
+/**
+ * What the person confirmed before importing: one name per detected label (merging spelling
+ * variants), a role per name, and whether participant voices become participants of the study.
+ */
+export const speakerPlanSchema = z.object({
+  names: z.record(z.string().max(200), z.string().trim().min(1).max(80)).default({}),
+  roles: z.record(z.string().max(80), z.enum(SPEAKER_ROLES)).default({}),
+  addParticipants: z.boolean().default(false),
+});
+export type SpeakerPlan = z.input<typeof speakerPlanSchema>;
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Apply a confirmed speaker plan: rename, set roles, and link (or create) participants. */
+async function planSpeakers(tx: Tx, session: ResearchSession, segs: SegmentInput[], plan: z.output<typeof speakerPlanSchema>, userId: string) {
+  const renamed = segs.map((s) => ({ ...s, speaker: s.speaker ? (plan.names[s.speaker] ?? s.speaker).trim() : null }));
+  const order: string[] = [];
+  for (const s of renamed) if (s.speaker && !order.includes(s.speaker)) order.push(s.speaker);
+  const guessed = suggestRoles(order);
+  const roleOf = (name: string) => plan.roles[name] ?? guessed[name]!;
+
+  const linked = new Map<string, { id: string; code: string }>();
+  // People already linked to the session, then the rest of the study, matched by name or code.
+  const studyPeople = await tx.select({ id: participants.id, code: participants.code, name: participants.name }).from(participants).where(eq(participants.studyId, session.studyId));
+  for (const name of order.filter((n) => roleOf(n) === "participant")) {
+    const match = studyPeople.find((p) => foldName(p.code) === foldName(name) || (p.name && foldName(p.name) === foldName(name)));
+    if (match) linked.set(name, match);
+    else if (plan.addParticipants) {
+      // Same per-study lock as createParticipant, so codes never collide.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${session.studyId}))`);
+      const code = nextParticipantCode(await codesIn(tx, session.studyId));
+      const [row] = await tx
+        .insert(participants)
+        .values({ workspaceId: session.workspaceId, studyId: session.studyId, code, name, status: "completed", consentToken: newToken(), createdById: userId })
+        .returning({ id: participants.id, code: participants.code });
+      studyPeople.push({ ...row!, name });
+      linked.set(name, row!);
+      await recordAudit(tx, { workspaceId: session.workspaceId, actorId: userId, action: "participant.created", entityType: "participant", entityId: row!.id, metadata: { code, from: "transcript" } });
+    }
+  }
+  if (linked.size) await tx.insert(sessionParticipants).values([...linked.values()].map((p) => ({ sessionId: session.id, participantId: p.id }))).onConflictDoNothing();
+
+  const key = new Map(order.map((name, i) => [name, `S${i + 1}`]));
+  const speakers: Speakers = {};
+  for (const name of order) {
+    const p = linked.get(name);
+    // Participants show by their code (as everywhere in Lyze); their name stays on the participant.
+    speakers[key.get(name)!] = p ? { name: p.code, role: "participant", participantId: p.id } : { name, role: roleOf(name) };
+  }
+  return { segments: renamed.map((s) => ({ ...s, speaker: s.speaker ? key.get(s.speaker)! : null })), speakers };
+}
+
+export async function importTranscript(userId: string, workspaceId: string, studyId: string, sessionId: string, raw: string, planInput?: SpeakerPlan) {
   await requireWorkspace(userId, workspaceId, "content:edit");
   const session = await getSessionRow(workspaceId, studyId, sessionId);
   const text = String(raw).slice(0, 5_000_000);
   const parsed = parseTranscript(text);
   if (!parsed.segments.length) throw new AppError("invalid");
-  const assigned = assignSpeakers(parsed.segments, await speakerContext(session));
+  const plan = planInput ? speakerPlanSchema.parse(planInput) : null;
+  const context = plan ? null : await speakerContext(session);
   await db.transaction(async (tx) => {
+    const assigned = plan ? await planSpeakers(tx, session, parsed.segments, plan, userId) : assignSpeakers(parsed.segments, context!);
     await writeTranscript(tx, { workspaceId, sessionId, provider: "import", language: null, ...assigned });
+    // An imported conversation has happened.
+    if (session.status === "scheduled" || session.status === "in_progress") await tx.update(researchSessions).set({ status: "completed", endedAt: session.endedAt ?? new Date() }).where(eq(researchSessions.id, sessionId));
     await recordAudit(tx, { workspaceId, actorId: userId, action: "session.transcript_imported", entityType: "session", entityId: sessionId, metadata: { format: parsed.format, segments: parsed.segments.length } });
   });
   return { format: parsed.format, segments: parsed.segments.length };
+}
+
+/** One new session per transcript file (bulk import): titled after the file, already completed. */
+export async function importTranscriptAsSession(userId: string, workspaceId: string, studyId: string, input: { title: string; kind: SessionKind; text: string }, plan: SpeakerPlan) {
+  if (!isConversation(input.kind)) throw new AppError("invalid");
+  const session = await createSession(userId, workspaceId, studyId, { kind: input.kind, title: input.title.slice(0, 200) || undefined });
+  try {
+    const result = await importTranscript(userId, workspaceId, studyId, session.id, input.text, plan);
+    return { sessionId: session.id, ...result };
+  } catch (e) {
+    // Nothing usable in the file: don't leave an empty session behind.
+    await db.delete(researchSessions).where(eq(researchSessions.id, session.id));
+    throw e;
+  }
 }
 
 /** A made-up transcript for trying coding and analysis before real interviews exist (built from the guide). */

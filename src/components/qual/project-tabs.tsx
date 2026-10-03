@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { BookMarkedIcon, FileBarChartIcon, FolderKanbanIcon, GitMergeIcon, HighlighterIcon, LayoutListIcon, NotebookPenIcon, PenLineIcon, QuoteIcon, SearchIcon, type LucideIcon } from "lucide-react";
+import { BookMarkedIcon, FileBarChartIcon, SigmaIcon, FolderKanbanIcon, GitMergeIcon, HighlighterIcon, LayoutListIcon, NotebookPenIcon, PenLineIcon, QuoteIcon, SearchIcon, type LucideIcon } from "lucide-react";
 import { SECTION_BAR, SECTION_TEXT, type Section } from "@/components/common/section-icon";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,7 @@ export function ProjectTabs({ base }: { base: string }) {
         { href: `${base}/coding`, label: t("coding"), icon: HighlighterIcon, active: at("coding"), section: "coding" },
         { href: `${base}/codebook`, label: t("codebook"), icon: BookMarkedIcon, active: at("codebook"), section: "coding" },
         { href: `${base}/themes`, label: t("themes"), icon: FolderKanbanIcon, active: at("themes"), section: "coding" },
+        { href: `${base}/patterns`, label: t("patterns"), icon: SigmaIcon, active: at("patterns"), section: "coding" },
         { href: `${base}/quotes`, label: t("quotes"), icon: QuoteIcon, active: at("quotes"), section: "coding" },
         { href: `${base}/memos`, label: t("memos"), icon: NotebookPenIcon, active: at("memos"), section: "coding" },
       ],

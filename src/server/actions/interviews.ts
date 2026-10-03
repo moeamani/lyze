@@ -32,6 +32,7 @@ import {
   deleteNote,
   deleteSession,
   importTranscript,
+  importTranscriptAsSession,
   retranscribe,
   runTranscription,
   saveSummary,
@@ -41,9 +42,10 @@ import {
   updateSession,
   updateSpeakers,
   type SessionInput,
+  type SpeakerPlan,
 } from "@/server/services/sessions";
 import type { ParticipantStatus } from "@/lib/interviews/participants";
-import type { SessionStatus } from "@/lib/interviews/sessions";
+import type { SessionKind, SessionStatus } from "@/lib/interviews/sessions";
 import { attempt } from "./result";
 
 type Scope = { workspaceId: string; slug: string; projectId: string; studyId: string };
@@ -137,8 +139,13 @@ export async function deleteSessionAction(scope: Scope, sessionId: string) {
   return run(scope, (userId) => deleteSession(userId, scope.workspaceId, scope.studyId, sessionId));
 }
 
-export async function importTranscriptAction(scope: Scope, sessionId: string, text: string) {
-  return run(scope, (userId) => importTranscript(userId, scope.workspaceId, scope.studyId, sessionId, text));
+export async function importTranscriptAction(scope: Scope, sessionId: string, text: string, plan?: SpeakerPlan) {
+  return run(scope, (userId) => importTranscript(userId, scope.workspaceId, scope.studyId, sessionId, text, plan));
+}
+
+/** Bulk import: one transcript file becomes one new, completed session. */
+export async function importTranscriptSessionAction(scope: Scope, input: { title: string; kind: SessionKind; text: string }, plan: SpeakerPlan) {
+  return run(scope, (userId) => importTranscriptAsSession(userId, scope.workspaceId, scope.studyId, input, plan));
 }
 
 export async function retranscribeAction(scope: Scope, sessionId: string) {
