@@ -1,11 +1,11 @@
-export const LOCALES = ["en", "ar"] as const;
+export const LOCALES = ["en", "fa", "ar"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "en";
 export const LOCALE_COOKIE = "NEXT_LOCALE";
 
-const RTL = new Set<Locale>(["ar"]);
+const RTL = new Set<Locale>(["fa", "ar"]);
 
-export const LOCALE_LABELS: Record<Locale, string> = { en: "English", ar: "العربية" };
+export const LOCALE_LABELS: Record<Locale, string> = { en: "English", fa: "فارسی", ar: "العربية" };
 
 export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && (LOCALES as readonly string[]).includes(value);

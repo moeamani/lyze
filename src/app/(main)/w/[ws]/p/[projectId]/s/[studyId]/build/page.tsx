@@ -7,6 +7,7 @@ import { captchaSiteKey } from "@/server/captcha";
 import { can } from "@/lib/permissions";
 import { collectsResponses } from "@/lib/studies";
 import { Builder } from "@/components/builder/builder";
+import { CreateOptions } from "@/components/common/create-options";
 import { TemplatePicker } from "@/components/builder/template-picker";
 import { EmptyState } from "@/components/common/empty-state";
 import { PageContainer } from "@/components/common/page-header";
@@ -28,7 +29,23 @@ export default async function BuildPage({ params }: PageProps<"/w/[ws]/p/[projec
   const form = await getFormForStudy(workspace.id, study.id);
 
   if (!form) {
-    if (canEdit) return <TemplatePicker scope={scope} />;
+    if (canEdit) {
+      const t = await getTranslations("create");
+      return (
+        <>
+          <div className="mx-auto grid w-full max-w-4xl gap-4 px-4 pt-8 sm:px-6 md:pt-12">
+            <div className="space-y-1.5">
+              <h1 className="text-2xl font-semibold">{t("questionnaireTitle")}</h1>
+              <p className="text-muted-foreground">{t("questionnaireHint")}</p>
+            </div>
+            <CreateOptions scope={scope} kind="questionnaire" manual={{ href: "#templates" }} />
+          </div>
+          <div id="templates">
+            <TemplatePicker scope={scope} />
+          </div>
+        </>
+      );
+    }
     const t = await getTranslations("studies");
     return (
       <PageContainer>

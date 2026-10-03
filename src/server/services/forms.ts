@@ -38,7 +38,7 @@ export async function createForm(
   workspaceId: string,
   projectId: string,
   studyId: string,
-  template: TemplateKey | "blank",
+  template: TemplateKey | "blank" | { doc: FormDoc; how: "generated" | "import" },
 ) {
   await requireWorkspace(userId, workspaceId, "content:edit");
   const study = await getStudy(workspaceId, projectId, studyId);
@@ -46,7 +46,7 @@ export async function createForm(
   const existing = await getFormForStudy(workspaceId, studyId);
   if (existing) return existing;
 
-  const doc = template === "blank" ? emptyForm(study.name) : TEMPLATES[template]();
+  const doc = typeof template === "object" ? template.doc : template === "blank" ? emptyForm(study.name) : TEMPLATES[template]();
   if (template === "blank") doc.description = study.description ?? undefined;
 
   return db.transaction(async (tx) => {
@@ -60,7 +60,7 @@ export async function createForm(
       action: "form.created",
       entityType: "form",
       entityId: form!.id,
-      metadata: { name: study.name, template },
+      metadata: { name: study.name, template: typeof template === "object" ? template.how : template },
     });
     return form!;
   });

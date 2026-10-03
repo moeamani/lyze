@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeftIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
+import { ArrowLeftIcon, HighlighterIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getSessionStudyContext } from "@/server/queries/workspace";
 import { getSessionDetail } from "@/server/services/sessions";
 import { getGuide } from "@/server/services/guides";
@@ -158,6 +159,14 @@ export default async function SessionPage({ params }: PageProps<"/w/[ws]/p/[proj
             )}
           </div>
         </div>
+        {canAnalyze && transcript?.status === "ready" && segments.length > 0 && (
+          <Button asChild variant="outline">
+            <Link href={`/w/${ws}/p/${projectId}/coding?doc=${encodeURIComponent(`s:${session.id}`)}`}>
+              <HighlighterIcon />
+              {t("codeTranscript")}
+            </Link>
+          </Button>
+        )}
         {canEdit && (
           <SessionActions
             scope={scope}

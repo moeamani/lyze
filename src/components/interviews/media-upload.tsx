@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { FileTextIcon, Loader2Icon, MicIcon, UploadCloudIcon } from "lucide-react";
+import { FileTextIcon, Loader2Icon, MicIcon, SparklesIcon, UploadCloudIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useActionFeedback } from "@/components/common/use-action-feedback";
 import { importTranscriptAction } from "@/server/actions/interviews";
+import { generateAction } from "@/server/actions/create";
+import { useCanPlaceholder } from "@/components/common/ai-mode";
 import { cn } from "@/lib/utils";
 
 type Scope = { workspaceId: string; slug: string; projectId: string; studyId: string };
@@ -140,6 +142,7 @@ export function MediaStart({ scope, sessionId, liveHref, canEdit }: { scope: Sco
                 </Link>
               </Button>
               <ImportTranscriptButton scope={scope} sessionId={sessionId} />
+              <SampleTranscriptButton scope={scope} sessionId={sessionId} />
             </div>
             <input
               ref={input}
@@ -232,5 +235,30 @@ export function ImportTranscriptDialog({ scope, sessionId, open, onOpenChange }:
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** "Generate sample": a made-up transcript built from the guide, for trying coding before real interviews. */
+function SampleTranscriptButton({ scope, sessionId }: { scope: Scope; sessionId: string }) {
+  const t = useTranslations("create");
+  const allowed = useCanPlaceholder();
+  const feedback = useActionFeedback();
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  if (!allowed) return null;
+  return (
+    <Button
+      variant="ghost"
+      disabled={pending}
+      onClick={() =>
+        startTransition(async () => {
+          const r = await generateAction({ ...scope, sessionId }, "transcript");
+          if (feedback(r, r.ok ? t("generated.transcript", { count: Number(r.data.count ?? 0) }) : undefined)) router.refresh();
+        })
+      }
+    >
+      {pending ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+      {t("sampleTranscript")}
+    </Button>
   );
 }

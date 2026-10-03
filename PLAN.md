@@ -94,15 +94,22 @@ Phases add tables as they need them (migrations per phase).
 | `transcripts` | sessionId (unique), provider (mock/openai/import/manual), status, language, speakers (jsonb: S1… → name, role, participantId) | 4 |
 | `segments` | transcriptId, position, speaker, startMs, endMs, text (open-text answers are coded in place in Phase 5) | 4 |
 | `session_notes` | sessionId, atMs, tag, text, authorId | 4 |
-| `codes` | studyId/projectId, parentId, name, color, definition, position | 5 |
-| `code_applications` | codeId, segmentId \| answerId, startOffset, endOffset, quote, createdById, source(human/ai), approvedAt | 5 |
-| `themes` / `theme_codes` | projectId, name, description, column(kanban), position | 5 |
-| `memos` | workspaceId, target(type,id), body, authorId | 5 |
+| `codes` | **projectId** (codes span every study in the project), parentId (≤ 4 levels), name (unique among siblings), color (slot 1–8), definition, position, themeId?, themePosition | 5 |
+| `code_applications` | codeId, segmentId \| answerId, start, end (UTF-16 offsets into that one unit), quote, createdById, source(human/ai), approvedAt (null = pending suggestion), reason, starred | 5 |
+| `themes` | projectId, name, description, color, position — codes hang off themes via `codes.themeId` (one theme per code), so the board is just ordered columns | 5 |
+| `memos` | workspaceId, projectId, target(project/code/theme/segment/answer/session, id), title, body, authorId | 5 |
+| `project_groups` | workspaceId, name, position — custom folders; `projects.groupId` (set null on delete) | 6 |
+| `responses.participantId` | links a survey response to a participant (auto via personal email invite) | 6 |
+| `project_briefs` | projectId (PK), aim, questions jsonb, statements jsonb (hypothesis/proposition/assumption), proposal file + extracted text | 6 |
+| `writeups` | projectId, title, body (Markdown), provider, createdById | 6 |
+| `notifications` | userId, workspaceId, kind, data jsonb, href, groupKey (repeats fold), readAt | 6 |
 | `insights` | projectId, kind(chart/quote/theme/stat), payload(jsonb), note | 7 |
-| `reports` / `report_blocks` | projectId, title, shareToken, blocks(type, config, position) | 7 |
+| `reports` | projectId, title, blocks jsonb (heading/text/question/quote/theme/joint/writeup; data blocks hold references), shareToken (null = private) | 7 |
+| `responses.source` | respondent / manual / import / generated | 7 |
 | `files` | workspaceId, responseId?, storage(s3/local), key, name, mime, size | 2 |
-| `api_keys` | workspaceId, name, hashedKey, prefix, lastUsedAt | 8 |
-| `webhooks` | workspaceId, url, secret, events[] | 8 |
+| `api_keys` | workspaceId, name, hashedKey (SHA-256; secret shown once), prefix, lastUsedAt | 8 |
+| `webhooks` | workspaceId, url (public https only in production), secret (HMAC signing), events[], lastStatus | 8 |
+| `workspace_ai` | workspaceId (PK), apiKeyEnc (AES-256-GCM, key from AUTH_SECRET), keyHint, model | 8 |
 
 ---
 
@@ -130,17 +137,21 @@ Phases add tables as they need them (migrations per phase).
 | `…/s/[studyId]/sessions/[sid]/live` | Live session: timer, in-browser recording, guide checklist, quick notes (Phase 4) |
 | `/consent/[token]` | Participant's personal consent page (respondent layout) (Phase 4) |
 | `/api/sessions/[sid]/media`, `/transcript?format=`, `/calendar` | Recording upload, transcript download (txt/vtt/srt), .ics (Phase 4) |
-| `/w/[ws]/p/[projectId]/codebook`, `/coding`, `/themes`, `/search` | Qualitative (Phase 5) |
-| `/w/[ws]/p/[projectId]/mixed` | Joint displays, triangulation (Phase 6) |
-| `/w/[ws]/p/[projectId]/reports/[id]` | Report builder (Phase 7) |
-| `/w/[ws]/settings`, `/settings/members`, `/settings/api` | Workspace settings |
+| `/w/[ws]/p/[projectId]` (+ tabs) | Project tabs: Studies, `/coding?doc=`, `/codebook?code=`, `/themes`, `/quotes?code=&theme=&study=&person=&starred=`, `/memos`, `/search?q=&in=&study=&person=&code=&from=&to=` (Phase 5) |
+| `/api/projects/[projectId]/export?format=` | REFI-QDA `qdpx`, `qdpx-maxqda`, codebook `qdc`, quote bank `quotes` CSV (Phase 5) |
+| `/w/[ws]/p/[projectId]/mixed?view=joint\|cross\|cases&q=` | Joint display, codes × closed answers, people across sources (Phase 6) |
+| `/w/[ws]/p/[projectId]/writeup`, `/writeup/[id]` | Research brief + proposal, written analysis drafts (Phase 6) |
+| `/w/[ws]/activity?cat=&actor=&from=&to=&q=&before=` | Activity with filters, day groups, paging (Phase 6) |
+| `/w/[ws]/p/[projectId]/reports`, `/reports/[id]` | Report list (generate / blank) and builder with share, print, Markdown (Phase 7) |
+| `/w/[ws]/settings`, `/settings/members`, `/settings/ai`, `/settings/api` | Workspace settings: general, members, AI key and model, API keys and webhooks |
 | `/account` | Profile, locale, data export, delete my data |
 | `/f/[publicId]` | Respondent form (own root layout: no app shell/providers). `?lang=`, `?t=` invite, `?resume=`, `?embed=1` |
-| `/r/[shareToken]` | Read-only shared report |
+| `/r/[shareToken]` | Read-only shared report, no sign-in, live data, print button (Phase 7) |
 | `/api/auth/[...nextauth]` | Auth.js |
 | `/api/f/[publicId]/{start,resume,save,submit,upload}` | Respondent API (rate-limited) |
 | `/api/files/[id]` | Authenticated file download |
-| `/api/v1/*` | Public API (API key) |
+| `/api/v1/projects`, `/api/v1/studies/[id]/responses?format=json\|csv` | Public read-only API (Bearer API key) |
+| `/api/account/export` | Download my data (JSON) |
 
 ---
 
@@ -206,10 +217,10 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - [x] Phase 2 — Forms: builder, respondent form, responses
 - [x] Phase 3 — Quantitative analysis + R / SPSS / NVivo / MAXQDA interoperability
 - [x] Phase 4 — Interviews: guides, participants, consent, sessions, recording, transcription
-- [ ] Phase 5 — Qualitative coding
-- [ ] Phase 6 — Mixed methods
-- [ ] Phase 7 — Reports & exports
-- [ ] Phase 8 — Polish
+- [x] Phase 5 — Qualitative coding
+- [x] Phase 6 — Mixed methods, written analysis, groups, notifications, Persian, rebrand
+- [x] Phase 7 — Reports & exports, plus Generate / Upload CSV / Enter manually everywhere
+- [x] Phase 8 — AI settings, API & webhooks, account data, polish
 
 ### Phase 2 notes
 
@@ -272,13 +283,151 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - Fixed along the way: grid tracks in the new pages use `minmax(0,1fr)` so nothing pushes the page
   sideways on phones (checked by e2e at 360px).
 
+### Phase 5 notes
+
+- `src/lib/qual/` is framework-free and unit-tested: code tree helpers (flatten, depth limit,
+  cycle-safe moves, sibling name checks), offset ranges (normalize, snap to words, overlapping
+  highlight spans, relocating codings when a segment is edited), search query parsing (`"phrases"`,
+  `-exclude`, snippets), a lexicon sentiment scorer with negation and boosters, a deterministic
+  word-cloud layout, and small NLP helpers (stemming, TF-IDF, k-means clustering, extractive
+  summaries).
+- **Coding workspace**: every ready transcript (interviews, focus groups, field notes, diaries) and
+  every open-text survey question is a document. Select text → a picker to apply or create a code
+  (keyboard friendly, recent codes first); click a highlight to star, remove or memo it. On phones
+  each passage has a "Code" button and the codes panel is a bottom sheet. Editing a transcript
+  segment moves its codings with the text; rewriting a field note keeps unchanged paragraphs.
+- **Codebook**: nested codes with colors and definitions, reorder, merge (passages, children and
+  memos move), split (tick passages → new code), and REFI-QDA codebook import/export.
+- **Themes** board (dnd-kit, keyboard accessible) with an "Unsorted" column; **quote bank** with
+  URL filters, starring, copy and CSV export; **memos** on the project, codes, themes, passages and
+  sessions; **search** across transcripts, answers and memos with study/participant/code/date
+  filters.
+- **Assistant** behind `AssistProvider` (`src/server/ai`): the default built-in provider is
+  deterministic (keyword suggestions from code names/definitions, TF-IDF clustering, extractive
+  summaries, template theme descriptions). `AI_PROVIDER=claude` uses the Anthropic API with
+  structured outputs. Suggestions are stored as pending codings and count nowhere until a person
+  accepts them; summaries and drafts are shown for review before saving.
+- Results for open-text questions gained a word cloud (one hue, opacity by frequency, with the bar
+  view kept as the default and as the accessible alternative) and a tone bar (diverging
+  red · gray · blue) with example answers. Sentiment is English-only.
+- Demo: the coffee project ships a small codebook (Ritual › Pause, Social; Cutting down; Cost;
+  Health & sleep), two themes, coded passages in both interviews and the survey, one pending
+  suggestion and three memos.
+- Also in this phase: the landing mascot is now a small 3D agent, and the respondent form was
+  redesigned — each question is a centred card in a single column on every screen.
+
+### Phase 6 notes
+
+- **Mixed methods** (`/mixed`): a joint display that puts each code's weight in conversations
+  (passages, people, a quote) beside its share of survey respondents, and labels it "both",
+  "conversations only" or "survey only"; a codes × closed-question table (how respondents whose
+  open answers carry a code answered, next to everyone); and a case view of participants across
+  sources. Responses link to participants through personal invites (same email in the project).
+- **Written analysis** (`/writeup`): a research brief (aim, research questions, hypotheses /
+  propositions / assumptions, uploaded thesis or proposal: .docx/.txt/.md text is extracted, PDFs
+  are passed to Claude as documents). "Write analysis" builds a context from the brief, codebook,
+  quotes, themes, memos, survey summaries and the joint display, and the `AssistProvider` writes
+  Markdown. The built-in writer is deterministic: findings per research question (codes matched by
+  shared stems, ignoring words common to the whole codebook), convergence notes, a cautious
+  verdict per statement, themes and limits. Claude writes in the UI language.
+- **House style** (`src/lib/writeup/style.ts`) comes from the humanize checklist: no em/en dashes,
+  no AI vocabulary, plain verbs, specific numbers, one honest hedge. It is part of Claude's prompt,
+  and `cleanProse` runs on every draft and edit; tests assert the built-in draft has no tells.
+- **Project groups**: Notion-style collapsible folders on the projects page; move a project from
+  its folder button; deleting a group keeps its projects.
+- **Activity**: category chips with 30-day counts, person, date range and text filters (URL state),
+  day headings, section-colored icons, "show older" paging.
+- **Notifications**: bell in the sidebar and phone header with unread count, polling once a minute.
+  New responses (folded per study), transcript ready/failed, consent signed, member joined.
+  `notify()` never throws, so a notification can't break the action behind it.
+- **Brand**: the uploaded logotype and monogram (monogram rounded next to the wordmark and as the
+  favicon). Notion-like neutrals (white page, warm gray chrome, thin borders, ink primary buttons,
+  smaller radii) with the brand lavender as accent. Each area has its own hue (`--section-*`:
+  forms, interviews, coding, mixed, write-up, people, activity) used in tab icons, page icon tiles
+  and activity rows, and project tabs are grouped (Data · Qualitative · Mixed · Write-up · Find).
+- **Persian**: full `fa` translation (RTL), set in Peyda (self-hosted woff2, `next/font/local`);
+  Arabic also uses Peyda. Latin text inside Persian keeps Geist; quotes use `dir="auto"`.
+- Fixed: the projects page always showed "No studies" (unqualified columns in the count subquery).
+
+### Phase 7 notes
+
+- **Generate / Upload / Enter manually** for every kind of input, through one component
+  (`CreateOptions`, folded into `CreatePanel` where a page already has content):
+
+  | What | Generate | Upload CSV (example file offered) | Enter manually |
+  | --- | --- | --- | --- |
+  | Questionnaire | from the brief + proposal (built-in rules or Claude) | `page,type,question,description,required,options,min,max,low_label,high_label` | templates + builder |
+  | Interview guide | from the brief + proposal | `section,minutes,goal,question,probes,note` | guide builder |
+  | Survey responses | fake test data (seeded, correlated scales) | one column per question, header = question text; template has the form's exact columns | the live form with `?entry=manual` (members only; stored as `manual`) |
+  | Participants | fake people (example.com emails) | name/email/phone/id + attribute columns | add dialog |
+  | Codebook | from the brief + clustered project text | `code,parent,definition,color` | codebook editor |
+  | Transcript | sample built from the guide (mock transcriber) | .vtt / .srt / .txt import | field-notes editor, segment editing |
+
+  CSV rows and AI output share one path (`QuestionRow[]` → `buildForm`). Every imported value is
+  validated like a real submission and bad cells are reported, not guessed. Responses carry a
+  `source`; generated test data gets a banner on Responses with one-click deletion.
+- **Reports**: blocks (heading, Markdown text, survey chart with a note, quote, theme, joint display,
+  write-up). Data blocks store references and are resolved on every view, so shared links stay
+  current. "Generate report" assembles brief, key charts, joint display, themes with their best
+  quotes and the latest write-up. Share by link (token; turning it off revokes it), print or save as
+  PDF (print CSS shows only the report), or download Markdown.
+- **Humanize**: the user's humanize skill is vendored at `docs/skills/humanize` (SKILL.md + the
+  pattern and word references). `STYLE_RULES` restates its master principle, house rules and all
+  33 patterns; `cleanProse` applies its safe swaps (filler, AI words, dashes); Claude drafts get the
+  skill's audit step (list the remaining tells, then rewrite) as a second pass.
+- Fixed: the responses table could push the page sideways (scroll container not positioned, grid
+  without `grid-cols-1`).
+
+### After Phase 7: proposal reading and the article-style writer
+
+- **Upload the thesis or proposal and the brief fills itself in.** PDF text comes from a small
+  built-in extractor (`src/lib/writeup/pdf.ts`: Flate and object streams, ToUnicode CMaps, text
+  operators; scanned PDFs have no text). `extractBrief` finds the aim ("The aim of this study is…",
+  an Aims section), research questions (RQ labels, a Research questions section, real questions)
+  and hypotheses, propositions and assumptions (H1/P1 labels, a Hypotheses section, "we
+  hypothesise / expect / assume that…"). Results merge into the brief without duplicates.
+- **The built-in writer produces a "Data analysis and results" section** (`src/lib/writeup/article.ts`)
+  with no AI service: an analysis paragraph, the sample (completion rate, demographics), a table of
+  numeric and rating items, descriptive results in APA style, themes with quotes, a comparison of
+  the two strands, a one-sample t-test against the scale midpoint for each hypothesis the survey
+  measures (t, df, p, Cohen's d) combined with the qualitative evidence into a cautious verdict,
+  an answer to each research question, and specific limitations. All numbers come from the
+  project; the text goes through the humanize clean-up. Claude (`AI_PROVIDER=claude`) stays optional.
+
+### Phase 8 notes
+
+- **AI settings** (Settings → AI): owners paste an Anthropic API key (encrypted at rest, only the
+  last four characters are ever shown again), pick the model, and can check the key (lists models,
+  spends no tokens). The server's `ANTHROPIC_API_KEY` is a fallback.
+- **Use AI / Placeholder** next to every generate button (questionnaire, guide, codebook, write-up,
+  code suggestions, session summary, answer grouping, theme description). `providerFor()` resolves
+  the choice on the server: "ai" needs a key (otherwise a clear "AI isn't set up" message);
+  "placeholder" (the built-in offline generator) is allowed only for workspace owners and in
+  development (`NODE_ENV !== production` or `LYZE_DEV_TOOLS=1`). Everyone else never sees it.
+  Made-up data (test responses, test participants, sample transcripts) is likewise owner/dev-only.
+- **Proposal reading** got stricter: stops at References/Appendix (so questionnaire items in an
+  appendix aren't research questions), takes "Q1." only inside a research-questions section,
+  keeps the first occurrence of a label (RQ1 restated in the Discussion), drops near-duplicates,
+  prefers labelled questions, and only falls back to questions in the introduction. A new upload
+  replaces the brief's questions and hypotheses instead of adding to them.
+- **Public API** (read-only, Bearer key): projects with studies, and a study's cleaned responses as
+  JSON (with variable metadata) or CSV. **Webhooks**: `response.submitted`, `transcript.ready`,
+  `consent.signed`, POSTed as JSON with `X-Lyze-Event` and `X-Lyze-Signature: sha256=<HMAC>`; private
+  and local addresses are refused in production; every delivery records its status.
+- **Account**: download all your data as JSON; delete your account (type your email; workspaces
+  where you're alone go with it; owning a shared workspace alone blocks it until you hand over).
+- **Polish**: Lighthouse accessibility 100 on dashboard, coding, mixed methods, write-up, reports,
+  activity, settings and sign-in (fixed: a link name that didn't match its visible text, low
+  contrast on success text, labels on tinted cards); toasts no longer overflow small phones;
+  settings pages share a tab bar.
+
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |
 | --- | --- | --- |
 | **SPSS** | Frequencies, descriptives, crosstabs + χ², t-tests, ANOVA, nonparametrics, correlations, reliability, recode / compute, select cases; SPSS syntax for each result; **.sav export** with variable labels, value labels, measurement levels, dates | Factor analysis, multiple/logistic regression, post-hoc tables |
 | **R** | Same tests with R code for each result; **R bundle** (CSV + .sav + `lyze_import.R` that builds factors, ordered factors and labels) | Running R code inside Lyze is out of scope |
-| **NVivo / ATLAS.ti / MAXQDA** | **REFI-QDA .qdpx** project: every open-text answer as a source, one code per question with the answer coded, cases with survey variables as case attributes (MAXQDA variant with CRLF line endings) | Full coding, codebook, memos and .qdc codebook exchange arrive in Phase 5 |
+| **NVivo / ATLAS.ti / MAXQDA** | Coding, nested codebook, themes, memos, quote bank, search. **REFI-QDA .qdpx** project export with transcripts and open-text answers as sources, your codes and codings at the right positions, memos as notes and participants as cases with attributes (MAXQDA variant with CRLF line endings); **.qdc codebook import/export**. Per-study survey .qdpx from Phase 3 still works | — |
 | **Excel / anything** | .xlsx (responses, codes, variable sheet) and CSV (labels or codes, UTF-8 BOM, formula-injection safe) | — |
 
 ## Decisions log
@@ -318,3 +467,21 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 31 | Field notes and diary entries are stored as **manual transcripts** (one segment per paragraph) | Every kind of qualitative text is coded, searched and exported the same way in Phase 5. Rewriting an entry replaces its segments. |
 | 32 | Recordings upload through the app (streamed with a size cap, `MEDIA_MAX_MB`), not presigned S3 URLs | One code path for local disk and S3, permission checks in one place. Direct-to-S3 multipart uploads are a later scale-up. |
 | 33 | Mock transcription is the default; real speech-to-text is opt-in via env | Every screen works offline and in tests; no audio leaves the server unless configured. |
+| 34 | **Codes are project-scoped**, not study-scoped | One codebook across interviews, field notes and survey answers is how qualitative teams work; the same code can be compared across methods in Phase 6. |
+| 35 | Codings store **UTF-16 offsets into one unit** (a segment or an answer), converted to code points only on REFI-QDA export | Matches the DOM, so highlights are exact; selections that span units become one coding per unit. |
+| 36 | Theme membership is a column on `codes` (`themeId`, `themePosition`), not a join table | A code belongs to at most one theme on the board; moving a card is a single update. |
+| 37 | AI help sits behind an `AssistProvider`; built-in heuristics are the default, Claude is opt-in (`AI_PROVIDER=claude`) | Works offline and in tests; no research data leaves the server unless the workspace operator configures it. |
+| 38 | AI suggestions are **pending codings** (`source = ai`, `approvedAt = null`) | They are visible in context, but excluded from counts, quotes, search filters and exports until a person accepts them. |
+| 39 | Mixed-methods views are **computed on read** from codings and answers, not stored | Always in sync with coding; the data sizes involved are small. |
+| 40 | Written analyses are **saved drafts** (Markdown), regenerated on demand, never edited in place by the AI | People edit the text freely; each run is a new draft, so nothing a person wrote is overwritten. |
+| 41 | The built-in writer stays English; Claude writes in the UI language | Template prose in several languages would read stiffly; a model writes natural Persian. |
+| 42 | Notifications are in-app only (no email yet) and fold repeats by `groupKey` | One "48 new responses" instead of 48 rows; email digests can come later. |
+| 43 | Brand primary is ink, not lavender | Matches the logotype; lavender (#A49EFF) stays the accent so status and data colors keep their meaning. |
+| 44 | Every input has **Generate / Upload CSV / Enter manually**, and uploads always offer an example file | Researchers start from a proposal, a spreadsheet or a blank page; none of the three should be a dead end. |
+| 45 | Generated responses are real rows with `source = generated`, not a separate sandbox | The whole analysis pipeline (results, tests, exports) can be tried end to end; a banner and one-click delete keep it honest. |
+| 46 | Manual entry reuses the respondent form (`?entry=manual`, signed-in members only) | Same validation and logic as real respondents; no second data-entry UI to maintain. |
+| 47 | Report blocks reference data instead of copying it | Reports and their public links stay current as coding and data change; deleted items show a clear placeholder. |
+| 48 | PDF via the browser's print (print stylesheet), not a server renderer | No headless browser in production; charts print as vector SVG. A server-side PDF/DOCX export can come later. |
+| 49 | AI keys are stored per workspace, encrypted with a key derived from AUTH_SECRET | Each team pays for its own usage; a database leak alone doesn't expose keys. Rotating AUTH_SECRET makes stored keys unreadable (owners re-enter them). |
+| 50 | Placeholder generation is owner/dev-only | It's a testing tool; real users should get real AI or a clear message, never canned text they might mistake for analysis. |
+| 51 | The public API is read-only in v1 | Covers the common needs (R/Python scripts, dashboards) without opening write paths; writes can come later with scoped keys. |

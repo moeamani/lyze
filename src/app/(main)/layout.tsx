@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { peyda } from "@/app/fonts";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { NextIntlClientProvider } from "next-intl";
@@ -21,8 +22,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcfcfd" },
-    { media: "(prefers-color-scheme: dark)", color: "#16161a" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#191919" },
   ],
 };
 
@@ -30,7 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = (await getLocale()) as Locale;
   const dir = direction(locale);
   return (
-    <html lang={locale} dir={dir} suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang={locale} dir={dir} suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} ${peyda.variable}`}>
       <body className="min-h-dvh font-sans">
         <NextIntlClientProvider>
           <Providers dir={dir}>{children}</Providers>

@@ -15,9 +15,9 @@ import { valueLabel, type Variable } from "@/lib/analysis/variables";
  * offsets. MAXQDA expects Windows line endings in the text files, so that is an option.
  */
 
-const BOM = "﻿";
+export const BOM = "﻿";
 
-const esc = (s: string) =>
+export const esc = (s: string) =>
   s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -25,8 +25,8 @@ const esc = (s: string) =>
     .replace(/"/g, "&quot;")
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
 
-const codePoints = (s: string) => Array.from(s).length;
-const stamp = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+export const codePoints = (s: string) => Array.from(s).length;
+export const stamp = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "Z");
 
 // Categorical palette (validated, see PLAN.md → charts) reused for code colors.
 const CODE_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];

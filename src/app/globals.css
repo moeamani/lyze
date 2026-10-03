@@ -10,37 +10,51 @@
  */
 :root {
   color-scheme: light;
-  --radius: 0.875rem;
+  --radius: 0.625rem;
 
-  --background: oklch(0.99 0.003 285);
-  --foreground: oklch(0.24 0.012 285);
+  /* Brand (from the logotype and monogram). */
+  --brand: #a49eff;
+  --brand-ink: #131317;
+  --brand-dot: #8b95e5;
+
+  /* Notion-like calm surfaces: white page, warm gray chrome, ink text. */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.235 0.006 285);
   --card: oklch(1 0 0);
   --card-foreground: var(--foreground);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--foreground);
 
-  /* Accent: soft violet. 0.53 lightness keeps white text ≥ 4.5:1. */
-  --primary: oklch(0.53 0.17 285);
-  --primary-foreground: oklch(0.99 0.005 285);
+  /* Primary actions are ink, like the logotype. */
+  --primary: oklch(0.2 0.008 285);
+  --primary-foreground: oklch(0.955 0.004 285);
   --accent-soft: oklch(0.955 0.03 285);
-  --accent-soft-foreground: oklch(0.42 0.15 285);
+  --accent-soft-foreground: oklch(0.44 0.16 285);
 
-  --secondary: oklch(0.965 0.005 285);
-  --secondary-foreground: oklch(0.28 0.012 285);
-  --muted: oklch(0.965 0.005 285);
-  --muted-foreground: oklch(0.5 0.012 285);
-  --accent: oklch(0.955 0.012 285);
-  --accent-foreground: oklch(0.24 0.012 285);
+  --secondary: oklch(0.972 0.002 90);
+  --secondary-foreground: oklch(0.28 0.008 285);
+  --muted: oklch(0.972 0.002 90);
+  --muted-foreground: oklch(0.53 0.006 90);
+  --accent: oklch(0.955 0.003 90);
+  --accent-foreground: oklch(0.235 0.006 285);
 
   --destructive: oklch(0.56 0.2 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.55 0.13 155);
+  --success: oklch(0.5 0.12 155);
   --warning: oklch(0.7 0.14 70);
 
-  --border: oklch(0.92 0.006 285);
-  --input: oklch(0.9 0.008 285);
-  --ring: oklch(0.6 0.15 285);
+  --border: oklch(0.925 0.003 90);
+  --input: oklch(0.89 0.004 90);
+  --ring: oklch(0.68 0.12 280);
 
+  /* Section identity: each area of the app has its own hue (icon tiles, tab marks). */
+  --section-forms: oklch(0.6 0.13 245);
+  --section-interviews: oklch(0.66 0.14 55);
+  --section-coding: oklch(0.6 0.15 290);
+  --section-mixed: oklch(0.6 0.11 180);
+  --section-writeup: oklch(0.6 0.15 10);
+  --section-people: oklch(0.6 0.12 145);
+  --section-activity: oklch(0.58 0.03 260);
   /* Data-viz palette: validated categorical order (CVD-safe adjacent pairs, see PLAN.md).
      Light-mode slots 3–5 sit under 3:1 contrast, so every chart ships a table view. */
   --series-1: #2a78d6;
@@ -64,11 +78,11 @@
   --chart-4: oklch(0.66 0.15 15);
   --chart-5: oklch(0.68 0.11 155);
 
-  --sidebar: oklch(0.982 0.004 285);
-  --sidebar-foreground: var(--foreground);
+  --sidebar: oklch(0.982 0.002 90);
+  --sidebar-foreground: oklch(0.36 0.006 90);
   --sidebar-border: var(--border);
-  --sidebar-accent: oklch(0.95 0.012 285);
-  --sidebar-accent-foreground: oklch(0.24 0.012 285);
+  --sidebar-accent: oklch(0.945 0.003 90);
+  --sidebar-accent-foreground: oklch(0.235 0.006 285);
 
   /* Project swatches */
   --swatch-violet: oklch(0.6 0.16 285);
@@ -78,8 +92,8 @@
   --swatch-rose: oklch(0.64 0.17 10);
   --swatch-slate: oklch(0.55 0.02 260);
 
-  --shadow-soft: 0 1px 2px oklch(0.2 0.02 285 / 0.04), 0 2px 8px oklch(0.2 0.02 285 / 0.04);
-  --shadow-lift: 0 2px 4px oklch(0.2 0.02 285 / 0.05), 0 8px 24px oklch(0.2 0.02 285 / 0.08);
+  --shadow-soft: 0 1px 2px oklch(0.2 0.01 90 / 0.04);
+  --shadow-lift: 0 0 0 1px oklch(0.2 0.01 90 / 0.05), 0 3px 6px oklch(0.2 0.01 90 / 0.08), 0 9px 24px oklch(0.2 0.01 90 / 0.12);
 
   --duration: 180ms;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -94,33 +108,41 @@
 .dark {
   /* Lets native controls (radios, selects, date pickers, scrollbars) match dark mode. */
   color-scheme: dark;
-  --background: oklch(0.17 0.008 285);
-  --foreground: oklch(0.95 0.005 285);
-  --card: oklch(0.205 0.009 285);
+  --background: oklch(0.2 0 0);
+  --foreground: oklch(0.93 0.004 285);
+  --card: oklch(0.225 0 0);
   --card-foreground: var(--foreground);
-  --popover: oklch(0.215 0.01 285);
+  --popover: oklch(0.25 0 0);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.74 0.13 285);
-  --primary-foreground: oklch(0.18 0.03 285);
-  --accent-soft: oklch(0.29 0.05 285);
-  --accent-soft-foreground: oklch(0.86 0.08 285);
+  --primary: oklch(0.94 0.005 285);
+  --primary-foreground: oklch(0.2 0.008 285);
+  --accent-soft: oklch(0.3 0.05 285);
+  --accent-soft-foreground: oklch(0.85 0.08 285);
 
-  --secondary: oklch(0.26 0.01 285);
-  --secondary-foreground: oklch(0.95 0.005 285);
-  --muted: oklch(0.25 0.01 285);
-  --muted-foreground: oklch(0.72 0.012 285);
-  --accent: oklch(0.27 0.012 285);
-  --accent-foreground: oklch(0.95 0.005 285);
+  --secondary: oklch(0.255 0 0);
+  --secondary-foreground: oklch(0.93 0.004 285);
+  --muted: oklch(0.255 0 0);
+  --muted-foreground: oklch(0.7 0.004 90);
+  --accent: oklch(0.28 0 0);
+  --accent-foreground: oklch(0.93 0.004 285);
 
   --destructive: oklch(0.68 0.18 25);
   --destructive-foreground: oklch(0.17 0.01 25);
   --success: oklch(0.72 0.13 155);
   --warning: oklch(0.8 0.13 75);
 
-  --border: oklch(1 0 0 / 0.09);
+  --border: oklch(1 0 0 / 0.085);
   --input: oklch(1 0 0 / 0.13);
-  --ring: oklch(0.7 0.12 285);
+  --ring: oklch(0.74 0.12 285);
+
+  --section-forms: oklch(0.72 0.11 245);
+  --section-interviews: oklch(0.76 0.12 60);
+  --section-coding: oklch(0.74 0.12 290);
+  --section-mixed: oklch(0.74 0.1 180);
+  --section-writeup: oklch(0.72 0.13 10);
+  --section-people: oklch(0.74 0.11 145);
+  --section-activity: oklch(0.72 0.02 260);
 
   --series-1: #3987e5;
   --series-2: #d95926;
@@ -142,18 +164,18 @@
   --chart-4: oklch(0.72 0.14 15);
   --chart-5: oklch(0.75 0.11 155);
 
-  --sidebar: oklch(0.19 0.009 285);
-  --sidebar-foreground: var(--foreground);
+  --sidebar: oklch(0.225 0 0);
+  --sidebar-foreground: oklch(0.8 0.004 90);
   --sidebar-border: var(--border);
-  --sidebar-accent: oklch(0.26 0.012 285);
-  --sidebar-accent-foreground: oklch(0.95 0.005 285);
+  --sidebar-accent: oklch(0.28 0 0);
+  --sidebar-accent-foreground: oklch(0.93 0.004 285);
 
   --shadow-soft: 0 1px 2px oklch(0 0 0 / 0.3);
   --shadow-lift: 0 2px 4px oklch(0 0 0 / 0.3), 0 8px 24px oklch(0 0 0 / 0.35);
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), var(--font-peyda), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   --color-background: var(--background);
@@ -185,6 +207,15 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-brand: var(--brand);
+  --color-brand-dot: var(--brand-dot);
+  --color-section-forms: var(--section-forms);
+  --color-section-interviews: var(--section-interviews);
+  --color-section-coding: var(--section-coding);
+  --color-section-mixed: var(--section-mixed);
+  --color-section-writeup: var(--section-writeup);
+  --color-section-people: var(--section-people);
+  --color-section-activity: var(--section-activity);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);
@@ -239,6 +270,13 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "cv11";
+  }
+  /* Persian (and Arabic) read best in Peyda; Latin words inside still use Geist via the fallback. */
+  :lang(fa),
+  :lang(ar) {
+    font-family: var(--font-peyda), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: normal;
+    letter-spacing: 0;
   }
   h1,
   h2,
@@ -352,4 +390,51 @@
 }
 .form-theme[data-corners="square"] {
   --radius: 0.25rem;
+}
+
+/* Gentle hover for the landing mascot (only applied under motion-safe). */
+@keyframes lyze-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Reports print on their own: everything else on the page is hidden, the report fills the paper. */
+.report-print-only {
+  display: none;
+}
+@media print {
+  @page {
+    margin: 18mm 16mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .report-print-only {
+    display: grid;
+  }
+  .report-print,
+  .report-print * {
+    visibility: visible;
+  }
+  .report-print {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    color: #000;
+  }
+  .report-print .break-inside-avoid {
+    break-inside: avoid;
+  }
+}
+
+/* Sonner on phones: it sets both side offsets and width: 100%, which pokes past the screen edge. */
+@media (max-width: 600px) {
+  [data-sonner-toaster] {
+    width: auto !important;
+  }
 }

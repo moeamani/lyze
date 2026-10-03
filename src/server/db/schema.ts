@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   boolean,
   doublePrecision,
   index,
@@ -16,6 +17,7 @@ import { newId } from "@/lib/ids";
 import { ROLES } from "@/lib/permissions";
 import { STUDY_STATUSES, STUDY_TYPES } from "@/lib/studies";
 import type { FormDoc } from "@/lib/forms/schema";
+import type { Block } from "@/lib/reports/blocks";
 import type { AnswerValue } from "@/lib/forms/answers";
 import type { AnalysisSettings } from "@/lib/analysis/settings";
 import type { ConsentDoc, GuideDoc } from "@/lib/interviews/guide";
@@ -146,6 +148,8 @@ export const projects = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     color: text("color").notNull().default("violet"),
+    /** Custom folder on the projects page (null = ungrouped). */
+    groupId: text("group_id").references((): AnyPgColumn => projectGroups.id, { onDelete: "set null" }),
     archivedAt: timestamp("archived_at", { withTimezone: true, mode: "date" }),
     createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: createdAt(),
@@ -277,6 +281,9 @@ export const RESPONSE_STATUSES = ["partial", "complete", "screened_out", "over_q
 export type ResponseStatus = (typeof RESPONSE_STATUSES)[number];
 export const responseStatusEnum = pgEnum("response_status", RESPONSE_STATUSES);
 
+export const RESPONSE_SOURCES = ["respondent", "manual", "import", "generated"] as const;
+export const responseSourceEnum = pgEnum("response_source", RESPONSE_SOURCES);
+
 export const responses = pgTable(
   "responses",
   {
@@ -297,6 +304,10 @@ export const responses = pgTable(
     /** Secret that lets a respondent resume (and only that respondent). */
     resumeToken: text("resume_token").notNull().unique(),
     inviteId: text("invite_id").references(() => formInvites.id, { onDelete: "set null" }),
+    /** The person behind this response, when known (mixed methods: same person, several sources). */
+    participantId: text("participant_id").references((): AnyPgColumn => participants.id, { onDelete: "set null" }),
+    /** How the response got here: a respondent, a researcher typing it in, a CSV upload, or generated test data. */
+    source: responseSourceEnum("source").notNull().default("respondent"),
     deviceId: text("device_id"),
     locale: text("locale"),
     currentPageId: text("current_page_id"),
@@ -533,6 +544,131 @@ export const sessionNotes = pgTable(
   (t) => [index("session_notes_session_idx").on(t.sessionId, t.atMs)],
 );
 
+// ── Qualitative coding: codebook, codings, themes, memos ───────────────────
+
+/** Themes group codes (one theme per code, like columns on a board). */
+export const themes = pgTable(
+  "themes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("thm")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    color: text("color").notNull().default("1"),
+    position: integer("position").notNull().default(0),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("themes_project_idx").on(t.projectId, t.position)],
+);
+
+/** Codes belong to a project, so transcripts and survey answers across its studies share them. */
+export const codes = pgTable(
+  "codes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("cod")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    parentId: text("parent_id"),
+    name: text("name").notNull(),
+    /** Palette slot "1"…"8" (the validated categorical palette). */
+    color: text("color").notNull().default("1"),
+    definition: text("definition"),
+    position: integer("position").notNull().default(0),
+    themeId: text("theme_id").references(() => themes.id, { onDelete: "set null" }),
+    themePosition: integer("theme_position").notNull().default(0),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("codes_project_idx").on(t.projectId), index("codes_parent_idx").on(t.parentId)],
+);
+
+export const CODING_SOURCES = ["human", "ai"] as const;
+export const codingSourceEnum = pgEnum("coding_source", CODING_SOURCES);
+
+/**
+ * A coded passage: a range inside one transcript segment or one open-text answer.
+ * AI suggestions are rows with source "ai" and no approvedAt until a person accepts them.
+ */
+export const codeApplications = pgTable(
+  "code_applications",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("cap")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    codeId: text("code_id")
+      .notNull()
+      .references(() => codes.id, { onDelete: "cascade" }),
+    segmentId: text("segment_id").references(() => segments.id, { onDelete: "cascade" }),
+    answerId: text("answer_id").references(() => answers.id, { onDelete: "cascade" }),
+    /** UTF-16 offsets into the segment/answer text. */
+    start: integer("start").notNull(),
+    end: integer("end").notNull(),
+    quote: text("quote").notNull(),
+    source: codingSourceEnum("source").notNull().default("human"),
+    approvedAt: timestamp("approved_at", { withTimezone: true, mode: "date" }),
+    /** Why the assistant suggested it (shown with the suggestion). */
+    reason: text("reason"),
+    starred: boolean("starred").notNull().default(false),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("codings_project_idx").on(t.projectId),
+    index("codings_code_idx").on(t.codeId),
+    index("codings_segment_idx").on(t.segmentId),
+    index("codings_answer_idx").on(t.answerId),
+  ],
+);
+
+export const MEMO_TARGETS = ["project", "code", "theme", "segment", "answer", "session"] as const;
+export type MemoTarget = (typeof MEMO_TARGETS)[number];
+export const memoTargetEnum = pgEnum("memo_target", MEMO_TARGETS);
+
+export const memos = pgTable(
+  "memos",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("mem")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    targetType: memoTargetEnum("target_type").notNull(),
+    targetId: text("target_id"),
+    title: text("title"),
+    body: text("body").notNull(),
+    authorId: text("author_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("memos_target_idx").on(t.projectId, t.targetType, t.targetId)],
+);
+
 // ── Relations ───────────────────────────────────────────────────────────────
 
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
@@ -575,3 +711,181 @@ export type ResearchSession = typeof researchSessions.$inferSelect;
 export type Transcript = typeof transcripts.$inferSelect;
 export type SegmentRow = typeof segments.$inferSelect;
 export type SessionNote = typeof sessionNotes.$inferSelect;
+export type Code = typeof codes.$inferSelect;
+export type Theme = typeof themes.$inferSelect;
+export type CodeApplication = typeof codeApplications.$inferSelect;
+export type Memo = typeof memos.$inferSelect;
+
+// ── Phase 6: groups, notifications, research brief, written analyses ─────────
+
+export const projectGroups = pgTable(
+  "project_groups",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("grp")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    position: integer("position").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("project_groups_ws_idx").on(t.workspaceId, t.position)],
+);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("ntf")),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: text("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
+    /** Message key under `notifications.kinds` (e.g. "responses", "transcript", "consent"). */
+    kind: text("kind").notNull(),
+    /** Values for the message, plus `count` when repeats are folded together. */
+    data: jsonb("data").$type<Record<string, string | number>>().notNull().default({}),
+    href: text("href"),
+    /** Repeats with the same group key fold into one unread notification. */
+    groupKey: text("group_key"),
+    readAt: timestamp("read_at", { withTimezone: true, mode: "date" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("notifications_user_idx").on(t.userId, t.createdAt)],
+);
+
+export type BriefStatement = { id: string; text: string; kind: "hypothesis" | "proposition" | "assumption" };
+
+/** What the project is trying to find out: the context any written analysis is built on. */
+export const projectBriefs = pgTable("project_briefs", {
+  projectId: text("project_id")
+    .primaryKey()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  aim: text("aim").notNull().default(""),
+  questions: jsonb("questions").$type<{ id: string; text: string }[]>().notNull().default([]),
+  statements: jsonb("statements").$type<BriefStatement[]>().notNull().default([]),
+  /** Uploaded thesis / proposal: the file, plus its text when it could be extracted. */
+  proposalFileId: text("proposal_file_id").references(() => files.id, { onDelete: "set null" }),
+  proposalName: text("proposal_name"),
+  proposalText: text("proposal_text"),
+  updatedAt: updatedAt(),
+});
+
+export const writeups = pgTable(
+  "writeups",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("wrt")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    /** Markdown. */
+    body: text("body").notNull(),
+    provider: text("provider").notNull(),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("writeups_project_idx").on(t.projectId, t.createdAt)],
+);
+
+export type ProjectGroup = typeof projectGroups.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type ProjectBrief = typeof projectBriefs.$inferSelect;
+export type Writeup = typeof writeups.$inferSelect;
+
+// ── Phase 7: reports ─────────────────────────────────────────────────────────
+
+export const reports = pgTable(
+  "reports",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("rpt")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    blocks: jsonb("blocks").$type<Block[]>().notNull().default([]),
+    /** Set while the report is shared by link; clearing it revokes the link. */
+    shareToken: text("share_token").unique(),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("reports_project_idx").on(t.projectId, t.updatedAt)],
+);
+export type Report = typeof reports.$inferSelect;
+
+// ── Phase 8: AI settings, API keys, webhooks ───────────────────────────────
+
+/** A workspace's own AI key (encrypted at rest with AUTH_SECRET) and model choice. */
+export const workspaceAi = pgTable("workspace_ai", {
+  workspaceId: text("workspace_id")
+    .primaryKey()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull().default("anthropic"),
+  apiKeyEnc: text("api_key_enc").notNull(),
+  /** Last four characters, to show which key is saved. */
+  keyHint: text("key_hint").notNull(),
+  model: text("model"),
+  updatedById: text("updated_by_id").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: updatedAt(),
+});
+
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("key")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** SHA-256 of the secret; the secret itself is shown once and never stored. */
+    hashedKey: text("hashed_key").notNull().unique(),
+    prefix: text("prefix").notNull(),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true, mode: "date" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("api_keys_ws_idx").on(t.workspaceId)],
+);
+
+export const webhooks = pgTable(
+  "webhooks",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("whk")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    /** Used to sign each delivery (HMAC-SHA256), shown to the owner so receivers can verify. */
+    secret: text("secret").notNull(),
+    events: jsonb("events").$type<string[]>().notNull().default([]),
+    active: boolean("active").notNull().default(true),
+    lastStatus: integer("last_status"),
+    lastDeliveredAt: timestamp("last_delivered_at", { withTimezone: true, mode: "date" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("webhooks_ws_idx").on(t.workspaceId)],
+);
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type Webhook = typeof webhooks.$inferSelect;

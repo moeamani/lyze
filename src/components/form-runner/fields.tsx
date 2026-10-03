@@ -27,10 +27,10 @@ export type FieldProps<Q extends Question = Question> = {
 // ── Shared styles ───────────────────────────────────────────────────────────
 
 const inputClass =
-  "w-full rounded-xl border border-input bg-card px-3.5 py-3 text-base shadow-soft outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/25 aria-invalid:border-destructive";
+  "w-full rounded-xl border border-input bg-background px-3.5 py-3 text-base outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/25 aria-invalid:border-destructive";
 
 const optionCard =
-  "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border bg-card px-3.5 py-3 text-base shadow-soft transition-[border-color,background-color,box-shadow] hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-accent-soft/70 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/30";
+  "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-border/80 bg-background px-3.5 py-3 text-base transition-[border-color,background-color] hover:bg-accent/40 has-[:checked]:border-primary has-[:checked]:bg-accent-soft/60 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/30";
 
 const nativeCheck = "size-5 shrink-0 cursor-pointer accent-[var(--primary)]";
 
@@ -300,7 +300,7 @@ function ScalePills({
           <label
             key={p.value}
             className={cn(
-              "grid min-h-12 min-w-12 flex-1 cursor-pointer place-items-center rounded-xl border bg-card px-2 text-base font-medium tabular-nums shadow-soft transition-[border-color,background-color,transform] select-none hover:border-primary/40 active:scale-95 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/30",
+              "grid min-h-12 min-w-10 flex-1 cursor-pointer place-items-center rounded-xl border border-border/80 bg-background px-2 text-base font-medium tabular-nums transition-[border-color,background-color,transform] select-none hover:bg-accent/40 active:scale-95 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/30",
               selected && "border-primary bg-primary text-primary-foreground hover:border-primary",
             )}
           >
@@ -358,9 +358,9 @@ export function LikertField({ question, value, onChange, describedBy }: FieldPro
   const name = useId();
   const current = typeof value === "number" ? value : undefined;
   return (
-    <div role="radiogroup" aria-describedby={describedBy} className="grid gap-2 sm:flex sm:gap-2">
+    <div role="radiogroup" aria-describedby={describedBy} className="grid gap-2">
       {question.config.labels.map((label, i) => (
-        <label key={i} className={cn(optionCard, "sm:flex-1 sm:flex-col sm:justify-center sm:gap-2 sm:px-2 sm:text-center sm:text-sm")}>
+        <label key={i} className={optionCard}>
           <input type="radio" name={name} className={nativeCheck} checked={current === i + 1} onChange={() => onChange(i + 1)} />
           <span>{label}</span>
         </label>
@@ -531,7 +531,7 @@ export function MatrixField({ question, value, onChange, describedBy }: FieldPro
             key={row.id}
             role={multiple ? "group" : "radiogroup"}
             aria-labelledby={`${groupId}-${row.id}-label`}
-            className="rounded-xl border bg-card p-3 shadow-soft sm:grid sm:items-center sm:gap-1 sm:py-2"
+            className="rounded-xl border border-border/80 bg-background p-3 sm:grid sm:items-center sm:gap-1 sm:py-2"
             style={template}
           >
             <span id={`${groupId}-${row.id}-label`} className="mb-2 block font-medium sm:mb-0 sm:pe-2 sm:text-sm">

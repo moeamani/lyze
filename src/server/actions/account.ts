@@ -23,3 +23,13 @@ export async function setLocaleAction(locale: string) {
   if (user) await users.setUserLocale(user.id, locale);
   revalidatePath("/", "layout");
 }
+
+export async function deleteAccountAction(confirmEmail: string) {
+  const user = await requireUser();
+  const { deleteAccount } = await import("@/server/services/users");
+  const result = await attempt(() => deleteAccount(user.id, confirmEmail));
+  if (!result.ok) return result;
+  const { signOut } = await import("@/server/auth");
+  await signOut({ redirectTo: "/" });
+  return result;
+}

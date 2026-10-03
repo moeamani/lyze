@@ -1,3 +1,4 @@
+import { membersWithRoles, notify } from "./notifications";
 import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 import { db } from "@/server/db";
 import { invites, memberships, users, workspaces } from "@/server/db/schema";
@@ -184,5 +185,8 @@ export async function acceptInvite(userId: string, userEmail: string | null | un
       metadata: { role: row.invite.role },
     });
   });
+  const people = await membersWithRoles(row.invite.workspaceId, ["owner"], userId);
+  const [me] = await db.select({ name: users.name, email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  await notify(people, { workspaceId: row.invite.workspaceId, kind: "memberJoined", data: { name: me?.name || me?.email || "" }, href: `/w/${row.workspaceSlug}/settings/members` });
   return { slug: row.workspaceSlug };
 }

@@ -6,7 +6,7 @@ const shell = (body: string) => `<!doctype html>
     <tr><td align="center">
       <table role="presentation" width="100%" style="max-width:440px;background:#ffffff;border:1px solid #e7e7ea;border-radius:16px;padding:32px">
         <tr><td>
-          <p style="margin:0 0 24px;font-size:18px;font-weight:600;letter-spacing:-0.01em">lyze<span style="color:#6d5bd0">.</span></p>
+          <p style="margin:0 0 24px;font-size:18px;font-weight:600;letter-spacing:-0.01em">lyze<span style="color:#8b95e5">.</span></p>
           ${body}
         </td></tr>
       </table>

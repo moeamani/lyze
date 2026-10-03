@@ -44,11 +44,13 @@ export default async function PublicFormPage({ params, searchParams }: PageProps
   const localized = localize(form.doc, lang);
   const invite = str("t");
   const embed = str("embed") === "1";
+  // Researchers entering a paper questionnaire (from Responses → Enter manually).
+  const manual = str("entry") === "manual";
 
   if (!form.open) {
     return <StatusPage lang={lang} title={labels.closedTitle} message={form.doc.settings.closedMessage || labels.closedMessage} />;
   }
-  if (form.doc.settings.oneResponse === "invite" && !invite && !str("resume")) {
+  if (form.doc.settings.oneResponse === "invite" && !invite && !str("resume") && !manual) {
     return <StatusPage lang={lang} title={labels.inviteTitle} message={labels.inviteMessage} />;
   }
 
@@ -67,7 +69,8 @@ export default async function PublicFormPage({ params, searchParams }: PageProps
       inviteToken={invite}
       resumeToken={str("resume")}
       embed={embed}
-      captchaSiteKey={captchaSiteKey()}
+      manualEntry={manual}
+      captchaSiteKey={manual ? null : captchaSiteKey()}
       languages={languages}
       className={embed ? "bg-transparent" : "min-h-dvh"}
       key={`${lang}:${localized.title}`}
