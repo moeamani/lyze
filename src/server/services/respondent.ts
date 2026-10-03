@@ -8,6 +8,7 @@ import { matchingQuotas } from "@/lib/forms/quotas";
 import { findQuestion, type FormDoc } from "@/lib/forms/schema";
 import { storage, storageFor } from "@/server/storage";
 import { getPublishedDoc } from "./forms";
+import { requireWorkspace } from "./access";
 import { membersWithRoles, notify, studyLink } from "./notifications";
 
 /** Respondent-facing failures. Codes are i18n keys in the `respondent` namespace. */
@@ -83,12 +84,23 @@ async function resumeState(response: typeof responses.$inferSelect, current: Pub
  * Start (or pick back up) a response. One-response-per-person rules are enforced here:
  * `device` matches a device id kept in the respondent's browser, `invite` requires a personal link.
  */
+async function canEnterManually(userId: string, workspaceId: string) {
+  try {
+    await requireWorkspace(userId, workspaceId, "content:edit");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function startResponse(
   publicId: string,
-  input: { deviceId?: string; inviteToken?: string; locale?: string; userAgent?: string; referrer?: string; embed?: boolean },
+  input: { deviceId?: string; inviteToken?: string; locale?: string; userAgent?: string; referrer?: string; embed?: boolean; enteredBy?: string },
 ): Promise<ResumeState> {
   const form = await requireOpenForm(publicId);
-  const mode = form.doc.settings.oneResponse;
+  // A researcher typing in a paper questionnaire: every entry is a new response, whatever the form's limits.
+  const manual = input.enteredBy ? await canEnterManually(input.enteredBy, form.workspaceId) : false;
+  const mode = manual ? "none" : form.doc.settings.oneResponse;
 
   let inviteId: string | null = null;
   if (input.inviteToken) {
@@ -126,7 +138,8 @@ export async function startResponse(
       formVersion: form.version,
       resumeToken: newToken(),
       inviteId,
-      deviceId: input.deviceId?.slice(0, 64) ?? null,
+      deviceId: manual ? null : (input.deviceId?.slice(0, 64) ?? null),
+      source: manual ? "manual" : "respondent",
       locale: input.locale?.slice(0, 10) ?? null,
       meta: {
         userAgent: input.userAgent?.slice(0, 300),

@@ -402,3 +402,32 @@
     transform: translateY(-6px);
   }
 }
+
+/* Reports print on their own: everything else on the page is hidden, the report fills the paper. */
+.report-print-only {
+  display: none;
+}
+@media print {
+  @page {
+    margin: 18mm 16mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .report-print-only {
+    display: grid;
+  }
+  .report-print,
+  .report-print * {
+    visibility: visible;
+  }
+  .report-print {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    color: #000;
+  }
+  .report-print .break-inside-avoid {
+    break-inside: avoid;
+  }
+}

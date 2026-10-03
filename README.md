@@ -153,6 +153,22 @@ answers.
   the bell in the sidebar (or the header on phones).
 - **Languages** — English, Persian (فارسی, set in Peyda) and Arabic; switch from the account menu.
 
+## Generate, upload or enter by hand
+
+Everything you put into Lyze can come in three ways: **generate** it (from your research brief and
+proposal, or as test data), **upload a CSV** (each upload offers an example file to start from),
+or **enter it manually**. This covers questionnaires, interview guides, survey responses (generated
+test responses are labelled and removable in one click; manual entry opens the form for typing in
+paper questionnaires), participants, codebooks and transcripts.
+
+## Reports
+
+Combine headings, text, survey charts, quotes, themes, the joint display and your write-up into a
+report, or press **Generate report** for a first draft. Share it with a read-only link (it always
+shows current data; turn the link off to revoke it), print or save it as PDF, or download Markdown.
+
+All prose Lyze writes follows the humanize skill in `docs/skills/humanize`.
+
 ## Architecture
 
 ```
@@ -261,3 +277,5 @@ Check each at **360px**, **768px** and **1280px+**, in light and dark mode:
 - [ ] Write-up: brief editor (mobile), a generated draft, edit mode
 - [ ] Projects page with groups; notifications menu; activity filters
 - [ ] Persian (RTL, Peyda) on dashboard, project tabs and a respondent form
+- [ ] Generate / Upload / Manual on build page, guide, responses (with test-data banner), participants, codebook, session
+- [ ] Reports: list, generated report in the editor, public link page, print preview

@@ -67,6 +67,11 @@ const KNOWN_ACTIONS = new Set([
   "session.transcript_imported",
   "brief.updated",
   "writeup.created",
+  "report.created",
+  "report.shared",
+  "report.unshared",
+  "response.generated",
+  "response.imported",
 ]);
 
 const LOOK: Record<ActivityCategory, { icon: LucideIcon; section: Section }> = {

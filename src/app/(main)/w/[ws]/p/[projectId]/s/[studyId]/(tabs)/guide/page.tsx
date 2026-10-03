@@ -1,3 +1,4 @@
+import { CreatePanel } from "@/components/common/create-options";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getSessionStudyContext } from "@/server/queries/workspace";
@@ -37,7 +38,10 @@ export default async function GuidePage({ params, searchParams }: PageProps<"/w/
       ) : !canEdit && guide.doc.sections.length === 0 ? (
         <EmptyState illustration={<ClipboardIllustration />} title={t("emptyTitle")} description={t("emptyBody")} />
       ) : (
-        <GuideBuilder scope={scope} initial={guide.doc} canEdit={canEdit} />
+        <>
+          {canEdit && <CreatePanel scope={scope} kind="guide" open={guide.doc.sections.length === 0} />}
+          <GuideBuilder key={guide.updatedAt?.toISOString() ?? "new"} scope={scope} initial={guide.doc} canEdit={canEdit} />
+        </>
       )}
     </div>
   );

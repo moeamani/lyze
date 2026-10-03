@@ -39,7 +39,7 @@ const CATEGORY_ENTITIES: Record<ActivityCategory, string[]> = {
   participant: ["participant", "consent"],
   session: ["session", "transcript"],
   coding: ["code", "coding", "theme", "memo"],
-  writeup: ["writeup", "brief"],
+  writeup: ["writeup", "brief", "report"],
 };
 
 export function categoryOf(action: string, entityType: string): ActivityCategory {

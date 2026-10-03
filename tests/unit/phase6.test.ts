@@ -121,3 +121,10 @@ describe("groups and notifications", () => {
     expect(await unreadCount(user.id)).toBe(0);
   });
 });
+
+describe("humanize swaps", () => {
+  it("drops filler and swaps AI phrasing without breaking sentences", () => {
+    expect(cleanProse("It is important to note that sleep matters. In order to cut down, people delve into habits.")).toBe("Sleep matters. To cut down, people look at habits.");
+    expect(cleanProse("The cup serves as a pause, e.g. at 7am.")).toBe("The cup is a pause, e.g. at 7am.");
+  });
+});

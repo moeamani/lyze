@@ -1,3 +1,4 @@
+import { mockProvider } from "@/server/transcription/mock";
 import { membersWithRoles, notify, studyLink } from "./notifications";
 import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -468,6 +469,29 @@ export async function importTranscript(userId: string, workspaceId: string, stud
     await recordAudit(tx, { workspaceId, actorId: userId, action: "session.transcript_imported", entityType: "session", entityId: sessionId, metadata: { format: parsed.format, segments: parsed.segments.length } });
   });
   return { format: parsed.format, segments: parsed.segments.length };
+}
+
+/** A made-up transcript for trying coding and analysis before real interviews exist (built from the guide). */
+export async function generateSampleTranscript(userId: string, workspaceId: string, studyId: string, sessionId: string) {
+  await requireWorkspace(userId, workspaceId, "content:edit");
+  const session = await getSessionRow(workspaceId, studyId, sessionId);
+  const ctx = await speakerContext(session);
+  const { doc: guide } = await getGuide(workspaceId, studyId);
+  const result = await mockProvider().transcribe({
+    media: new Uint8Array(),
+    mime: "audio/webm",
+    filename: "sample",
+    durationMs: (session.durationMin ?? 30) * 60_000,
+    guide: guide.sections.length ? guide : null,
+    participantCount: Math.max(1, ctx.participants.length),
+    seed: session.id,
+  });
+  const assigned = assignSpeakers(result.segments, ctx);
+  await db.transaction(async (tx) => {
+    await writeTranscript(tx, { workspaceId, sessionId, provider: "generated", language: result.language, ...assigned });
+    await recordAudit(tx, { workspaceId, actorId: userId, action: "session.transcript_imported", entityType: "session", entityId: sessionId, metadata: { format: "generated", segments: result.segments.length } });
+  });
+  return { segments: result.segments.length };
 }
 
 /** Write or rewrite a field note / diary entry. */

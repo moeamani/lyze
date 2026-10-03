@@ -111,7 +111,7 @@ export function ResponsesGrid({ columns, rows, base }: { columns: GridColumn[]; 
   const total = table.getFilteredRowModel().rows.length;
 
   return (
-    <div className="grid gap-3">
+    <div className="grid grid-cols-1 gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full max-w-xs">
           <SearchIcon className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -142,7 +142,7 @@ export function ResponsesGrid({ columns, rows, base }: { columns: GridColumn[]; 
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="overflow-x-auto rounded-2xl border bg-card shadow-soft">
+      <div className="relative overflow-x-auto rounded-2xl border bg-card shadow-soft">
         <table className="w-full text-sm">
           <thead className="bg-muted/40">
             {table.getHeaderGroups().map((hg) => (

@@ -3,7 +3,8 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { normalizeRange } from "@/lib/qual/ranges";
 import type { AssistProvider } from "./index";
-import { STYLE_RULES, cleanProse } from "@/lib/writeup/style";
+import { guideDocSchema, guideQuestion, newSectionId } from "@/lib/interviews/guide";
+import { AUDIT_PROMPT, STYLE_RULES, cleanProse } from "@/lib/writeup/style";
 
 const MODEL = process.env.AI_MODEL || "claude-opus-5-5";
 /** Keep requests bounded: long documents are sent in pieces of about this many characters. */
@@ -29,6 +30,27 @@ async function ask<T extends z.ZodType>(schema: T, prompt: string, effort: "low"
   if (!response.parsed_output) throw new Error("The assistant returned an unexpected answer.");
   return response.parsed_output as z.infer<T>;
 }
+
+const QuestionnaireSchema = z.object({
+  questions: z.array(
+    z.object({
+      page: z.string(),
+      type: z.enum(["short_text", "long_text", "single_choice", "multiple_choice", "dropdown", "rating", "likert", "nps", "number", "yes_no", "date"]),
+      question: z.string(),
+      required: z.boolean(),
+      options: z.array(z.string()),
+      min: z.number().nullable(),
+      max: z.number().nullable(),
+    }),
+  ),
+});
+const GuideSchema = z.object({
+  intro: z.string(),
+  outro: z.string(),
+  sections: z.array(z.object({ title: z.string(), goal: z.string(), minutes: z.number().int(), questions: z.array(z.object({ text: z.string(), probes: z.array(z.string()) })) })),
+});
+const CodebookSchema = z.object({ codes: z.array(z.object({ name: z.string(), parent: z.string().nullable(), definition: z.string() })) });
+const AuditSchema = z.object({ tells: z.array(z.string()), final: z.string() });
 
 const escapeData = (s: string) => s.replace(/<\/?data>/gi, "");
 
@@ -105,6 +127,50 @@ export function claudeProvider(): AssistProvider {
       );
       return result.description.trim();
     },
+    async draftQuestionnaire({ brief, proposal, language }) {
+      const result = await ask(
+        QuestionnaireSchema,
+        `Draft a questionnaire in ${language} for this research project. Respondents are members of the public, so write every question in their words, short and neutral, one idea per question, no leading or double-barrelled questions. Cover each research question and make each hypothesis testable (agreement scales, frequencies, ratings), add a few open questions for the "why", and end with 2 or 3 background questions. Group questions into short pages. 10 to 25 questions. Use options only for choice and likert types.
+${STYLE_RULES}
+Brief (JSON):
+<data>
+${escapeData(JSON.stringify(brief))}
+</data>${proposal ? `\nProposal (excerpt):\n<data>\n${escapeData(proposal.slice(0, 40_000))}\n</data>` : ""}`,
+      );
+      return result.questions.map((q) => ({ page: q.page, type: q.type, question: cleanProse(q.question), description: "", required: q.required, options: q.options, min: q.min ?? null, max: q.max ?? null, lowLabel: "", highLabel: "" }));
+    },
+    async draftGuide({ brief, proposal, language }) {
+      const result = await ask(
+        GuideSchema,
+        `Draft a semi-structured interview guide in ${language} for this research project: a short intro script, 3 to 6 sections (each with a goal and minutes) of open, non-leading questions with 1 to 3 probes each, and a closing script. Around 45 minutes in total.
+${STYLE_RULES}
+Brief (JSON):
+<data>
+${escapeData(JSON.stringify(brief))}
+</data>${proposal ? `\nProposal (excerpt):\n<data>\n${escapeData(proposal.slice(0, 40_000))}\n</data>` : ""}`,
+      );
+      return guideDocSchema.parse({
+        intro: result.intro,
+        outro: result.outro,
+        sections: result.sections.map((s) => ({ id: newSectionId(), title: s.title, goal: s.goal, minutes: s.minutes, questions: s.questions.map((q) => guideQuestion(q.text, q.probes)) })),
+      });
+    },
+    async draftCodebook({ brief, samples, language }) {
+      const result = await ask(
+        CodebookSchema,
+        `Propose a starting codebook in ${language} for this project: 5 to 15 codes, at most two levels (use "parent" with the exact name of a top-level code for sub-codes), each with a one-sentence definition saying when to apply it. Base it on the research questions and on what appears in the sample passages; do not invent topics nobody mentions.
+Brief (JSON):
+<data>
+${escapeData(JSON.stringify(brief))}
+</data>
+Sample passages:
+<data>
+${samples.slice(0, 200).map((s) => `- ${escapeData(s.slice(0, 400))}`).join("\n")}
+</data>`,
+        "low",
+      );
+      return result.codes.map((c) => ({ name: c.name.slice(0, 80), parent: c.parent || null, definition: cleanProse(c.definition) }));
+    },
     async writeAnalysis({ context, language, proposalPdf }) {
       const client = new Anthropic();
       const content: Anthropic.ContentBlockParam[] = [];
@@ -128,7 +194,10 @@ ${escapeData(JSON.stringify(context)).slice(0, CHUNK_CHARS * 3)}
         .stream({ model: MODEL, max_tokens: 16000, system: SYSTEM, thinking: { type: "adaptive" }, messages: [{ role: "user", content }] })
         .finalMessage();
       if (message.stop_reason === "refusal") throw new Error("The assistant declined this request.");
-      const text = message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
+      const draft = message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
+      // Humanize, step 3 and 4: audit the draft for remaining tells, then write the final version.
+      const audited = await ask(AuditSchema, `${AUDIT_PROMPT}\n\n<data>\n${escapeData(draft)}\n</data>`, "low").catch(() => null);
+      const text = audited?.final.trim() || draft;
       const lines = cleanProse(text).split("\n");
       const head = lines[0]?.startsWith("# ") ? lines.shift()!.slice(2).trim() : `${context.project.name}: analysis`;
       return { title: head, body: lines.join("\n").trim() };

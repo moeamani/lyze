@@ -1,3 +1,4 @@
+import { CreatePanel } from "@/components/common/create-options";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getProjectContext } from "@/server/queries/workspace";
@@ -29,7 +30,10 @@ export default async function CodebookPage({ params, searchParams }: PageProps<"
     definition: c.definition,
     count: c.count,
   });
+  const scope = { workspaceId: workspace.id, slug: workspace.slug, projectId: project.id };
   return (
+    <div className="grid grid-cols-1 gap-4">
+      {can(role, "content:analyze") && <CreatePanel scope={scope} kind="codebook" open={codes.length === 0} />}
     <CodebookView
       scope={{ workspaceId: workspace.id, slug: workspace.slug, projectId: project.id }}
       base={`/w/${ws}/p/${projectId}`}
@@ -42,5 +46,6 @@ export default async function CodebookPage({ params, searchParams }: PageProps<"
       currentUserId={user.id}
       role={role}
     />
+    </div>
   );
 }

@@ -1,3 +1,7 @@
+import { CreatePanel, GeneratedBanner } from "@/components/common/create-options";
+import { getFormForStudy } from "@/server/services/forms";
+import { sourceCounts } from "@/server/services/create";
+import { can } from "@/lib/permissions";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -33,9 +37,13 @@ export default async function ResponsesPage({ params, searchParams }: PageProps<
   const sp = await searchParams;
   const status = RESPONSE_STATUSES.find((s) => s === sp.status);
   const before = typeof sp.before === "string" && !Number.isNaN(Date.parse(sp.before)) ? new Date(sp.before) : undefined;
-  const { workspace, study } = await getStudyContext(ws, projectId, studyId);
+  const { workspace, study, role } = await getStudyContext(ws, projectId, studyId);
   const t = await getTranslations("responses");
   const base = `/w/${ws}/p/${projectId}/s/${studyId}`;
+  const scope = { workspaceId: workspace.id, slug: ws, projectId, studyId };
+  const [form, sources] = await Promise.all([getFormForStudy(workspace.id, study.id), sourceCounts(workspace.id, study.id)]);
+  const canEdit = can(role, "content:edit");
+  const addData = canEdit && form?.publishedVersion ? <CreatePanel scope={scope} kind="responses" manual={{ href: `/f/${form.publicId}?entry=manual`, newTab: true }} /> : null;
   const [counts, { items, hasMore }, raw] = await Promise.all([
     responseCounts(workspace.id, study.id),
     listResponses(workspace.id, study.id, { status, before }),
@@ -70,14 +78,17 @@ export default async function ResponsesPage({ params, searchParams }: PageProps<
 
   if (total === 0) {
     return (
-      <EmptyState illustration={<ClipboardIllustration />} title={t("emptyTitle")} description={t("emptyBody")}>
-        <Button asChild variant="soft">
-          <Link href={`${base}/share`}>
-            <Share2Icon />
-            {t("share")}
-          </Link>
-        </Button>
-      </EmptyState>
+      <div className="grid grid-cols-1 gap-4">
+        <EmptyState illustration={<ClipboardIllustration />} title={t("emptyTitle")} description={t("emptyBody")}>
+          <Button asChild variant="soft">
+            <Link href={`${base}/share`}>
+              <Share2Icon />
+              {t("share")}
+            </Link>
+          </Button>
+        </EmptyState>
+        {addData}
+      </div>
     );
   }
 
@@ -91,7 +102,9 @@ export default async function ResponsesPage({ params, searchParams }: PageProps<
   ];
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
+      {sources.generated > 0 && <GeneratedBanner scope={scope} count={sources.generated} />}
+      {addData}
       <SegmentedNav label={t("filter")} items={filters} />
       {items.length === 0 ? (
         <EmptyState title={t("emptyFiltered")} />

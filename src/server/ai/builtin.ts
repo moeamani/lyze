@@ -1,4 +1,6 @@
 import { clusterTexts, extractiveSummary } from "@/lib/qual/nlp";
+import { draftFormRows } from "@/lib/create/form";
+import { draftGuide } from "@/lib/create/misc";
 import { composeWriteup } from "@/lib/writeup/compose";
 import { draftThemeDescription, suggestCodings } from "@/lib/qual/suggest";
 import type { AssistProvider } from "./index";
@@ -19,6 +21,16 @@ export function builtinProvider(): AssistProvider {
     },
     async draftTheme({ name, codes, quotes }) {
       return draftThemeDescription(name, codes, quotes);
+    },
+    async draftQuestionnaire({ brief }) {
+      return draftFormRows(brief);
+    },
+    async draftGuide({ brief }) {
+      return draftGuide(brief);
+    },
+    async draftCodebook({ samples }) {
+      const clusters = await this.cluster({ question: "", texts: samples });
+      return clusters.map((c) => ({ name: c.label, parent: null, definition: c.description ?? "" }));
     },
     async writeAnalysis({ context }) {
       return composeWriteup(context);

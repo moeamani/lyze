@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { BookMarkedIcon, FolderKanbanIcon, GitMergeIcon, HighlighterIcon, LayoutListIcon, NotebookPenIcon, PenLineIcon, QuoteIcon, SearchIcon, type LucideIcon } from "lucide-react";
+import { BookMarkedIcon, FileBarChartIcon, FolderKanbanIcon, GitMergeIcon, HighlighterIcon, LayoutListIcon, NotebookPenIcon, PenLineIcon, QuoteIcon, SearchIcon, type LucideIcon } from "lucide-react";
 import { SECTION_BAR, SECTION_TEXT, type Section } from "@/components/common/section-icon";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +30,13 @@ export function ProjectTabs({ base }: { base: string }) {
       ],
     },
     { label: t("groupMixed"), tabs: [{ href: `${base}/mixed`, label: t("mixed"), icon: GitMergeIcon, active: at("mixed"), section: "mixed" }] },
-    { label: t("groupWriteup"), tabs: [{ href: `${base}/writeup`, label: t("writeup"), icon: PenLineIcon, active: at("writeup"), section: "writeup" }] },
+    {
+      label: t("groupWriteup"),
+      tabs: [
+        { href: `${base}/writeup`, label: t("writeup"), icon: PenLineIcon, active: at("writeup"), section: "writeup" },
+        { href: `${base}/reports`, label: t("reports"), icon: FileBarChartIcon, active: at("reports"), section: "writeup" },
+      ],
+    },
     { label: t("groupFind"), tabs: [{ href: `${base}/search`, label: t("search"), icon: SearchIcon, active: at("search"), section: null }] },
   ];
   return (

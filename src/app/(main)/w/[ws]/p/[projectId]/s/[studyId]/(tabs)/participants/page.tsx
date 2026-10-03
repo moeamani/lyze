@@ -1,3 +1,4 @@
+import { CreatePanel } from "@/components/common/create-options";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getSessionStudyContext } from "@/server/queries/workspace";
@@ -32,9 +33,12 @@ export default async function ParticipantsPage({ params }: PageProps<"/w/[ws]/p/
 
   if (rows.length === 0) {
     return (
-      <EmptyState illustration={<PeopleIllustration />} title={t("emptyTitle")} description={t("emptyBody")}>
-        {actions}
-      </EmptyState>
+      <div className="grid grid-cols-1 gap-4">
+        <EmptyState illustration={<PeopleIllustration />} title={t("emptyTitle")} description={t("emptyBody")}>
+          {actions}
+        </EmptyState>
+        {canEdit && <CreatePanel scope={scope} kind="participants" />}
+      </div>
     );
   }
 
@@ -44,6 +48,7 @@ export default async function ParticipantsPage({ params }: PageProps<"/w/[ws]/p/
         <p className="text-sm text-muted-foreground">{t("intro")}</p>
         {actions}
       </div>
+      {canEdit && <CreatePanel scope={scope} kind="participants" />}
       <ParticipantsList
         base={base}
         rows={rows.map((p) => ({

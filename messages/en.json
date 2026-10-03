@@ -391,7 +391,12 @@
       "session_media_uploaded": "{actor} uploaded a session recording",
       "session_transcript_imported": "{actor} imported a transcript",
       "brief_updated": "{actor} updated the research brief",
-      "writeup_created": "{actor} wrote a draft analysis “{name}”"
+      "writeup_created": "{actor} wrote a draft analysis “{name}”",
+      "report_created": "{actor} created report “{name}”",
+      "report_shared": "{actor} turned on the public link for “{name}”",
+      "report_unshared": "{actor} turned off the public link for “{name}”",
+      "response_generated": "{actor} generated {count} test responses",
+      "response_imported": "{actor} imported {count} responses from a CSV"
     },
     "today": "Today",
     "yesterday": "Yesterday",
@@ -1673,7 +1678,8 @@
     "groupWriteup": "Write-up",
     "groupFind": "Find",
     "mixed": "Mixed methods",
-    "writeup": "Write-up"
+    "writeup": "Write-up",
+    "reports": "Reports"
   },
   "coding": {
     "title": "Coding",
@@ -2039,5 +2045,134 @@
     "responsesCount": "{count, plural, =0 {No survey} one {# survey} other {# surveys}}",
     "noCodes": "Nothing coded for this person yet.",
     "emptyCases": "No participants in this project yet."
+  },
+  "create": {
+    "questionnaireTitle": "Create the questionnaire",
+    "questionnaireHint": "Generate a draft from your research brief, upload a spreadsheet, or start from a template below and build it by hand.",
+    "generate": {
+      "questionnaire": "Generate from the brief",
+      "guide": "Generate from the brief",
+      "responses": "Generate test responses",
+      "participants": "Generate test participants",
+      "codebook": "Generate a starting codebook",
+      "transcript": "Generate a sample transcript"
+    },
+    "generateHint": {
+      "questionnaire": "Drafts questions from your research questions, hypotheses and proposal (Write-up → Brief). You review and edit everything before publishing.",
+      "guide": "Drafts sections, questions and probes from your research questions and hypotheses. Replaces the current guide.",
+      "responses": "Made-up answers for testing the charts and statistics. They're labelled as generated and you can delete them all at once.",
+      "participants": "Made-up people with example.com emails and a few attributes, for trying things out. Nothing is ever sent to them.",
+      "codebook": "Proposes codes and definitions from your research questions and the text you've collected. Codes you already have stay.",
+      "transcript": "A made-up conversation built from the interview guide."
+    },
+    "generateButton": "Generate",
+    "howMany": "How many",
+    "upload": "Upload a CSV",
+    "chooseCsv": "Choose CSV",
+    "example": "Example file",
+    "uploadHint": {
+      "questionnaire": "One row per question: page, type, question, options (separated by |) and more. Download the example to see every column.",
+      "guide": "One row per question: section, minutes, goal, question, probes (separated by |) and a note.",
+      "responses": "One row per response, one column per question (use the question text as the header). The example file has your exact columns.",
+      "participants": "Name, email, phone and id columns are recognised; every other column becomes an attribute.",
+      "codebook": "One row per code: code, parent, definition and color (1 to 8).",
+      "transcript": ""
+    },
+    "manual": "Enter manually",
+    "manualHint": {
+      "questionnaire": "Pick a template or a blank form and build it question by question.",
+      "guide": "",
+      "responses": "Opens the form in a new tab. Each submission is saved as a manually entered response, for example from a paper questionnaire.",
+      "participants": "",
+      "codebook": "",
+      "transcript": ""
+    },
+    "manualButton": {
+      "questionnaire": "Choose a template",
+      "guide": "",
+      "responses": "Open the form for data entry",
+      "participants": "",
+      "codebook": "",
+      "transcript": ""
+    },
+    "generated": {
+      "questionnaire": "Drafted {count} questions",
+      "guide": "Drafted {count} sections",
+      "responses": "Added {count} test responses",
+      "participants": "Added {count} test participants",
+      "codebook": "Added {count} codes",
+      "transcript": "Generated a transcript with {count} turns"
+    },
+    "uploaded": "Imported {count}",
+    "uploadedWithErrors": "Imported {count}; {errors} rows or cells were skipped",
+    "panel": {
+      "questionnaire": "Generate or upload a questionnaire",
+      "guide": "Generate or upload the guide",
+      "responses": "Add data: generate, upload or enter by hand",
+      "participants": "Generate or upload participants",
+      "codebook": "Generate or upload codes",
+      "transcript": "Generate a transcript"
+    },
+    "show": "Show",
+    "generatedBanner": "{count, plural, one {# response is} other {# responses are}} generated test data and included in the results.",
+    "deleteGenerated": "Delete test data",
+    "deletedGenerated": "Deleted {count} generated responses",
+    "sampleTranscript": "Generate sample"
+  },
+  "reportBuilder": {
+    "title": "Reports",
+    "intro": "Put charts, quotes, themes and your write-up together, then share a link, print to PDF or download Markdown.",
+    "generate": "Generate report",
+    "blank": "Blank report",
+    "untitled": "Untitled report",
+    "generatedReport": "Report drafted",
+    "created": "Report created",
+    "empty": "No reports yet. Generate one from your data, or start blank.",
+    "blocks": "{count, plural, one {# block} other {# blocks}}",
+    "shared": "Shared",
+    "emptyReport": "This report is empty. Add a block below.",
+    "headingN": "Heading {n}",
+    "textN": "Text {n}",
+    "noteN": "Note for block {n}",
+    "textPlaceholder": "Write in Markdown…",
+    "notePlaceholder": "Add a note under this chart (optional)",
+    "newHeading": "New section",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "removeBlock": "Remove block",
+    "blockType": "Block type",
+    "pickItem": "Choose…",
+    "nothingToPick": "Nothing to choose yet",
+    "addBlock": "Add",
+    "types": {
+      "heading": "Heading",
+      "text": "Text",
+      "question": "Survey chart",
+      "quote": "Quote",
+      "theme": "Theme",
+      "joint": "Joint display",
+      "writeup": "Write-up"
+    },
+    "saved": "Report saved",
+    "savedState": "Saved",
+    "shareLink": "Public link",
+    "shareHint": "Anyone with the link can read the report. It always shows current data. Turn it off to revoke the link.",
+    "sharedOn": "Link turned on",
+    "sharedOff": "Link turned off",
+    "copyLink": "Copy link",
+    "copied": "Copied",
+    "print": "Print or save as PDF",
+    "markdown": "Download Markdown",
+    "delete": "Delete report",
+    "deleteTitle": "Delete this report?",
+    "deleteBody": "The report and its public link go away. Your data stays.",
+    "missing": "This item was deleted or isn't available anymore.",
+    "jointCaption": "{sessions} conversations · {respondents} survey responses",
+    "code": "Code",
+    "conversations": "Conversations",
+    "survey": "Survey",
+    "qual": "{passages} passages · {people} people",
+    "sharedFrom": "A report from {project}",
+    "titleLabel": "Report title"
   }
 }

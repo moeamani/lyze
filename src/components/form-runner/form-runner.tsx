@@ -29,6 +29,8 @@ export type FormRunnerProps = {
   mode: "live" | "preview";
   publicId?: string;
   inviteToken?: string;
+  /** A researcher typing in answers: stored as a manual entry, never resumed from this browser. */
+  manualEntry?: boolean;
   resumeToken?: string;
   embed?: boolean;
   captchaSiteKey?: string | null;
@@ -90,6 +92,7 @@ export function FormRunner({
   mode,
   publicId,
   inviteToken,
+  manualEntry,
   resumeToken,
   embed,
   captchaSiteKey,
@@ -219,12 +222,13 @@ export function FormRunner({
           invite: inviteToken,
           locale: lang,
           embed: embed || undefined,
+          manual: manualEntry || undefined,
         });
         // In one-response-per-device mode the server may hand back an earlier, unfinished response.
         const isResume = Object.keys(payload.answers).length > 0;
         setToken(payload.token);
         if (isResume) applyResume(payload);
-        else if (payload.doc.settings.allowResume) storageSet(resumeKey, payload.token);
+        else if (payload.doc.settings.allowResume && !manualEntry) storageSet(resumeKey, payload.token);
         return payload.token;
       } catch (e) {
         starting.current = null;
@@ -234,7 +238,7 @@ export function FormRunner({
       }
     })();
     return starting.current;
-  }, [live, token, publicId, inviteToken, lang, embed, applyResume, resumeKey, block]);
+  }, [live, token, publicId, inviteToken, lang, embed, applyResume, resumeKey, block, manualEntry]);
 
   const dirty = useRef<Set<string>>(new Set());
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

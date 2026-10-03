@@ -17,6 +17,7 @@ import { newId } from "@/lib/ids";
 import { ROLES } from "@/lib/permissions";
 import { STUDY_STATUSES, STUDY_TYPES } from "@/lib/studies";
 import type { FormDoc } from "@/lib/forms/schema";
+import type { Block } from "@/lib/reports/blocks";
 import type { AnswerValue } from "@/lib/forms/answers";
 import type { AnalysisSettings } from "@/lib/analysis/settings";
 import type { ConsentDoc, GuideDoc } from "@/lib/interviews/guide";
@@ -280,6 +281,9 @@ export const RESPONSE_STATUSES = ["partial", "complete", "screened_out", "over_q
 export type ResponseStatus = (typeof RESPONSE_STATUSES)[number];
 export const responseStatusEnum = pgEnum("response_status", RESPONSE_STATUSES);
 
+export const RESPONSE_SOURCES = ["respondent", "manual", "import", "generated"] as const;
+export const responseSourceEnum = pgEnum("response_source", RESPONSE_SOURCES);
+
 export const responses = pgTable(
   "responses",
   {
@@ -302,6 +306,8 @@ export const responses = pgTable(
     inviteId: text("invite_id").references(() => formInvites.id, { onDelete: "set null" }),
     /** The person behind this response, when known (mixed methods: same person, several sources). */
     participantId: text("participant_id").references((): AnyPgColumn => participants.id, { onDelete: "set null" }),
+    /** How the response got here: a respondent, a researcher typing it in, a CSV upload, or generated test data. */
+    source: responseSourceEnum("source").notNull().default("respondent"),
     deviceId: text("device_id"),
     locale: text("locale"),
     currentPageId: text("current_page_id"),
@@ -798,3 +804,29 @@ export type ProjectGroup = typeof projectGroups.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type ProjectBrief = typeof projectBriefs.$inferSelect;
 export type Writeup = typeof writeups.$inferSelect;
+
+// ── Phase 7: reports ─────────────────────────────────────────────────────────
+
+export const reports = pgTable(
+  "reports",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("rpt")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    blocks: jsonb("blocks").$type<Block[]>().notNull().default([]),
+    /** Set while the report is shared by link; clearing it revokes the link. */
+    shareToken: text("share_token").unique(),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("reports_project_idx").on(t.projectId, t.updatedAt)],
+);
+export type Report = typeof reports.$inferSelect;

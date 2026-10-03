@@ -1,3 +1,4 @@
+import { auth } from "@/server/auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import {
@@ -24,6 +25,7 @@ const bodies = {
     invite: z.string().max(100).optional(),
     locale: z.string().max(10).optional(),
     embed: z.boolean().optional(),
+    manual: z.boolean().optional(),
   }),
   resume: z.object({ token }),
   save: z.object({ token, answers: answersShape, pageId: z.string().max(64).optional() }),
@@ -87,6 +89,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/f/[publ
           embed: body.embed,
           userAgent: request.headers.get("user-agent") ?? undefined,
           referrer: request.headers.get("referer") ?? undefined,
+          enteredBy: body.manual ? ((await auth())?.user?.id ?? undefined) : undefined,
         });
         return json(state);
       }

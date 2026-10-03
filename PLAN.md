@@ -104,7 +104,8 @@ Phases add tables as they need them (migrations per phase).
 | `writeups` | projectId, title, body (Markdown), provider, createdById | 6 |
 | `notifications` | userId, workspaceId, kind, data jsonb, href, groupKey (repeats fold), readAt | 6 |
 | `insights` | projectId, kind(chart/quote/theme/stat), payload(jsonb), note | 7 |
-| `reports` / `report_blocks` | projectId, title, shareToken, blocks(type, config, position) | 7 |
+| `reports` | projectId, title, blocks jsonb (heading/text/question/quote/theme/joint/writeup; data blocks hold references), shareToken (null = private) | 7 |
+| `responses.source` | respondent / manual / import / generated | 7 |
 | `files` | workspaceId, responseId?, storage(s3/local), key, name, mime, size | 2 |
 | `api_keys` | workspaceId, name, hashedKey, prefix, lastUsedAt | 8 |
 | `webhooks` | workspaceId, url, secret, events[] | 8 |
@@ -140,11 +141,11 @@ Phases add tables as they need them (migrations per phase).
 | `/w/[ws]/p/[projectId]/mixed?view=joint\|cross\|cases&q=` | Joint display, codes × closed answers, people across sources (Phase 6) |
 | `/w/[ws]/p/[projectId]/writeup`, `/writeup/[id]` | Research brief + proposal, written analysis drafts (Phase 6) |
 | `/w/[ws]/activity?cat=&actor=&from=&to=&q=&before=` | Activity with filters, day groups, paging (Phase 6) |
-| `/w/[ws]/p/[projectId]/reports/[id]` | Report builder (Phase 7) |
+| `/w/[ws]/p/[projectId]/reports`, `/reports/[id]` | Report list (generate / blank) and builder with share, print, Markdown (Phase 7) |
 | `/w/[ws]/settings`, `/settings/members`, `/settings/api` | Workspace settings |
 | `/account` | Profile, locale, data export, delete my data |
 | `/f/[publicId]` | Respondent form (own root layout: no app shell/providers). `?lang=`, `?t=` invite, `?resume=`, `?embed=1` |
-| `/r/[shareToken]` | Read-only shared report |
+| `/r/[shareToken]` | Read-only shared report, no sign-in, live data, print button (Phase 7) |
 | `/api/auth/[...nextauth]` | Auth.js |
 | `/api/f/[publicId]/{start,resume,save,submit,upload}` | Respondent API (rate-limited) |
 | `/api/files/[id]` | Authenticated file download |
@@ -216,7 +217,7 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - [x] Phase 4 — Interviews: guides, participants, consent, sessions, recording, transcription
 - [x] Phase 5 — Qualitative coding
 - [x] Phase 6 — Mixed methods, written analysis, groups, notifications, Persian, rebrand
-- [ ] Phase 7 — Reports & exports
+- [x] Phase 7 — Reports & exports, plus Generate / Upload CSV / Enter manually everywhere
 - [ ] Phase 8 — Polish
 
 ### Phase 2 notes
@@ -346,6 +347,35 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
   Arabic also uses Peyda. Latin text inside Persian keeps Geist; quotes use `dir="auto"`.
 - Fixed: the projects page always showed "No studies" (unqualified columns in the count subquery).
 
+### Phase 7 notes
+
+- **Generate / Upload / Enter manually** for every kind of input, through one component
+  (`CreateOptions`, folded into `CreatePanel` where a page already has content):
+
+  | What | Generate | Upload CSV (example file offered) | Enter manually |
+  | --- | --- | --- | --- |
+  | Questionnaire | from the brief + proposal (built-in rules or Claude) | `page,type,question,description,required,options,min,max,low_label,high_label` | templates + builder |
+  | Interview guide | from the brief + proposal | `section,minutes,goal,question,probes,note` | guide builder |
+  | Survey responses | fake test data (seeded, correlated scales) | one column per question, header = question text; template has the form's exact columns | the live form with `?entry=manual` (members only; stored as `manual`) |
+  | Participants | fake people (example.com emails) | name/email/phone/id + attribute columns | add dialog |
+  | Codebook | from the brief + clustered project text | `code,parent,definition,color` | codebook editor |
+  | Transcript | sample built from the guide (mock transcriber) | .vtt / .srt / .txt import | field-notes editor, segment editing |
+
+  CSV rows and AI output share one path (`QuestionRow[]` → `buildForm`). Every imported value is
+  validated like a real submission and bad cells are reported, not guessed. Responses carry a
+  `source`; generated test data gets a banner on Responses with one-click deletion.
+- **Reports**: blocks (heading, Markdown text, survey chart with a note, quote, theme, joint display,
+  write-up). Data blocks store references and are resolved on every view, so shared links stay
+  current. "Generate report" assembles brief, key charts, joint display, themes with their best
+  quotes and the latest write-up. Share by link (token; turning it off revokes it), print or save as
+  PDF (print CSS shows only the report), or download Markdown.
+- **Humanize**: the user's humanize skill is vendored at `docs/skills/humanize` (SKILL.md + the
+  pattern and word references). `STYLE_RULES` restates its master principle, house rules and all
+  33 patterns; `cleanProse` applies its safe swaps (filler, AI words, dashes); Claude drafts get the
+  skill's audit step (list the remaining tells, then rewrite) as a second pass.
+- Fixed: the responses table could push the page sideways (scroll container not positioned, grid
+  without `grid-cols-1`).
+
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |
@@ -402,3 +432,8 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 41 | The built-in writer stays English; Claude writes in the UI language | Template prose in several languages would read stiffly; a model writes natural Persian. |
 | 42 | Notifications are in-app only (no email yet) and fold repeats by `groupKey` | One "48 new responses" instead of 48 rows; email digests can come later. |
 | 43 | Brand primary is ink, not lavender | Matches the logotype; lavender (#A49EFF) stays the accent so status and data colors keep their meaning. |
+| 44 | Every input has **Generate / Upload CSV / Enter manually**, and uploads always offer an example file | Researchers start from a proposal, a spreadsheet or a blank page; none of the three should be a dead end. |
+| 45 | Generated responses are real rows with `source = generated`, not a separate sandbox | The whole analysis pipeline (results, tests, exports) can be tried end to end; a banner and one-click delete keep it honest. |
+| 46 | Manual entry reuses the respondent form (`?entry=manual`, signed-in members only) | Same validation and logic as real respondents; no second data-entry UI to maintain. |
+| 47 | Report blocks reference data instead of copying it | Reports and their public links stay current as coding and data change; deleted items show a clear placeholder. |
+| 48 | PDF via the browser's print (print stylesheet), not a server renderer | No headless browser in production; charts print as vector SVG. A server-side PDF/DOCX export can come later. |
