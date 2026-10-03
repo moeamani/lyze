@@ -50,7 +50,7 @@ export default async function DashboardPage({ params }: PageProps<"/w/[ws]">) {
   const t = await getTranslations("dashboard");
   const [counts, studies, completed] = await Promise.all([workspaceCounts(workspace.id), recentStudies(workspace.id), completedByStudy(workspace.id)]);
   const scope = { workspaceId: workspace.id, slug: workspace.slug };
-  const firstName = user.name?.split(" ")[0] ?? user.email.split("@")[0];
+  const firstName = user.name?.split(" ")[0] ?? user.handle.split("@")[0];
   const canEdit = can(role, "content:edit");
 
   return (

@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { userHandle } from "@/server/db/user-handle";
 import { answers, codes, memos, researchSessions, responses, segments, studies, themes, transcripts, users, MEMO_TARGETS } from "@/server/db/schema";
 import { AppError } from "./errors";
 import { requireProject } from "./qual-docs";
@@ -42,7 +43,7 @@ async function checkTarget(workspaceId: string, projectId: string, type: string,
 
 export async function listMemos(workspaceId: string, projectId: string, filter: { targetType?: string; targetId?: string } = {}) {
   const rows = await db
-    .select({ memo: memos, authorName: users.name, authorEmail: users.email })
+    .select({ memo: memos, authorName: users.name, authorEmail: userHandle })
     .from(memos)
     .leftJoin(users, eq(users.id, memos.authorId))
     .where(

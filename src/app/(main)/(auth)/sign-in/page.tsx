@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { currentUser, googleEnabled } from "@/server/auth";
+import { currentUser, emailSignInEnabled, googleEnabled } from "@/server/auth";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { Mascot } from "@/components/illustrations";
 
@@ -25,9 +25,9 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
         <p className="text-muted-foreground">{t("signInSubtitle")}</p>
       </div>
       <div className="rounded-2xl border bg-card p-5 shadow-soft sm:p-6">
-        <SignInForm callbackUrl={callbackUrl} googleEnabled={googleEnabled} authError={typeof params.error === "string"} />
+        <SignInForm callbackUrl={callbackUrl} googleEnabled={googleEnabled} emailEnabled={emailSignInEnabled} authError={typeof params.error === "string"} />
       </div>
-      <p className="mt-6 text-center text-xs text-balance text-muted-foreground">{t("noPassword")}</p>
+      <p className="mt-6 text-center text-xs text-balance text-muted-foreground">{t(emailSignInEnabled ? "noPassword" : "passwordNote")}</p>
     </div>
   );
 }

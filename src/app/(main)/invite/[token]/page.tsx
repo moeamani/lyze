@@ -48,12 +48,12 @@ export default async function InvitePage({ params }: PageProps<"/invite/[token]"
           </Button>
         </>
       );
-    } else if (user.email.toLowerCase() !== invite.invite.email) {
+    } else if (user.email?.toLowerCase() !== invite.invite.email) {
       body = (
         <>
           {intro}
           <p className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
-            {t("wrongAccount", { email: user.email })}
+            {t("wrongAccount", { email: user.handle })}
           </p>
         </>
       );

@@ -1,8 +1,7 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
-import { memberships } from "@/server/db/schema";
-import type { Role } from "@/lib/permissions";
+import { users } from "@/server/db/schema";
 import { AppError } from "@/server/services/errors";
 import { aiCredentials } from "@/server/services/ai-settings";
 import type { QuestionRow } from "@/lib/create/form";
@@ -10,7 +9,8 @@ import type { GuideDoc } from "@/lib/interviews/guide";
 import type { WriteupContext } from "@/lib/writeup/context";
 import type { CodeHint, CodingSuggestion, Unit } from "@/lib/qual/suggest";
 import { builtinProvider } from "./builtin";
-import { claudeProvider } from "./claude";
+import { claudeProvider, modelProvider } from "./claude";
+import { createLlm } from "./llm";
 
 export type DraftBrief = { aim: string; questions: { text: string }[]; statements: { text: string; kind: string }[] };
 
@@ -21,7 +21,8 @@ export type ClusterResult = { label: string; description: string | null; members
  * until a person accepts them, and summaries/clusters/descriptions are shown for review first.
  */
 export interface AssistProvider {
-  readonly name: "builtin" | "claude";
+  /** "builtin", or the provider id ("claude" for Anthropic, "gemini", "groq"…). */
+  readonly name: string;
   suggestCodings(input: { units: Unit[]; codes: CodeHint[]; existing: ReadonlySet<string> }): Promise<CodingSuggestion[]>;
   summarize(input: { title: string; paragraphs: { who: string; text: string }[] }): Promise<string[]>;
   cluster(input: { question: string; texts: string[] }): Promise<ClusterResult[]>;
@@ -36,34 +37,27 @@ export interface AssistProvider {
   writeAnalysis(input: { context: WriteupContext; language: string; proposalPdf?: Uint8Array | null }): Promise<{ title: string; body: string }>;
 }
 
-export type AiMode = "ai" | "placeholder";
-
 /**
- * Placeholder (the built-in, offline writer and heuristics) is a tool for workspace owners and
- * developers: it fills screens without spending tokens. Everyone else gets real AI.
+ * Where generated text comes from: "lyze" (Lyze AI, the server's model, no key needed), "own" (the
+ * workspace's own provider and key) or "placeholder" (the built-in offline generator, Dev Mode only).
  */
-export function canUsePlaceholder(role: Role | null | undefined) {
-  return role === "owner" || process.env.NODE_ENV !== "production" || process.env.LYZE_DEV_TOOLS === "1";
-}
+export type AiMode = "lyze" | "own" | "placeholder";
+export const AI_MODES: readonly AiMode[] = ["lyze", "own", "placeholder"];
 
-/** The assistant for one request: Claude with the workspace's key ("ai"), or the built-in placeholder. */
+/** The assistant for one request. */
 export async function providerFor(userId: string, workspaceId: string, mode: AiMode): Promise<AssistProvider> {
-  const role = await roleIn(userId, workspaceId);
   if (mode === "placeholder") {
-    if (!canUsePlaceholder(role)) throw new AppError("forbidden");
+    const [u] = await db.select({ devMode: users.devMode }).from(users).where(eq(users.id, userId)).limit(1);
+    if (!u?.devMode) throw new AppError("forbidden");
     return builtinProvider();
   }
-  const creds = await aiCredentials(workspaceId);
+  const source = mode === "own" ? "own" : "lyze";
+  const creds = await aiCredentials(workspaceId, source);
   if (!creds) throw new AppError("aiNotConfigured");
-  return claudeProvider(creds);
+  return modelProvider(createLlm(creds), source === "lyze" ? "lyze" : undefined);
 }
 
 /** Without an explicit choice (scripts, tests): AI_PROVIDER=claude uses the server key; anything else stays on-device. */
 export function assistProvider(): AssistProvider {
   return process.env.AI_PROVIDER === "claude" ? claudeProvider() : builtinProvider();
-}
-
-async function roleIn(userId: string, workspaceId: string): Promise<Role | null> {
-  const [m] = await db.select({ role: memberships.role }).from(memberships).where(and(eq(memberships.userId, userId), eq(memberships.workspaceId, workspaceId))).limit(1);
-  return m?.role ?? null;
 }

@@ -14,6 +14,7 @@ import { DEFAULT_CONSENT, guideTemplate } from "@/lib/interviews/guide";
 import { parseTranscript } from "@/lib/interviews/transcript";
 import type { Speakers } from "@/lib/interviews/sessions";
 import type { db } from "@/server/db";
+import { userHandle } from "@/server/db/user-handle";
 
 /**
  * The demo interview study: a guide and consent form, five café regulars at different stages,
@@ -74,7 +75,7 @@ function transcriptRows(text: string, codes: { interviewer: string; participant:
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function seedDemoInterviews(tx: Tx, { workspaceId, studyId, userId, now = new Date() }: { workspaceId: string; studyId: string; userId: string; now?: Date }) {
-  const [user] = await tx.select({ name: users.name, email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  const [user] = await tx.select({ name: users.name, email: userHandle }).from(users).where(eq(users.id, userId)).limit(1);
   const interviewer = user?.name || user?.email?.split("@")[0] || "Interviewer";
   const day = 86_400_000;
 

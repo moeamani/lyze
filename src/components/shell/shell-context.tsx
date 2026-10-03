@@ -4,7 +4,7 @@ import * as React from "react";
 import type { Role } from "@/lib/permissions";
 
 export type ShellWorkspace = { id: string; name: string; slug: string; role: Role };
-export type ShellUser = { id: string; name: string | null; email: string; image: string | null };
+export type ShellUser = { id: string; name: string | null; email: string | null; handle: string; image: string | null };
 export type ShellProject = { id: string; name: string; color: string };
 
 type ShellContextValue = {

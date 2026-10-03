@@ -5,7 +5,6 @@ import { listDocuments, loadDocument } from "@/server/services/qual-docs";
 import { codingsForUnits } from "@/server/services/coding";
 import { listCodes } from "@/server/services/codebook";
 import { listMemos } from "@/server/services/memos";
-import { assistProvider } from "@/server/ai";
 import { can } from "@/lib/permissions";
 import { EmptyState } from "@/components/common/empty-state";
 import { ClipboardIllustration } from "@/components/illustrations";
@@ -38,7 +37,6 @@ export default async function CodingPage({ params, searchParams }: PageProps<"/w
       base={base}
       canCode={can(role, "content:analyze")}
       canEditStudy={can(role, "content:edit")}
-      assistant={assistProvider().name}
       docs={docs.map((d) => ({ key: d.key, title: d.title, subtitle: d.subtitle, studyName: d.studyName, kind: d.kind, units: d.units, codings: d.codings, pending: d.pending }))}
       doc={{
         key: summary.key,

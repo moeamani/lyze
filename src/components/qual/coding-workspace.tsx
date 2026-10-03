@@ -1,6 +1,6 @@
 "use client";
 
-import { AiModeSelect, useAiMode } from "@/components/common/ai-mode";
+import { AiModeSelect, useAiMode, useAssistant } from "@/components/common/ai-mode";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -75,7 +75,6 @@ export function CodingWorkspace({
   base,
   canCode,
   canEditStudy,
-  assistant,
   docs,
   doc,
   codings,
@@ -86,7 +85,6 @@ export function CodingWorkspace({
   base: string;
   canCode: boolean;
   canEditStudy: boolean;
-  assistant: "builtin" | "claude";
   docs: WorkspaceDoc[];
   doc: { key: string; title: string; kind: DocKind; studyName: string; studyId: string; sessionId: string | null; questionId: string | null; href: string; units: Unit[] };
   codings: Coding[];
@@ -278,9 +276,9 @@ export function CodingWorkspace({
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {canCode && <SuggestButton scope={scope} docKey={doc.key} hasCodes={codes.length > 0} assistant={assistant} />}
-            {canCode && doc.sessionId && <SummarizeButton scope={scope} sessionId={doc.sessionId} studyId={doc.studyId} canSave={canEditStudy} assistant={assistant} />}
-            {canCode && doc.questionId && <ClusterButton scope={scope} studyId={doc.studyId} questionId={doc.questionId} assistant={assistant} codesCount={codes.length} />}
+            {canCode && <SuggestButton scope={scope} docKey={doc.key} hasCodes={codes.length > 0} />}
+            {canCode && doc.sessionId && <SummarizeButton scope={scope} sessionId={doc.sessionId} studyId={doc.studyId} canSave={canEditStudy} />}
+            {canCode && doc.questionId && <ClusterButton scope={scope} studyId={doc.studyId} questionId={doc.questionId} codesCount={codes.length} />}
             <Button asChild variant="ghost" size="sm">
               <Link href={doc.href}>
                 <ExternalLinkIcon />
@@ -602,7 +600,8 @@ function UnitMemos({ scope, memos, canCode }: { scope: Scope; memos: Memo[]; can
   );
 }
 
-function SuggestButton({ scope, docKey, hasCodes, assistant }: { scope: Scope; docKey: string; hasCodes: boolean; assistant: "builtin" | "claude" }) {
+function SuggestButton({ scope, docKey, hasCodes }: { scope: Scope; docKey: string; hasCodes: boolean }) {
+  const assistant = useAssistant();
   const t = useTranslations("coding.assist");
   const feedback = useActionFeedback();
   const [pending, startTransition] = useTransition();
@@ -614,7 +613,7 @@ function SuggestButton({ scope, docKey, hasCodes, assistant }: { scope: Scope; d
       variant="outline"
       size="sm"
       disabled={pending || !hasCodes}
-      title={hasCodes ? t(assistant === "claude" ? "suggestHintClaude" : "suggestHint") : t("needCodes")}
+      title={hasCodes ? t(assistant !== "builtin" ? "suggestHintClaude" : "suggestHint") : t("needCodes")}
       onClick={() =>
         startTransition(async () => {
           const result = await suggestCodingsAction(scope, docKey, mode);

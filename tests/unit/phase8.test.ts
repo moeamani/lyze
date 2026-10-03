@@ -8,7 +8,8 @@ import { seal, unseal } from "@/server/crypto";
 import { createWorkspace } from "@/server/services/workspaces";
 import { acceptInvite, createInvite } from "@/server/services/members";
 import { aiCredentials, aiStatus, removeAiKey, saveAiSettings } from "@/server/services/ai-settings";
-import { canUsePlaceholder, providerFor } from "@/server/ai";
+import { providerFor } from "@/server/ai";
+import { setDevMode } from "@/server/services/users";
 import { authenticateApiKey, createApiKey, createWebhook, dispatchWebhooks, listWebhooks, revokeApiKey, signPayload, webhookUrlAllowed } from "@/server/services/api";
 import { deleteAccount, exportUserData } from "@/server/services/users";
 import { AppError } from "@/server/services/errors";
@@ -36,35 +37,49 @@ beforeAll(async () => {
 });
 
 describe("AI settings", () => {
-  it("encrypts keys at rest and decides between AI and placeholder", async () => {
+  it("encrypts keys at rest and decides between Lyze AI, the workspace key and placeholder", async () => {
     expect(unseal(seal("secret value"))).toBe("secret value");
-    expect(unseal(seal("x").replace(/.$/, "A"))).toBeNull();
+    // Change a whole ciphertext byte (the last base64 character can be padding bits only).
+    const [v, iv, tag, data] = seal("x").split(".");
+    const flipped = Buffer.from(data!, "base64url").map((b) => b ^ 0xff);
+    expect(unseal([v, iv, tag, Buffer.from(flipped).toString("base64url")].join("."))).toBeNull();
 
     const { user, ws } = await owner(false);
     const analyst = await member(ws.id, user.id, "analyst");
-    await code(providerFor(user.id, ws.id, "ai"), "aiNotConfigured");
-    expect((await providerFor(user.id, ws.id, "placeholder")).name).toBe("builtin");
+    const saved = { key: process.env.LYZE_AI_KEY, anthropic: process.env.ANTHROPIC_API_KEY };
+    delete process.env.LYZE_AI_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    try {
+      // Neither Lyze AI nor a workspace key yet.
+      await code(providerFor(user.id, ws.id, "lyze"), "aiNotConfigured");
+      await code(providerFor(user.id, ws.id, "own"), "aiNotConfigured");
+      expect(await aiStatus(ws.id)).toEqual({ lyze: false, own: null });
+      // Lyze AI: the server's key, for everyone, no workspace key needed.
+      process.env.LYZE_AI_KEY = "AQ.server-key";
+      expect((await aiStatus(ws.id)).lyze).toBe(true);
+      expect(await aiCredentials(ws.id, "lyze")).toMatchObject({ provider: "gemini", apiKey: "AQ.server-key", model: "gemini-3.8-flash" });
+      expect((await providerFor(analyst.id, ws.id, "lyze")).name).toBe("lyze");
+    } finally {
+      for (const [k, v] of [["LYZE_AI_KEY", saved.key], ["ANTHROPIC_API_KEY", saved.anthropic]] as const) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
 
-    await code(saveAiSettings(analyst.id, ws.id, { apiKey: "sk-ant-test-0000000000000000000000001234" }), "forbidden");
-    await saveAiSettings(user.id, ws.id, { apiKey: "sk-ant-test-0000000000000000000000001234", model: "claude-sonnet-5-5" });
+    // Placeholder only with Dev Mode on, whatever the role.
+    await code(providerFor(user.id, ws.id, "placeholder"), "forbidden");
+    await setDevMode(analyst.id, true);
+    expect((await providerFor(analyst.id, ws.id, "placeholder")).name).toBe("builtin");
+
+    await code(saveAiSettings(analyst.id, ws.id, { provider: "anthropic", model: "claude-opus-5-5", apiKey: "sk-ant-test-0000000000000000000000001234" }), "forbidden");
+    await saveAiSettings(user.id, ws.id, { provider: "anthropic", apiKey: "sk-ant-test-0000000000000000000000001234", model: "claude-sonnet-5-5" });
     const [row] = await db.select().from(workspaceAi).where(eq(workspaceAi.workspaceId, ws.id));
     expect(row!.apiKeyEnc).not.toContain("sk-ant");
-    expect(await aiStatus(ws.id)).toMatchObject({ configured: true, source: "workspace", hint: "1234", model: "claude-sonnet-5-5" });
-    expect(await aiCredentials(ws.id)).toEqual({ apiKey: "sk-ant-test-0000000000000000000000001234", model: "claude-sonnet-5-5" });
-    expect((await providerFor(analyst.id, ws.id, "ai")).name).toBe("claude");
+    expect((await aiStatus(ws.id)).own).toMatchObject({ provider: "anthropic", hint: "1234", model: "claude-sonnet-5-5" });
+    expect(await aiCredentials(ws.id, "own")).toMatchObject({ provider: "anthropic", apiKey: "sk-ant-test-0000000000000000000000001234", model: "claude-sonnet-5-5" });
+    expect((await providerFor(analyst.id, ws.id, "own")).name).toBe("claude");
     await removeAiKey(user.id, ws.id);
-    expect((await aiStatus(ws.id)).configured).toBe(false);
-
-    // Placeholder: owners always; everyone in development; nobody else in production.
-    const env = process.env.NODE_ENV;
-    try {
-      (process.env as Record<string, string>).NODE_ENV = "production";
-      expect(canUsePlaceholder("owner")).toBe(true);
-      expect(canUsePlaceholder("analyst")).toBe(false);
-      await code(providerFor(analyst.id, ws.id, "placeholder"), "forbidden");
-    } finally {
-      (process.env as Record<string, string>).NODE_ENV = env!;
-    }
+    expect((await aiStatus(ws.id)).own).toBeNull();
   }, 30_000);
 });
 

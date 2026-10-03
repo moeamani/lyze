@@ -125,7 +125,8 @@ export function ProjectBoard({ scope, groups, projects, canEdit }: { scope: Scop
                           <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", swatchClass(p.color))} />
                           <span className="truncate font-semibold">{p.name}</span>
                         </span>
-                        {p.description && <span className="line-clamp-2 text-sm text-muted-foreground">{p.description}</span>}
+                        {/* One line, always present, so cards in a row line up. */}
+                        <span className="min-h-5 truncate text-sm text-muted-foreground">{p.description}</span>
                         <span className="mt-auto flex items-center justify-between gap-2 text-xs text-muted-foreground">
                           <Badge variant="secondary">{t("studyCount", { count: p.studyCount })}</Badge>
                           <RelativeTime date={p.updatedAt} />

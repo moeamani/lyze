@@ -43,7 +43,7 @@ type BoardTheme = { id: string; name: string; description: string | null; color:
 const UNSORTED = "unsorted";
 
 /** Themes as columns, codes as cards: drag codes into the theme they belong to. */
-export function ThemeBoard({ scope, base, themes, codes, canEdit, assistant }: { scope: Scope; base: string; themes: BoardTheme[]; codes: BoardCode[]; canEdit: boolean; assistant: "builtin" | "claude" }) {
+export function ThemeBoard({ scope, base, themes, codes, canEdit }: { scope: Scope; base: string; themes: BoardTheme[]; codes: BoardCode[]; canEdit: boolean }) {
   const t = useTranslations("themes");
   const feedback = useActionFeedback();
   const [pending, startTransition] = useTransition();
@@ -219,7 +219,7 @@ export function ThemeBoard({ scope, base, themes, codes, canEdit, assistant }: {
         </DndContext>
       )}
       {canEdit && <p className="text-xs text-muted-foreground">{t("keyboardHint")}</p>}
-      {dialog && <ThemeDialog scope={scope} theme={dialog.theme} count={themes.length} onClose={() => setDialog(null)} assistant={assistant} />}
+      {dialog && <ThemeDialog scope={scope} theme={dialog.theme} count={themes.length} onClose={() => setDialog(null)} />}
       <ConfirmDialog
         open={!!deleting}
         onOpenChange={(o) => !o && setDeleting(null)}
@@ -264,7 +264,7 @@ function CardBody({ code, overlay }: { code: BoardCode; overlay?: boolean }) {
   );
 }
 
-function ThemeDialog({ scope, theme, count, onClose, assistant }: { scope: Scope; theme?: BoardTheme; count: number; onClose: () => void; assistant: "builtin" | "claude" }) {
+function ThemeDialog({ scope, theme, count, onClose }: { scope: Scope; theme?: BoardTheme; count: number; onClose: () => void }) {
   const t = useTranslations("themes");
   const tc = useTranslations("common");
   const feedback = useActionFeedback();
@@ -309,7 +309,7 @@ function ThemeDialog({ scope, theme, count, onClose, assistant }: { scope: Scope
               <Label htmlFor="theme-desc" className="me-auto">
                 {t("description")}
               </Label>
-              {drafted && <SuggestionBadge assistant={assistant} />}
+              {drafted && <SuggestionBadge />}
               {theme && <AiModeSelect />}
               {theme && (
                 <Button

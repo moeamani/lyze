@@ -17,7 +17,11 @@
     "tooLong": "That's a little too long.",
     "email": "That doesn't look like an email address.",
     "slug": "Use lowercase letters, numbers and dashes.",
-    "slugReserved": "That address is reserved — try another."
+    "slugReserved": "That address is reserved — try another.",
+    "emailOrUsername": "That isn't an email address or a valid username.",
+    "usernameShort": "Usernames need at least 3 characters.",
+    "username": "Usernames use letters, numbers, dots, dashes or underscores.",
+    "passwordShort": "Passwords need at least 8 characters."
   },
   "errors": {
     "unauthorized": "Please sign in again.",
@@ -38,7 +42,10 @@
     "notFoundTitle": "Nothing to see here",
     "notFoundBody": "The page you're looking for moved, was deleted, or never existed.",
     "goHome": "Go home",
-    "aiNotConfigured": "AI isn't set up for this workspace yet. An owner can add an API key in Settings → AI."
+    "aiNotConfigured": "AI isn't available here yet. An owner can add an API key in Settings → AI.",
+    "noSuchUser": "No account has that username.",
+    "aiBusy": "The AI service is busy or out of free requests right now. Try again in a minute.",
+    "aiKeyRejected": "The AI service turned the API key down. An owner can check it in Settings → AI."
   },
   "landing": {
     "signIn": "Sign in",
@@ -66,7 +73,7 @@
   },
   "auth": {
     "signInTitle": "Welcome to Lyze",
-    "signInSubtitle": "Sign in or create an account with your email.",
+    "signInSubtitle": "Sign in or create an account.",
     "emailLabel": "Email",
     "emailPlaceholder": "you@university.edu",
     "sendLink": "Email me a sign-in link",
@@ -79,7 +86,27 @@
     "checkEmailBody": "We sent you a sign-in link. It works once and expires in 24 hours.",
     "devMailboxHint": "Running locally without an email server? Your link is waiting in the dev mailbox.",
     "openDevMailbox": "Open dev mailbox",
-    "useDifferentEmail": "Use a different email"
+    "useDifferentEmail": "Use a different email",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "nameLabel": "Your name",
+    "optional": "(optional)",
+    "usernameLabel": "Username",
+    "usernameHint": "3–32 characters: letters, numbers, dots, dashes or underscores.",
+    "passwordLabel": "Password",
+    "passwordHint": "At least 8 characters.",
+    "emailOption": "Continue with email",
+    "comingSoon": "Coming soon",
+    "passwordNote": "Pick a password you don't use anywhere else. Lyze can't email you a reset link yet, so keep it somewhere safe.",
+    "passwordErrors": {
+      "credentials": "That username and password don't match.",
+      "taken": "That username is taken. Try another.",
+      "username": "Usernames use letters, numbers, dots, dashes or underscores, and start with a letter or number.",
+      "usernameShort": "Usernames need at least 3 characters.",
+      "passwordShort": "Passwords need at least 8 characters.",
+      "tooMany": "Too many tries. Wait a few minutes and try again.",
+      "unknown": "Something went wrong. Please try again."
+    }
   },
   "devMailbox": {
     "title": "Dev mailbox",
@@ -136,6 +163,11 @@
       "deleteBody": "This can't be undone. If you own a workspace with other members, make someone else an owner first.",
       "typeEmail": "Type {email} to confirm",
       "deleteForever": "Delete forever"
+    },
+    "devMode": {
+      "title": "Developer",
+      "label": "Dev Mode",
+      "hint": "Adds Placeholder to every generate menu. Placeholder is Lyze's offline generator: it fills screens with sample drafts and made-up test data without using AI."
     }
   },
   "shell": {
@@ -463,7 +495,7 @@
     "subtitle": "{count, plural, one {# person} other {# people}} in this workspace.",
     "invite": "Invite",
     "inviteTitle": "Invite a teammate",
-    "inviteHint": "They'll get an email with a link to join. Invites expire after 7 days.",
+    "inviteHint": "Enter a username to add someone who already has a Lyze account, or an email to send an invite link (expires after 7 days).",
     "emailLabel": "Email",
     "roleLabel": "Role",
     "sendInvite": "Send invite",
@@ -491,7 +523,10 @@
     "leave": "Leave workspace",
     "leaveTitle": "Leave {name}?",
     "leaveBody": "You'll need a new invite to come back.",
-    "leaveConfirm": "Leave"
+    "leaveConfirm": "Leave",
+    "emailOrUsername": "Email or username",
+    "emailOrUsernamePlaceholder": "name@example.com or username",
+    "added": "{name} was added to the workspace"
   },
   "respondent": {
     "start": "Start",
@@ -1763,7 +1798,7 @@
     "assist": {
       "suggest": "Suggest codes",
       "suggestHint": "The built-in assistant matches your codes' names and definitions against the text.",
-      "suggestHintClaude": "Claude reads the passages and proposes codes from your codebook.",
+      "suggestHintClaude": "The AI reads the passages and proposes codes from your codebook.",
       "needCodes": "Create a few codes first — suggestions use your codebook.",
       "suggested": "{count, plural, one {# suggestion} other {# suggestions}} to review",
       "noSuggestions": "No new suggestions for this document.",
@@ -1784,7 +1819,7 @@
       "created": "Created",
       "clusterCoded": "{count, plural, one {# answer} other {# answers}} coded",
       "byBuiltin": "Suggestion · built-in assistant",
-      "byClaude": "Suggestion · Claude"
+      "byClaude": "Suggestion · {name}"
     }
   },
   "codebook": {
@@ -1953,7 +1988,7 @@
     "writing": "Writing…",
     "generated": "Draft ready",
     "providerBuiltin": "The analysis is written inside Lyze, with no AI service or API key: an article-style data analysis and results section with the sample, descriptive statistics, hypothesis tests, themes with quotes and answers to each research question, all computed from this project.",
-    "providerClaude": "Claude writes the analysis from your brief, the proposal, codes, quotes and survey results, in the language you're using Lyze in.",
+    "providerClaude": "{name} writes the analysis from your brief, the proposal, codes, quotes and survey results, in the language you're using Lyze in.",
     "drafts": "Drafts",
     "noDrafts": "No drafts yet. Fill in the brief and press Write analysis.",
     "builtin": "Built-in",
@@ -1965,7 +2000,7 @@
     "titleLabel": "Title",
     "bodyLabel": "Text (Markdown)",
     "draftNoticeBuiltin": "Written by Lyze's built-in writer from your project's data, without an AI service. Every number comes from the data; check the interpretation before you use it.",
-    "draftNoticeClaude": "A draft written by Claude from your data. Check every claim and quote against the sources before you use it.",
+    "draftNoticeClaude": "A draft written by {name} from your data. Check every claim and quote against the sources before you use it.",
     "deleteTitle": "Delete this draft?",
     "deleteBody": "The draft is removed. Your data and brief stay.",
     "brief": {
@@ -2196,8 +2231,8 @@
   },
   "ai": {
     "mode": "Generation mode",
-    "useAi": "Use AI",
-    "useAiNoKey": "Use AI (no key yet)",
+    "lyze": "Lyze AI",
+    "own": "Your key · {provider}",
     "placeholder": "Placeholder",
     "notSetUp": "Set up AI"
   },
@@ -2210,33 +2245,53 @@
   },
   "aiSettings": {
     "title": "AI",
-    "subtitle": "Connect Claude to draft questionnaires, guides, codebooks and written analyses, suggest codes and summarise sessions.",
-    "statusWorkspace": "Using this workspace's key (…{hint})",
-    "statusServer": "Using the server's key",
-    "statusNone": "No API key yet",
-    "statusHint": "Keys are encrypted before they are stored and never shown again. Text you send to AI goes to Anthropic.",
+    "subtitle": "Lyze AI drafts questionnaires, guides, codebooks and written analyses, suggests codes and summarises sessions. No key needed.",
+    "statusWorkspace": "Using {provider} with this workspace's key (…{hint})",
+    "statusNone": "No key added",
+    "statusHint": "Keys are encrypted before they are stored and never shown again. Text you send to AI goes to the provider you pick.",
     "check": "Check key",
     "keyWorks": "The key works",
     "apiKey": "Anthropic API key",
     "replaceKey": "Replace the key",
-    "keyHelp": "Create one at console.anthropic.com → API keys. Leave empty to keep the current key and only change the model.",
+    "keyHelp": "Paste the key from the provider's dashboard. It's encrypted before it's stored.",
     "model": "Model",
-    "models": {
-      "claude-opus": "Claude Opus 5.5 (best writing)",
-      "claude-sonnet": "Claude Sonnet 5.5 (faster)",
-      "claude-haiku": "Claude Haiku 4.5 (cheapest)"
-    },
     "save": "Save",
     "saved": "AI settings saved",
     "remove": "Remove key",
     "removed": "Key removed",
-    "ownersOnly": "Only workspace owners can change the AI key.",
-    "placeholderNote": "Owners and developers can also choose Placeholder next to each Generate button: Lyze's built-in, offline generator, useful for testing without spending tokens.",
+    "ownersOnly": "Only workspace owners can add or change the workspace's own key.",
+    "placeholderNote": "Turn on Dev Mode in your account settings to also get Placeholder next to each Generate button: Lyze's offline generator for testing without AI.",
     "checkResult": {
       "missing": "No key to check",
       "rejected": "Anthropic rejected this key",
       "unreachable": "Couldn't reach Anthropic from the server"
-    }
+    },
+    "provider": "Provider",
+    "free": "Free tier",
+    "getKey": "Get a key",
+    "getOllama": "Download Ollama",
+    "optional": "(optional)",
+    "keepKey": "Leave empty to keep the saved key.",
+    "baseUrl": "Endpoint",
+    "baseUrlHint": "The server's OpenAI-compatible base URL, ending in /v1.",
+    "baseUrlOllama": "Ollama listens on http://localhost:11434/v1 on the machine that runs it. It must be reachable from the Lyze server.",
+    "modelHint": "Pick a suggestion or type any model name the provider offers. Names change; check the provider's model list if one stops working.",
+    "providerHint": {
+      "anthropic": "Claude writes the strongest analyses and reads PDFs directly. Paid, billed per use.",
+      "gemini": "Google AI Studio gives a free API key with daily limits; Gemini also reads PDFs directly.",
+      "groq": "Free tier with rate limits; very fast open models such as Llama.",
+      "openrouter": "One key for many models; the ones ending in :free cost nothing (rate-limited).",
+      "mistral": "Free Experiment plan with rate limits; paid plans for heavier use.",
+      "openai": "GPT models, billed per use.",
+      "ollama": "Free and private: models run on your own computer or server, no key needed.",
+      "custom": "Any service that speaks the OpenAI chat-completions API (LM Studio, vLLM, Together, DeepSeek and others)."
+    },
+    "lyzeOn": "Lyze AI is on",
+    "lyzeOnHint": "Everyone in this workspace can generate with Lyze's own model. Nobody needs an API key.",
+    "lyzeOff": "Lyze AI isn't set up on this server",
+    "lyzeOffHint": "Add your own key below to generate, or ask whoever runs this Lyze server to set LYZE_AI_KEY.",
+    "ownTitle": "Your own API key (optional)",
+    "ownHint": "Use your own provider, for example a paid plan or a model on your own computer. Once a key is saved, every Generate button lets you pick Lyze AI or your key."
   },
   "apiSettings": {
     "title": "API & webhooks",

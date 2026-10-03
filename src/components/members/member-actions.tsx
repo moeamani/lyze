@@ -40,7 +40,11 @@ export function InviteDialog({ scope }: { scope: Scope }) {
         form.setError("email", { message: te("alreadyMember") });
         return;
       }
-      if (feedback(result, t("invited", { email: values.email }))) {
+      if (!result.ok && result.error === "notFound") {
+        form.setError("email", { message: te("noSuchUser") });
+        return;
+      }
+      if (feedback(result, result.ok && result.data.added ? t("added", { name: result.data.added }) : t("invited", { email: values.email }))) {
         form.reset();
         setOpen(false);
       }
@@ -66,9 +70,9 @@ export function InviteDialog({ scope }: { scope: Scope }) {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("emailLabel")}</FormLabel>
+                    <FormLabel>{t("emailOrUsername")}</FormLabel>
                     <FormControl>
-                      <Input type="email" inputMode="email" autoComplete="off" autoFocus placeholder="name@example.com" {...field} />
+                      <Input type="text" inputMode="email" autoCapitalize="none" spellCheck={false} autoComplete="off" autoFocus placeholder={t("emailOrUsernamePlaceholder")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

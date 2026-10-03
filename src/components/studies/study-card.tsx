@@ -39,23 +39,24 @@ export function StudyCard({
       <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-soft-foreground">
         <StudyTypeIcon type={study.type} className="size-5" />
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{study.name}</span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          {project && (
-            <span className="inline-flex min-w-0 items-center gap-1.5">
-              <Swatch color={project.color} className="size-2" />
-              <span className="truncate">{project.name}</span>
-            </span>
-          )}
-          <span>{tt(`${study.type}.name`)}</span>
+      {/* Fixed lines that never wrap, so every card in the list has the same height. */}
+      <span className="grid min-w-0 flex-1 gap-0.5">
+        <span className="truncate font-medium">{study.name}</span>
+        {project && (
+          <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+            <Swatch color={project.color} className="size-2 shrink-0" />
+            <span className="truncate">{project.name}</span>
+          </span>
+        )}
+        <span className="truncate text-xs text-muted-foreground">
+          {tt(`${study.type}.name`)}
           {responses !== undefined && (
             <>
-              <span aria-hidden>·</span>
+              <span aria-hidden> · </span>
               <span className="tabular-nums">{ts("responseCount", { count: responses })}</span>
             </>
           )}
-          <span aria-hidden>·</span>
+          <span aria-hidden> · </span>
           <RelativeTime date={study.updatedAt} />
         </span>
       </span>

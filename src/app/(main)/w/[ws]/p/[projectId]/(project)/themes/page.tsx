@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 import { getProjectContext } from "@/server/queries/workspace";
 import { listCodes } from "@/server/services/codebook";
 import { listThemes } from "@/server/services/themes";
-import { assistProvider } from "@/server/ai";
 import { can } from "@/lib/permissions";
 import { ThemeBoard } from "@/components/qual/theme-board";
 
@@ -23,7 +22,6 @@ export default async function ThemesPage({ params }: PageProps<"/w/[ws]/p/[proje
       themes={themes.map((t) => ({ id: t.id, name: t.name, description: t.description, color: t.color }))}
       codes={codes.map((c) => ({ id: c.id, name: c.name, color: c.color, count: c.count, themeId: c.themeId, themePosition: c.themePosition, path: c.path }))}
       canEdit={can(role, "content:analyze")}
-      assistant={assistProvider().name}
     />
   );
 }

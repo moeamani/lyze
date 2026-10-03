@@ -108,22 +108,22 @@ export async function deleteMemoAction(scope: Scope, memoId: string) {
 
 // ── Assistant (all output is a suggestion) ─────────────────────────────────
 
-export async function suggestCodingsAction(scope: Scope, docKey: string, mode: AiMode = "ai") {
+export async function suggestCodingsAction(scope: Scope, docKey: string, mode: AiMode = "lyze") {
   return run(scope, async (u) => {
     const ref = parseDocKey(docKey);
     if (!ref) throw new AppError("invalid");
     return suggestForDocument(u, ...W(scope), ref, await providerFor(u, scope.workspaceId, mode));
   });
 }
-export async function summarizeSessionAction(scope: Scope, sessionId: string, mode: AiMode = "ai") {
+export async function summarizeSessionAction(scope: Scope, sessionId: string, mode: AiMode = "lyze") {
   return run(scope, async (u) => summarizeSession(u, ...W(scope), sessionId, await providerFor(u, scope.workspaceId, mode)), false);
 }
-export async function clusterQuestionAction(scope: Scope, studyId: string, questionId: string, mode: AiMode = "ai") {
+export async function clusterQuestionAction(scope: Scope, studyId: string, questionId: string, mode: AiMode = "lyze") {
   return run(scope, async (u) => clusterQuestion(u, ...W(scope), studyId, questionId, await providerFor(u, scope.workspaceId, mode)), false);
 }
 export async function createCodeFromClusterAction(scope: Scope, code: CodeInput, answerIds: string[]) {
   return run(scope, (u) => createCodeFromCluster(u, ...W(scope), { code, answerIds }));
 }
-export async function draftThemeAction(scope: Scope, themeId: string, mode: AiMode = "ai") {
+export async function draftThemeAction(scope: Scope, themeId: string, mode: AiMode = "lyze") {
   return run(scope, async (u) => draftTheme(u, ...W(scope), themeId, await providerFor(u, scope.workspaceId, mode)), false);
 }

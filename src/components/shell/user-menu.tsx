@@ -30,7 +30,7 @@ export function UserAvatar({ className }: { className?: string }) {
   return (
     <Avatar className={className}>
       {user.image && <AvatarImage src={user.image} alt="" />}
-      <AvatarFallback>{initials(user.name || user.email)}</AvatarFallback>
+      <AvatarFallback>{initials(user.name || user.handle)}</AvatarFallback>
     </Avatar>
   );
 }
@@ -54,13 +54,13 @@ export function UserMenu({ collapsed = false, side = "top" }: { collapsed?: bool
         <UserAvatar />
         {!collapsed && (
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium">{user.name || user.email.split("@")[0]}</span>
-            <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
+            <span className="block truncate text-sm font-medium">{user.name || user.handle.split("@")[0]}</span>
+            <span className="block truncate text-xs text-muted-foreground">{user.handle}</span>
           </span>
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="start" className="w-60">
-        <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
+        <DropdownMenuLabel className="truncate">{user.handle}</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link href="/account">
             <UserIcon />

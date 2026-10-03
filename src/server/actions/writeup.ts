@@ -30,7 +30,7 @@ export async function attachProposalAction(scope: Scope, form: FormData) {
 export async function removeProposalAction(scope: Scope) {
   return run(scope, (u) => removeProposal(u, scope.workspaceId, scope.projectId));
 }
-export async function generateWriteupAction(scope: Scope, mode: AiMode = "ai") {
+export async function generateWriteupAction(scope: Scope, mode: AiMode = "lyze") {
   const locale = await getLocale();
   return run(scope, async (u) => (await generateWriteup(u, scope.workspaceId, scope.projectId, locale, await providerFor(u, scope.workspaceId, mode))).id);
 }

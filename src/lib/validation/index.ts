@@ -20,6 +20,26 @@ export const emailSchema = z.string().trim().toLowerCase().pipe(z.email({ error:
 
 export const signInSchema = z.object({ email: emailSchema });
 
+/** 3–32 characters: letters, digits, dot, dash, underscore; starts with a letter or digit. Case-insensitive. */
+export const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3, { error: "usernameShort" })
+  .max(32, { error: "tooLong" })
+  .regex(/^[a-z0-9][a-z0-9._-]*$/, { error: "username" });
+
+export const passwordSchema = z.string().min(8, { error: "passwordShort" }).max(200, { error: "tooLong" });
+
+export const passwordSignInSchema = z.object({ username: usernameSchema, password: z.string().min(1, { error: "required" }).max(200) });
+
+export const signUpSchema = z.object({
+  name: optionalText(80),
+  username: usernameSchema,
+  password: passwordSchema,
+});
+export type SignUpInput = z.input<typeof signUpSchema>;
+
 export const slugSchema = z
   .string()
   .trim()
@@ -60,7 +80,8 @@ export const studyUpdateSchema = studySchema.omit({ type: true }).extend({
 export type StudyUpdateInput = z.input<typeof studyUpdateSchema>;
 
 export const inviteSchema = z.object({
-  email: emailSchema,
+  /** An email address (sends an invite link) or a username (adds an existing account right away). */
+  email: z.string().trim().toLowerCase().pipe(z.union([z.email(), usernameSchema], { error: "emailOrUsername" })),
   role: z.enum(ROLES).exclude(["owner"]),
 });
 export type InviteInput = z.input<typeof inviteSchema>;

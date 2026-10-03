@@ -24,6 +24,10 @@ export async function attempt<T>(fn: () => Promise<T>): Promise<ActionResult<T>>
     }
     if (isNextControlFlow(error)) throw error;
     console.error(error);
+    // Errors from an AI provider carry its HTTP status.
+    const status = (error as { status?: unknown } | null)?.status;
+    if (status === 401 || status === 403) return { ok: false, error: "aiKeyRejected" };
+    if (status === 429 || (typeof status === "number" && status >= 500)) return { ok: false, error: "aiBusy" };
     return { ok: false, error: "unknown" };
   }
 }

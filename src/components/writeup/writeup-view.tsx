@@ -1,5 +1,6 @@
 "use client";
 
+import { providerLabel } from "@/lib/ai-providers";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -63,7 +64,7 @@ export function WriteupView({ scope, back, writeup, canEdit }: { scope: Scope; b
         </div>
       </div>
       <p className="rounded-lg border border-dashed border-section-writeup/50 px-3 py-2 text-xs text-pretty text-muted-foreground">
-        {writeup.provider === "claude" ? t("draftNoticeClaude") : t("draftNoticeBuiltin")}
+        {writeup.provider !== "builtin" ? t("draftNoticeClaude", { name: providerLabel(writeup.provider) }) : t("draftNoticeBuiltin")}
       </p>
       {editing ? (
         <div className="grid gap-3">

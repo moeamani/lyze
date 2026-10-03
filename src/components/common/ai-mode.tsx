@@ -3,12 +3,22 @@
 import { createContext, useCallback, useContext, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { FlaskConicalIcon, SparklesIcon } from "lucide-react";
+import { FlaskConicalIcon, KeyRoundIcon, SparklesIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { AiMode } from "@/server/ai";
 import { cn } from "@/lib/utils";
+import { providerLabel } from "@/lib/ai-providers";
 
-type AiContext = { workspaceId: string; configured: boolean; canPlaceholder: boolean; settingsHref: string };
+type AiContext = {
+  workspaceId: string;
+  /** Lyze AI is available (the server has a key). */
+  lyze: boolean;
+  /** Provider id of the workspace's own key, if it has one. */
+  own: string | null;
+  /** Dev Mode is on for this person: Placeholder and test data are offered. */
+  canPlaceholder: boolean;
+  settingsHref: string;
+};
 const Ctx = createContext<AiContext | null>(null);
 
 export function AiModeProvider({ value, children }: { value: AiContext; children: React.ReactNode }) {
@@ -16,7 +26,7 @@ export function AiModeProvider({ value, children }: { value: AiContext; children
 }
 
 const EVENT = "lyze:ai-mode";
-const keyFor = (ws: string) => `lyze:ai-mode:${ws}`;
+const keyFor = (ws: string) => `lyze:ai-source:${ws}`;
 const subscribe = (cb: () => void) => {
   window.addEventListener(EVENT, cb);
   window.addEventListener("storage", cb);
@@ -25,26 +35,32 @@ const subscribe = (cb: () => void) => {
     window.removeEventListener("storage", cb);
   };
 };
-function read(ws: string): AiMode | null {
+function read(ws: string): string | null {
   try {
-    const v = localStorage.getItem(keyFor(ws));
-    return v === "ai" || v === "placeholder" ? v : null;
+    return localStorage.getItem(keyFor(ws));
   } catch {
     return null;
   }
 }
 
+/** The sources this person can pick from, in menu order. */
+function options(ctx: AiContext | null): AiMode[] {
+  if (!ctx) return [];
+  return [...(ctx.lyze ? (["lyze"] as const) : []), ...(ctx.own ? (["own"] as const) : []), ...(ctx.canPlaceholder ? (["placeholder"] as const) : [])];
+}
+
 /**
- * The generation mode for this workspace: "ai" (Claude with the workspace's key) or "placeholder"
- * (the built-in, offline generator). Placeholder exists only for owners and developers; for everyone
- * else the mode is always "ai". The choice is remembered per workspace in this browser.
+ * Where generated text comes from in this workspace: Lyze AI, the workspace's own key, or (Dev Mode
+ * only) the offline Placeholder. A workspace with its own key uses it by default; the choice is
+ * remembered per workspace in this browser.
  */
-export function useAiMode(): [AiMode, (m: AiMode) => void, AiContext | null] {
+export function useAiMode(): [AiMode, (m: AiMode) => void, AiContext | null, AiMode[]] {
   const ctx = useContext(Ctx);
   const ws = ctx?.workspaceId ?? "";
   const stored = useSyncExternalStore(subscribe, () => read(ws), () => null);
-  const fallback: AiMode = ctx && !ctx.configured && ctx.canPlaceholder ? "placeholder" : "ai";
-  const mode: AiMode = ctx?.canPlaceholder ? (stored ?? fallback) : "ai";
+  const available = options(ctx);
+  const fallback: AiMode = ctx?.own ? "own" : (available[0] ?? "lyze");
+  const mode: AiMode = available.find((m) => m === stored) ?? fallback;
   const set = useCallback(
     (m: AiMode) => {
       try {
@@ -54,40 +70,64 @@ export function useAiMode(): [AiMode, (m: AiMode) => void, AiContext | null] {
     },
     [ws],
   );
-  return [mode, set, ctx];
+  return [mode, set, ctx, available];
 }
 
-/** "Use AI / Placeholder" next to a generate button. Owners and developers only; others see a set-up hint when AI isn't configured. */
+/** The id generated text is labelled with: "lyze", the own provider's id, or "builtin". */
+export function useAssistant() {
+  const [mode, , ctx] = useAiMode();
+  return mode === "placeholder" ? "builtin" : mode === "own" ? (ctx?.own ?? "builtin") : "lyze";
+}
+
+/** Lyze AI / your own key / Placeholder, next to a generate button. Hidden when there's only one choice. */
 export function AiModeSelect({ className }: { className?: string }) {
   const t = useTranslations("ai");
-  const [mode, setMode, ctx] = useAiMode();
+  const [mode, setMode, ctx, available] = useAiMode();
   if (!ctx) return null;
-  if (!ctx.canPlaceholder)
-    return ctx.configured ? null : (
+  if (!available.length)
+    return (
       <Link href={ctx.settingsHref} className={cn("text-xs text-muted-foreground underline-offset-2 hover:underline", className)}>
         {t("notSetUp")}
       </Link>
     );
+  if (available.length === 1) return null;
   return (
     <Select value={mode} onValueChange={(v) => setMode(v as AiMode)}>
-      <SelectTrigger size="sm" className={cn("h-8 w-auto gap-1.5 text-xs", className)} aria-label={t("mode")}>
+      <SelectTrigger size="sm" className={cn("h-8 w-auto max-w-48 shrink gap-1.5 text-xs", className)} aria-label={t("mode")}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="ai">
-          <SparklesIcon className="text-section-coding" />
-          {ctx.configured ? t("useAi") : t("useAiNoKey")}
-        </SelectItem>
-        <SelectItem value="placeholder">
-          <FlaskConicalIcon className="text-section-interviews" />
-          {t("placeholder")}
-        </SelectItem>
+        {available.includes("lyze") && (
+          <SelectItem value="lyze">
+            <SparklesIcon className="text-section-coding" />
+            <span>{t("lyze")}</span>
+          </SelectItem>
+        )}
+        {ctx.own && (
+          <SelectItem value="own">
+            <KeyRoundIcon className="text-section-writeup" />
+            <span>{t("own", { provider: providerLabel(ctx.own) })}</span>
+          </SelectItem>
+        )}
+        {ctx.canPlaceholder && (
+          <SelectItem value="placeholder">
+            <FlaskConicalIcon className="text-section-interviews" />
+            <span>{t("placeholder")}</span>
+          </SelectItem>
+        )}
       </SelectContent>
     </Select>
   );
 }
 
-/** Whether the current user may use placeholder-only tools (test data). */
+/** One line on who writes the analysis, following the source picked in the menu. */
+export function AiSourceNote({ className }: { className?: string }) {
+  const t = useTranslations("writeup");
+  const assistant = useAssistant();
+  return <p className={className}>{assistant === "builtin" ? t("providerBuiltin") : t("providerClaude", { name: providerLabel(assistant) })}</p>;
+}
+
+/** Whether Dev Mode is on, so placeholder-only tools (test data) are offered. */
 export function useCanPlaceholder() {
   return !!useContext(Ctx)?.canPlaceholder;
 }

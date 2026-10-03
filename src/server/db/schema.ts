@@ -43,6 +43,12 @@ export const users = pgTable("users", {
   emailVerified: timestamp("email_verified", { withTimezone: true, mode: "date" }),
   image: text("image"),
   locale: text("locale"),
+  /** Sign-in name for password accounts (lowercase). Email accounts leave it empty. */
+  username: text("username").unique(),
+  /** scrypt hash; null for email and Google accounts. */
+  passwordHash: text("password_hash"),
+  /** Shows developer tools such as placeholder generation. */
+  devMode: boolean("dev_mode").notNull().default(false),
   createdAt: createdAt(),
 });
 
@@ -843,6 +849,8 @@ export const workspaceAi = pgTable("workspace_ai", {
   /** Last four characters, to show which key is saved. */
   keyHint: text("key_hint").notNull(),
   model: text("model"),
+  /** Endpoint for Ollama and other OpenAI-compatible servers. */
+  baseUrl: text("base_url"),
   updatedById: text("updated_by_id").references(() => users.id, { onDelete: "set null" }),
   updatedAt: updatedAt(),
 });

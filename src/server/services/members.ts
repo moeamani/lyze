@@ -2,6 +2,7 @@ import { membersWithRoles, notify } from "./notifications";
 import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 import { db } from "@/server/db";
 import { invites, memberships, users, workspaces } from "@/server/db/schema";
+import { userHandle } from "@/server/db/user-handle";
 import { newToken } from "@/lib/ids";
 import { inviteSchema, roleChangeSchema, type InviteInput } from "@/lib/validation";
 import type { Role } from "@/lib/permissions";
@@ -16,7 +17,7 @@ export async function listMembers(workspaceId: string) {
     .select({
       userId: users.id,
       name: users.name,
-      email: users.email,
+      email: userHandle,
       image: users.image,
       role: memberships.role,
       joinedAt: memberships.createdAt,
@@ -94,9 +95,32 @@ export async function removeMember(actorId: string, workspaceId: string, userId:
   });
 }
 
+/** Add an existing username/password account straight away (they have no email to invite). */
+async function addByUsername(actorId: string, workspaceId: string, username: string, role: Role) {
+  const [person] = await db.select({ id: users.id, name: users.name }).from(users).where(eq(users.username, username)).limit(1);
+  if (!person) throw new AppError("notFound");
+  const added = await db.transaction(async (tx) => {
+    const rows = await tx.insert(memberships).values({ workspaceId, userId: person.id, role }).onConflictDoNothing().returning({ userId: memberships.userId });
+    if (!rows.length) return false;
+    await recordAudit(tx, { workspaceId, actorId, action: "member.joined", entityType: "user", entityId: person.id, metadata: { role, username, addedBy: actorId } });
+    return true;
+  });
+  if (!added) throw new AppError("conflict");
+  return { name: person.name || username };
+}
+
+/** An email gets an invite link; a username is added at once (password accounts have no email). */
+export async function inviteOrAdd(actorId: string, workspaceId: string, raw: InviteInput) {
+  const input = inviteSchema.parse(raw);
+  if (input.email.includes("@")) return { ...(await createInvite(actorId, workspaceId, input)), added: null };
+  await requireWorkspace(actorId, workspaceId, "members:manage");
+  return { invite: null, workspace: null, added: await addByUsername(actorId, workspaceId, input.email, input.role) };
+}
+
 export async function createInvite(actorId: string, workspaceId: string, raw: InviteInput) {
   const input = inviteSchema.parse(raw);
   const { workspace } = await requireWorkspace(actorId, workspaceId, "members:manage");
+  if (!input.email.includes("@")) throw new AppError("invalid");
 
   const [existing] = await db
     .select({ id: users.id })
@@ -186,7 +210,7 @@ export async function acceptInvite(userId: string, userEmail: string | null | un
     });
   });
   const people = await membersWithRoles(row.invite.workspaceId, ["owner"], userId);
-  const [me] = await db.select({ name: users.name, email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  const [me] = await db.select({ name: users.name, email: userHandle }).from(users).where(eq(users.id, userId)).limit(1);
   await notify(people, { workspaceId: row.invite.workspaceId, kind: "memberJoined", data: { name: me?.name || me?.email || "" }, href: `/w/${row.workspaceSlug}/settings/members` });
   return { slug: row.workspaceSlug };
 }

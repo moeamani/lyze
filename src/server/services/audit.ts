@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import { db, type Database } from "@/server/db";
 import { auditEvents, users } from "@/server/db/schema";
+import { userHandle } from "@/server/db/user-handle";
 
 type Executor = Pick<Database, "insert">;
 
@@ -65,7 +66,7 @@ export async function listAuditEvents(workspaceId: string, opts: { limit?: numbe
       createdAt: auditEvents.createdAt,
       actorId: auditEvents.actorId,
       actorName: users.name,
-      actorEmail: users.email,
+      actorEmail: userHandle,
     })
     .from(auditEvents)
     .leftJoin(users, eq(users.id, auditEvents.actorId))
@@ -77,7 +78,7 @@ export async function listAuditEvents(workspaceId: string, opts: { limit?: numbe
         opts.to ? lt(auditEvents.createdAt, opts.to) : undefined,
         opts.actorId ? eq(auditEvents.actorId, opts.actorId) : undefined,
         entities && actions ? or(inArray(auditEvents.entityType, entities), ...actions.map((a) => sql`${auditEvents.action} like ${a}`)) : undefined,
-        q ? or(ilike(sql`${auditEvents.metadata}::text`, `%${q.replace(/[%_\\]/g, "\\$&")}%`), ilike(users.name, `%${q}%`), ilike(users.email, `%${q}%`)) : undefined,
+        q ? or(ilike(sql`${auditEvents.metadata}::text`, `%${q.replace(/[%_\\]/g, "\\$&")}%`), ilike(users.name, `%${q}%`), ilike(userHandle, `%${q}%`)) : undefined,
       ),
     )
     .orderBy(desc(auditEvents.createdAt))

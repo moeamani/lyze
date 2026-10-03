@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { userHandle } from "@/server/db/user-handle";
 import {
   answers,
   codeApplications,
@@ -111,7 +112,7 @@ export async function codingsForUnits(projectId: string, kind: UnitKind, unitIds
   if (!unitIds.length) return [];
   const col = kind === "segment" ? codeApplications.segmentId : codeApplications.answerId;
   const rows = await db
-    .select({ a: codeApplications, authorName: users.name, authorEmail: users.email })
+    .select({ a: codeApplications, authorName: users.name, authorEmail: userHandle })
     .from(codeApplications)
     .leftJoin(users, eq(users.id, codeApplications.createdById))
     .where(and(eq(codeApplications.projectId, projectId), inArray(col, unitIds)));

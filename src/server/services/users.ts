@@ -10,6 +10,10 @@ export async function updateProfile(userId: string, raw: ProfileInput) {
   await db.update(users).set({ name: input.name }).where(eq(users.id, userId));
 }
 
+export async function setDevMode(userId: string, on: boolean) {
+  await db.update(users).set({ devMode: on }).where(eq(users.id, userId));
+}
+
 export async function setUserLocale(userId: string, locale: Locale) {
   if (!isLocale(locale)) throw new AppError("invalid");
   await db.update(users).set({ locale }).where(eq(users.id, userId));
@@ -47,7 +51,7 @@ export async function deleteAccount(userId: string, confirmEmail: string) {
   const { and, inArray, ne } = await import("drizzle-orm");
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user) throw new AppError("notFound");
-  if (confirmEmail.trim().toLowerCase() !== (user.email ?? "").toLowerCase()) throw new AppError("invalid");
+  if (confirmEmail.trim().toLowerCase() !== (user.email ?? user.username ?? "").toLowerCase()) throw new AppError("invalid");
   const mine = await db.select({ workspaceId: memberships.workspaceId, role: memberships.role }).from(memberships).where(eq(memberships.userId, userId));
   const solo: string[] = [];
   for (const m of mine) {

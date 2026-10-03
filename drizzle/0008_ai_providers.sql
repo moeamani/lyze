@@ -1,0 +1,1 @@
+ALTER TABLE "workspace_ai" ADD COLUMN "base_url" text;

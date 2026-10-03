@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectNoHorizontalScroll, signIn, uniqueEmail } from "./helpers";
+import { TEST_PASSWORD, expectNoHorizontalScroll, signIn, uniqueEmail, uniqueUser } from "./helpers";
 
 test("new researcher signs in, sets up a workspace, and creates a project and study", async ({ page }, testInfo) => {
   const isMobile = testInfo.project.name === "mobile";
@@ -59,6 +59,36 @@ test("signed-out visitors are sent to sign in", async ({ page }) => {
   await page.goto("/w/anything");
   await expect(page).toHaveURL(/\/sign-in\?callbackUrl=/);
   await expect(page.getByRole("heading", { name: "Welcome to Lyze" })).toBeVisible();
+  // Email sign-in needs a mail provider: shown, but not yet available.
+  await expect(page.getByRole("button", { name: /Continue with email/ })).toBeDisabled();
+  await expect(page.getByText("Coming soon")).toBeVisible();
+});
+
+test("username and password: sign out, wrong password, sign back in", async ({ page }, testInfo) => {
+  const name = uniqueUser(testInfo, "pw");
+  await signIn(page, name, undefined, { devMode: false });
+  await expect(page).toHaveURL(/\/onboarding/);
+
+  // A second account can't take the same name.
+  await page.context().clearCookies();
+  await page.goto("/sign-in");
+  await page.getByRole("tab", { name: "Create account" }).click();
+  const create = page.getByRole("tabpanel", { name: "Create account" });
+  await create.getByLabel("Username").fill(name.toUpperCase());
+  await create.getByLabel("Password").fill("another-password");
+  await create.getByRole("button", { name: "Create account" }).click();
+  await expect(create.getByRole("alert")).toHaveText("That username is taken. Try another.");
+
+  await page.getByRole("tab", { name: "Sign in" }).click();
+  const signInForm = page.getByRole("tabpanel", { name: "Sign in" });
+  await signInForm.getByLabel("Username").fill(name);
+  await signInForm.getByLabel("Password").fill("wrong-password");
+  await signInForm.getByRole("button", { name: "Sign in" }).click();
+  await expect(signInForm.getByRole("alert")).toHaveText("That username and password don't match.");
+  await signInForm.getByLabel("Password").fill(TEST_PASSWORD);
+  await signInForm.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/onboarding/);
+  await expectNoHorizontalScroll(page);
 });
 
 test("command palette opens with the keyboard", async ({ page }, testInfo) => {

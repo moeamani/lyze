@@ -13,7 +13,7 @@ export type CreateKind = "questionnaire" | "guide" | "responses" | "participants
 const TEST_DATA: CreateKind[] = ["responses", "participants", "transcript"];
 
 /** Generate something from the brief (or test data), per kind. Returns a short summary for the toast. */
-export async function generateAction(scope: CreateScope, kind: CreateKind, count = 30, mode: AiMode = "ai") {
+export async function generateAction(scope: CreateScope, kind: CreateKind, count = 30, mode: AiMode = "lyze") {
   const user = await requireUser();
   const locale = await getLocale();
   const s = scope.studyId ?? "";

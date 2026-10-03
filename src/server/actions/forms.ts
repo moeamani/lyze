@@ -55,7 +55,7 @@ export async function inviteRespondentsAction(scope: Scope, formId: string, raw:
     for (const invite of invites) {
       const url = `${base}/f/${form.publicId}?t=${invite.token}`;
       try {
-        await sendMail({ to: invite.email, url, ...formInviteEmail(url, doc.title, user.name || user.email, doc.description) });
+        await sendMail({ to: invite.email, url, ...formInviteEmail(url, doc.title, user.name || user.handle, doc.description) });
         sent.push(invite.id);
       } catch (e) {
         console.error("Invite email failed", e);

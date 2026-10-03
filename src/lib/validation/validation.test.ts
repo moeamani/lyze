@@ -10,10 +10,12 @@ describe("validation", () => {
     expect(inviteSchema.safeParse({ email: "a@b.co", role: "owner" }).success).toBe(false);
   });
 
-  it("rejects bad emails with an i18n key", () => {
-    const result = inviteSchema.safeParse({ email: "nope", role: "viewer" });
+  it("invites by email or username, and rejects anything else with an i18n key", () => {
+    expect(inviteSchema.safeParse({ email: "Ana@Example.com", role: "viewer" }).data?.email).toBe("ana@example.com");
+    expect(inviteSchema.safeParse({ email: "ana.r", role: "viewer" }).success).toBe(true);
+    const result = inviteSchema.safeParse({ email: "no pe@", role: "viewer" });
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0]?.message).toBe("email");
+    expect(result.error?.issues[0]?.message).toBe("emailOrUsername");
   });
 
   it("requires a name", () => {

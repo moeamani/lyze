@@ -3,11 +3,12 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { useTranslations } from "next-intl";
-import { ArrowRightIcon, Loader2Icon } from "lucide-react";
+import { ArrowRightIcon, Loader2Icon, MailIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signInWithEmail, signInWithGoogle, type SignInState } from "@/server/actions/auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { signInWithEmail, signInWithGoogle, signInWithPassword, signUpWithPasswordAction, type PasswordState, type SignInState } from "@/server/actions/auth";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -31,45 +32,151 @@ function GoogleIcon() {
   );
 }
 
-export function SignInForm({ callbackUrl, googleEnabled, authError }: { callbackUrl: string; googleEnabled: boolean; authError?: boolean }) {
+function PasswordForm({ mode, callbackUrl }: { mode: "signIn" | "signUp"; callbackUrl: string }) {
+  const t = useTranslations("auth");
+  const [state, action] = useActionState<PasswordState, FormData>(mode === "signIn" ? signInWithPassword : signUpWithPasswordAction, { status: "idle" });
+  const error = state.status === "error" ? t(`passwordErrors.${state.error ?? "unknown"}`) : null;
+  const id = (f: string) => `${mode}-${f}`;
+  return (
+    <form action={action} className="grid gap-4">
+      <input type="hidden" name="callbackUrl" value={callbackUrl} />
+      {mode === "signUp" && (
+        <div className="grid gap-2">
+          <Label htmlFor={id("name")}>
+            {t("nameLabel")} <span className="font-normal text-muted-foreground">{t("optional")}</span>
+          </Label>
+          <Input id={id("name")} name="name" autoComplete="name" defaultValue={state.name} maxLength={80} />
+        </div>
+      )}
+      <div className="grid gap-2">
+        <Label htmlFor={id("username")}>{t("usernameLabel")}</Label>
+        <Input
+          id={id("username")}
+          name="username"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          dir="ltr"
+          required
+          minLength={3}
+          maxLength={32}
+          defaultValue={state.username}
+          aria-invalid={!!error}
+          aria-describedby={mode === "signUp" ? id("username-hint") : undefined}
+        />
+        {mode === "signUp" && (
+          <p id={id("username-hint")} className="text-xs text-muted-foreground">
+            {t("usernameHint")}
+          </p>
+        )}
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor={id("password")}>{t("passwordLabel")}</Label>
+        <Input
+          id={id("password")}
+          name="password"
+          type="password"
+          autoComplete={mode === "signIn" ? "current-password" : "new-password"}
+          dir="ltr"
+          required
+          minLength={mode === "signUp" ? 8 : 1}
+          aria-invalid={!!error}
+          aria-describedby={error ? id("error") : undefined}
+        />
+        {mode === "signUp" && <p className="text-xs text-muted-foreground">{t("passwordHint")}</p>}
+      </div>
+      {error && (
+        <p id={id("error")} role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      <SubmitButton label={mode === "signIn" ? t("signIn") : t("createAccount")} />
+    </form>
+  );
+}
+
+function EmailForm({ callbackUrl, authError }: { callbackUrl: string; authError?: boolean }) {
   const t = useTranslations("auth");
   const [state, action] = useActionState<SignInState, FormData>(signInWithEmail, { status: "idle" });
   const error = state.status === "error" ? t(state.error === "email" ? "invalidEmail" : "genericError") : authError ? t("genericError") : null;
+  return (
+    <form action={action} className="grid gap-4" noValidate>
+      <input type="hidden" name="callbackUrl" value={callbackUrl} />
+      <div className="grid gap-2">
+        <Label htmlFor="email">{t("emailLabel")}</Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder={t("emailPlaceholder")}
+          required
+          aria-invalid={!!error}
+          aria-describedby={error ? "email-error" : undefined}
+        />
+        {error && (
+          <p id="email-error" role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+      </div>
+      <SubmitButton label={t("sendLink")} />
+    </form>
+  );
+}
 
+export function SignInForm({
+  callbackUrl,
+  googleEnabled,
+  emailEnabled,
+  authError,
+}: {
+  callbackUrl: string;
+  googleEnabled: boolean;
+  emailEnabled: boolean;
+  authError?: boolean;
+}) {
+  const t = useTranslations("auth");
   return (
     <div className="grid gap-5">
-      <form action={action} className="grid gap-4" noValidate>
-        <input type="hidden" name="callbackUrl" value={callbackUrl} />
-        <div className="grid gap-2">
-          <Label htmlFor="email">{t("emailLabel")}</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            autoCapitalize="none"
-            spellCheck={false}
-            placeholder={t("emailPlaceholder")}
-            required
-            aria-invalid={!!error}
-            aria-describedby={error ? "email-error" : undefined}
-          />
-          {error && (
-            <p id="email-error" role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-        </div>
-        <SubmitButton label={t("sendLink")} />
-      </form>
-      {googleEnabled && (
-        <>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            {t("or")}
-            <span className="h-px flex-1 bg-border" />
-          </div>
+      <Tabs defaultValue="signIn" className="gap-4">
+        <TabsList className="w-full">
+          <TabsTrigger value="signIn">{t("signIn")}</TabsTrigger>
+          <TabsTrigger value="signUp">{t("createAccount")}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="signIn">
+          <PasswordForm mode="signIn" callbackUrl={callbackUrl} />
+        </TabsContent>
+        <TabsContent value="signUp">
+          <PasswordForm mode="signUp" callbackUrl={callbackUrl} />
+        </TabsContent>
+      </Tabs>
+      {authError && !emailEnabled && (
+        <p role="alert" className="text-sm text-destructive">
+          {t("genericError")}
+        </p>
+      )}
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
+        {t("or")}
+        <span className="h-px flex-1 bg-border" />
+      </div>
+      <div className="grid gap-2">
+        {emailEnabled ? (
+          <EmailForm callbackUrl={callbackUrl} authError={authError} />
+        ) : (
+          <Button type="button" variant="outline" size="lg" className="w-full" disabled aria-describedby="email-soon">
+            <MailIcon />
+            {t("emailOption")}
+            <span id="email-soon" className="ms-1 rounded bg-muted px-1.5 py-0.5 text-[0.7rem] font-medium text-muted-foreground">
+              {t("comingSoon")}
+            </span>
+          </Button>
+        )}
+        {googleEnabled && (
           <form action={signInWithGoogle}>
             <input type="hidden" name="callbackUrl" value={callbackUrl} />
             <Button type="submit" variant="outline" size="lg" className="w-full">
@@ -77,8 +184,8 @@ export function SignInForm({ callbackUrl, googleEnabled, authError }: { callback
               {t("google")}
             </Button>
           </form>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
