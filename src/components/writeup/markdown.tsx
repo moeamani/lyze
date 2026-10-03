@@ -57,7 +57,8 @@ export function Markdown({ source }: { source: string }) {
             </blockquote>
           );
         if (lines.every((l) => /^\s*[-*]\s+/.test(l))) return <ul key={i} className="list-disc space-y-1 ps-6">{lines.map((l, j) => <li key={j}>{inline(l.replace(/^\s*[-*]\s+/, ""))}</li>)}</ul>;
-        if (lines.every((l) => /^\s*\d+[.)]\s+/.test(l))) return <ol key={i} className="list-decimal space-y-1 ps-6">{lines.map((l, j) => <li key={j}>{inline(l.replace(/^\s*\d+[.)]\s+/, ""))}</li>)}</ol>;
+        // Numbered from the first written number, so items split by blank lines keep counting (1., 2., 3.).
+        if (lines.every((l) => /^\s*\d+[.)]\s+/.test(l))) return <ol key={i} start={Number(lines[0]!.match(/\d+/)![0])} className="list-decimal space-y-1 ps-6">{lines.map((l, j) => <li key={j}>{inline(l.replace(/^\s*\d+[.)]\s+/, ""))}</li>)}</ol>;
         return <p key={i} dir="auto">{lines.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{inline(l)}</Fragment>)}</p>;
       })}
     </div>
