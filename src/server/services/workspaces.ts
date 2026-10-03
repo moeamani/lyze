@@ -13,6 +13,7 @@ import { recordAudit } from "./audit";
 import { createPublishedForm } from "./forms";
 import { seedDemoResponses } from "./demo";
 import { seedDemoInterviews } from "./demo-interviews";
+import { seedDemoCoding } from "./demo-coding";
 import { requireWorkspace } from "./access";
 import { AppError } from "./errors";
 
@@ -94,6 +95,7 @@ export async function createWorkspace(userId: string, raw: CreateWorkspaceInput)
           await seedDemoResponses(tx, { workspaceId: workspace.id, studyId: survey.id, formId: form.id, doc });
         }
         if (interviews) await seedDemoInterviews(tx, { workspaceId: workspace.id, studyId: interviews.id, userId });
+        if (survey && interviews) await seedDemoCoding(tx, { workspaceId: workspace.id, projectId: project.id, interviewStudyId: interviews.id, surveyStudyId: survey.id, userId });
       }
     }
     return workspace;

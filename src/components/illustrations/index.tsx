@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 type Props = { className?: string };
@@ -7,38 +8,88 @@ type Props = { className?: string };
  * so they adapt to light/dark mode automatically. Purely decorative → aria-hidden.
  */
 
-/** Lyze's mascot: a soft blob with a little smile. */
+/**
+ * Lyze's mascot: a small, softly lit 3D agent — a rounded head with a glass visor and an antenna.
+ * Shading comes from gradients on token colors, so it reads as 3D in light and dark mode.
+ */
 export function Mascot({ className, mood = "happy" }: Props & { mood?: "happy" | "curious" | "sleepy" }) {
+  const id = useId().replace(/:/g, "");
+  const g = (name: string) => `${name}-${id}`;
+  const eye = "oklch(0.86 0.12 285)";
   return (
     <svg viewBox="0 0 120 120" aria-hidden className={cn("size-24", className)}>
-      <ellipse cx="60" cy="104" rx="30" ry="5" fill="var(--muted)" />
-      <path
-        d="M60 18c22 0 38 15 38 38 0 25-14 42-38 42S22 81 22 56c0-23 16-38 38-38Z"
-        fill="var(--accent-soft)"
-        stroke="var(--primary)"
-        strokeOpacity=".35"
-        strokeWidth="2"
-      />
-      <circle cx="44" cy="62" r="5" fill="var(--chart-4)" opacity=".25" />
-      <circle cx="76" cy="62" r="5" fill="var(--chart-4)" opacity=".25" />
-      {mood === "sleepy" ? (
-        <>
-          <path d="M44 53q4 3 8 0M68 53q4 3 8 0" stroke="var(--foreground)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-          <path d="M55 66q5 3 10 0" stroke="var(--foreground)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-        </>
-      ) : (
-        <>
-          <circle cx="48" cy="52" r="3.5" fill="var(--foreground)" />
-          <circle cx="72" cy="52" r="3.5" fill="var(--foreground)" />
-          {mood === "curious" ? (
-            <circle cx="60" cy="67" r="3.5" fill="none" stroke="var(--foreground)" strokeWidth="2.5" />
-          ) : (
-            <path d="M52 63q8 8 16 0" stroke="var(--foreground)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-          )}
-        </>
-      )}
-      <path d="M92 22l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5Z" fill="var(--primary)" opacity=".7" />
-      <path d="M24 30l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2 1.2-3Z" fill="var(--chart-3)" />
+      <defs>
+        <radialGradient id={g("shadow")} cx="50%" cy="50%" r="50%">
+          <stop offset="0" style={{ stopColor: "var(--foreground)", stopOpacity: 0.18 }} />
+          <stop offset="1" style={{ stopColor: "var(--foreground)", stopOpacity: 0 }} />
+        </radialGradient>
+        <linearGradient id={g("shell")} x1="0.15" y1="0" x2="0.85" y2="1">
+          <stop offset="0" style={{ stopColor: "color-mix(in oklab, var(--card) 70%, white)" }} />
+          <stop offset="0.55" style={{ stopColor: "color-mix(in oklab, var(--accent-soft) 80%, var(--card))" }} />
+          <stop offset="1" style={{ stopColor: "color-mix(in oklab, var(--primary) 30%, var(--accent-soft))" }} />
+        </linearGradient>
+        <linearGradient id={g("shade")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0.55" style={{ stopColor: "var(--primary)", stopOpacity: 0 }} />
+          <stop offset="1" style={{ stopColor: "var(--primary)", stopOpacity: 0.22 }} />
+        </linearGradient>
+        <linearGradient id={g("visor")} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#2b2745" />
+          <stop offset="1" stopColor="#15131f" />
+        </linearGradient>
+        <radialGradient id={g("orb")} cx="35%" cy="30%" r="70%">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="0.35" style={{ stopColor: "color-mix(in oklab, var(--primary) 55%, white)" }} />
+          <stop offset="1" style={{ stopColor: "var(--primary)" }} />
+        </radialGradient>
+        <filter id={g("glow")} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.6" />
+        </filter>
+      </defs>
+
+      <ellipse cx="60" cy="106" rx="30" ry="6" fill={`url(#${g("shadow")})`} />
+
+      <g transform={mood === "curious" ? "rotate(-7 60 64)" : undefined}>
+        {/* antenna */}
+        <path d="M60 31V20" style={{ stroke: "color-mix(in oklab, var(--primary) 45%, var(--muted-foreground))" }} strokeWidth="3" strokeLinecap="round" />
+        <circle cx="60" cy="16" r="8" style={{ fill: "var(--primary)" }} opacity=".14" />
+        <circle cx="60" cy="16" r="5" fill={`url(#${g("orb")})`} />
+
+        {/* ears */}
+        <rect x="16" y="54" width="9" height="18" rx="4.5" fill={`url(#${g("shell")})`} stroke="var(--primary)" strokeOpacity=".18" />
+        <rect x="95" y="54" width="9" height="18" rx="4.5" fill={`url(#${g("shell")})`} stroke="var(--primary)" strokeOpacity=".18" />
+
+        {/* head */}
+        <rect x="22" y="30" width="76" height="66" rx="27" fill={`url(#${g("shell")})`} />
+        <rect x="22" y="30" width="76" height="66" rx="27" fill={`url(#${g("shade")})`} />
+        <rect x="22.75" y="30.75" width="74.5" height="64.5" rx="26.25" fill="none" stroke="var(--primary)" strokeOpacity=".2" strokeWidth="1.5" />
+        <ellipse cx="42" cy="40" rx="13" ry="5" fill="white" opacity=".55" transform="rotate(-18 42 40)" />
+
+        {/* visor */}
+        <rect x="31" y="47" width="58" height="32" rx="16" fill={`url(#${g("visor")})`} />
+        <path d="M38 52.5c6-3 26-3.6 41-1" stroke="white" strokeOpacity=".16" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+        {/* eyes */}
+        <g fill="none" stroke={eye} strokeWidth="3.4" strokeLinecap="round">
+          {mood === "sleepy" ? (
+            <>
+              <path d="M45 64h9M66 64h9" />
+            </>
+          ) : mood === "happy" ? (
+            <>
+              <path d="M45 66q4.5-6 9 0M66 66q4.5-6 9 0" filter={`url(#${g("glow")})`} opacity=".8" />
+              <path d="M45 66q4.5-6 9 0M66 66q4.5-6 9 0" />
+            </>
+          ) : null}
+        </g>
+        {mood === "curious" && (
+          <g fill={eye}>
+            <rect x="46" y="57" width="7" height="12" rx="3.5" filter={`url(#${g("glow")})`} opacity=".8" />
+            <rect x="46" y="57" width="7" height="12" rx="3.5" />
+            <rect x="67" y="58.5" width="7" height="9" rx="3.5" filter={`url(#${g("glow")})`} opacity=".8" />
+            <rect x="67" y="58.5" width="7" height="9" rx="3.5" />
+          </g>
+        )}
+      </g>
     </svg>
   );
 }

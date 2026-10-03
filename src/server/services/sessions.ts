@@ -12,6 +12,7 @@ import { requireWorkspace } from "./access";
 import { AppError } from "./errors";
 import { getGuide } from "./guides";
 import { advanceParticipants, requireStudyIn } from "./participants";
+import { relocateSegmentCodings } from "./coding";
 
 const MAX_SEGMENTS = 5000;
 const MAX_TEXT = 200_000;
@@ -465,12 +466,42 @@ export async function saveTextEntry(userId: string, workspaceId: string, studyId
   const ctx = await speakerContext(session);
   const entry = textEntry(session.kind, text, await userName(userId), ctx.participants);
   await db.transaction(async (tx) => {
-    await writeTranscript(tx, { workspaceId, sessionId, provider: "manual", language: null, ...entry });
+    await rewriteEntry(tx, workspaceId, sessionId, entry);
     if (text.trim() && session.status !== "completed") {
       await tx.update(researchSessions).set({ status: "completed", endedAt: new Date(), scheduledAt: session.scheduledAt ?? new Date() }).where(eq(researchSessions.id, sessionId));
       await advanceParticipants(tx, ctx.participants.map((p) => p.id), "completed");
     }
   });
+}
+
+/**
+ * Re-save a written entry without losing work: paragraphs whose text didn't change keep their
+ * segment (and its codings); changed or removed paragraphs are replaced.
+ */
+async function rewriteEntry(tx: Pick<typeof db, "select" | "insert" | "update" | "delete">, workspaceId: string, sessionId: string, entry: { segments: SegmentInput[]; speakers: Speakers }) {
+  const [existing] = await tx.select({ id: transcripts.id }).from(transcripts).where(eq(transcripts.sessionId, sessionId)).limit(1);
+  if (!existing) {
+    await writeTranscript(tx, { workspaceId, sessionId, provider: "manual", language: null, ...entry });
+    return;
+  }
+  await tx.update(transcripts).set({ provider: "manual", status: "ready", error: null, speakers: entry.speakers }).where(eq(transcripts.id, existing.id));
+  const old = await tx.select({ id: segments.id, text: segments.text }).from(segments).where(eq(segments.transcriptId, existing.id));
+  const pool = new Map<string, string[]>();
+  for (const o of old) pool.set(o.text, [...(pool.get(o.text) ?? []), o.id]);
+  const keep = new Set<string>();
+  for (const [position, seg] of entry.segments.entries()) {
+    const reuse = pool.get(seg.text)?.shift();
+    if (reuse) {
+      keep.add(reuse);
+      await tx.update(segments).set({ position, speaker: seg.speaker }).where(eq(segments.id, reuse));
+    } else {
+      const id = newId("seg");
+      keep.add(id);
+      await tx.insert(segments).values({ id, transcriptId: existing.id, position, speaker: seg.speaker, startMs: null, endMs: null, text: seg.text.slice(0, 4000) });
+    }
+  }
+  const drop = old.map((o) => o.id).filter((id) => !keep.has(id));
+  if (drop.length) await tx.delete(segments).where(inArray(segments.id, drop));
 }
 
 async function transcriptFor(workspaceId: string, studyId: string, sessionId: string) {
@@ -485,12 +516,16 @@ export async function updateSegment(userId: string, workspaceId: string, studyId
   const input = z.object({ text: z.string().trim().min(1).max(4000), speaker: z.string().max(16).nullable() }).parse(raw);
   const t = await transcriptFor(workspaceId, studyId, sessionId);
   if (input.speaker && !t.speakers[input.speaker]) throw new AppError("invalid");
-  const result = await db
-    .update(segments)
-    .set(input)
-    .where(and(eq(segments.id, segmentId), eq(segments.transcriptId, t.id)))
-    .returning({ id: segments.id });
-  if (!result.length) throw new AppError("notFound");
+  await db.transaction(async (tx) => {
+    const result = await tx
+      .update(segments)
+      .set(input)
+      .where(and(eq(segments.id, segmentId), eq(segments.transcriptId, t.id)))
+      .returning({ id: segments.id });
+    if (!result.length) throw new AppError("notFound");
+    // Coded passages follow their words.
+    await relocateSegmentCodings(tx, segmentId, input.text);
+  });
 }
 
 const speakersSchema = z.record(

@@ -35,7 +35,7 @@ export default async function Home() {
         </Button>
       </header>
       <main id="main" className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-4 pt-10 pb-20 text-center sm:px-8 sm:pt-20">
-        <Mascot className="size-24 animate-in fade-in-0 zoom-in-90 duration-500" />
+        <Mascot mood="curious" className="size-32 motion-safe:[animation:lyze-float_6s_ease-in-out_infinite]" />
         <h1 className="mt-6 max-w-2xl text-3xl font-semibold text-balance sm:text-[2.75rem] sm:leading-[1.1]">{t("headline")}</h1>
         <p className="mt-4 max-w-xl text-lg text-balance text-muted-foreground">{t("subhead")}</p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">

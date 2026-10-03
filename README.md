@@ -47,6 +47,9 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | `MEDIA_MAX_MB` | no | Largest session recording accepted (default 500 MB). |
 | `TRANSCRIPTION_PROVIDER` | no | Empty → mock transcripts (dev). `openai` → any OpenAI-compatible speech-to-text endpoint. |
 | `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_API_URL`, `TRANSCRIPTION_MODEL` | with `openai` | Key, base URL (default `https://api.openai.com/v1`) and model (default `whisper-1`). |
+| `AI_PROVIDER` | no | Empty → the built-in assistant (offline heuristics). `claude` → Claude via the Anthropic API. |
+| `ANTHROPIC_API_KEY` | with `claude` | Anthropic API key. |
+| `AI_MODEL` | no | Claude model id (default `claude-opus-5-5`). |
 
 ## Scripts
 
@@ -102,6 +105,33 @@ Copy `.env.example` to `.env.local` and fill in what you need.
   OpenAI-compatible speech-to-text in production) or import a Zoom/Teams/Otter transcript
   (.vtt, .srt, .txt). The transcript follows playback, timestamps seek the player (k / j / l
   shortcuts), segments and speakers can be corrected, and transcripts download as .txt, .vtt or .srt.
+
+## Qualitative analysis
+
+Every project has tabs for **Coding, Codebook, Themes, Quotes, Memos and Search**. Codes belong to
+the project, so one codebook covers its interviews, field notes, diaries and open-text survey
+answers.
+
+- **Coding** — pick a transcript or an open-text question, select text and apply a code (or type
+  a new name to create one). Highlights show every code on a passage; click one to star it,
+  remove it or add a memo. On phones each passage has a **Code** button.
+- **Codebook** — nested codes (up to four levels) with colors and definitions; reorder, merge,
+  and split selected passages into a new code. Import or export a REFI-QDA codebook (.qdc).
+- **Themes** — a board: drag codes into themes (keyboard: Space to pick up, arrows, Space to drop).
+- **Quotes** — every coded passage, filterable by code, theme, study and participant; star, copy
+  with its source, or download as CSV.
+- **Memos** — on the project, a code, a theme, a passage or a session; all collected in one list.
+- **Search** — across transcripts, answers and memos, with `"phrases"` and `-exclusions`, and
+  filters for study, participant, code and date.
+- **Assistant** — suggest codes for a document, summarize a session, group open-text answers into
+  candidate codes, and draft a theme description. Everything it produces is labelled as a
+  suggestion: suggested codings wait in a review list and count nowhere until you accept them.
+  The default assistant runs locally with simple text heuristics; set `AI_PROVIDER=claude` and
+  `ANTHROPIC_API_KEY` to use Claude instead (the text being coded is then sent to Anthropic).
+- **Results** for open-text questions show top words as bars or a word cloud, plus a tone split
+  (positive / neutral / negative, English only) with example answers.
+- **Exchange** — export the whole project as REFI-QDA .qdpx (sources, codes, codings, memos,
+  participants as cases) for NVivo, ATLAS.ti, MAXQDA (CRLF variant) or QualCoder.
 
 ## Architecture
 
@@ -202,3 +232,8 @@ Check each at **360px**, **768px** and **1280px+**, in light and dark mode:
 - [ ] Session page: player + following transcript + inline notes, speakers dialog, editing a segment, field-notes editor
 - [ ] Live session: timer, recording meter, guide checklist, quick notes (desktop and phone tabs)
 - [ ] Public consent page on a phone: unsigned, validation message, signed
+- [ ] Coding: document list / picker, highlights with code chips, code picker popover, passage menu, suggestions review, codes panel (bottom sheet on phones)
+- [ ] Codebook: tree, code detail with passages and split, merge dialog, import dialog
+- [ ] Themes board: columns, drag a card, theme dialog with drafted description
+- [ ] Quotes: filters, cards, starred; Memos list; Search with filters and highlighted hits
+- [ ] Results for an open-text question: bars, word cloud, tone bar

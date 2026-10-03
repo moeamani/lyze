@@ -533,6 +533,131 @@ export const sessionNotes = pgTable(
   (t) => [index("session_notes_session_idx").on(t.sessionId, t.atMs)],
 );
 
+// ── Qualitative coding: codebook, codings, themes, memos ───────────────────
+
+/** Themes group codes (one theme per code, like columns on a board). */
+export const themes = pgTable(
+  "themes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("thm")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    color: text("color").notNull().default("1"),
+    position: integer("position").notNull().default(0),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("themes_project_idx").on(t.projectId, t.position)],
+);
+
+/** Codes belong to a project, so transcripts and survey answers across its studies share them. */
+export const codes = pgTable(
+  "codes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("cod")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    parentId: text("parent_id"),
+    name: text("name").notNull(),
+    /** Palette slot "1"…"8" (the validated categorical palette). */
+    color: text("color").notNull().default("1"),
+    definition: text("definition"),
+    position: integer("position").notNull().default(0),
+    themeId: text("theme_id").references(() => themes.id, { onDelete: "set null" }),
+    themePosition: integer("theme_position").notNull().default(0),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("codes_project_idx").on(t.projectId), index("codes_parent_idx").on(t.parentId)],
+);
+
+export const CODING_SOURCES = ["human", "ai"] as const;
+export const codingSourceEnum = pgEnum("coding_source", CODING_SOURCES);
+
+/**
+ * A coded passage: a range inside one transcript segment or one open-text answer.
+ * AI suggestions are rows with source "ai" and no approvedAt until a person accepts them.
+ */
+export const codeApplications = pgTable(
+  "code_applications",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("cap")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    codeId: text("code_id")
+      .notNull()
+      .references(() => codes.id, { onDelete: "cascade" }),
+    segmentId: text("segment_id").references(() => segments.id, { onDelete: "cascade" }),
+    answerId: text("answer_id").references(() => answers.id, { onDelete: "cascade" }),
+    /** UTF-16 offsets into the segment/answer text. */
+    start: integer("start").notNull(),
+    end: integer("end").notNull(),
+    quote: text("quote").notNull(),
+    source: codingSourceEnum("source").notNull().default("human"),
+    approvedAt: timestamp("approved_at", { withTimezone: true, mode: "date" }),
+    /** Why the assistant suggested it (shown with the suggestion). */
+    reason: text("reason"),
+    starred: boolean("starred").notNull().default(false),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("codings_project_idx").on(t.projectId),
+    index("codings_code_idx").on(t.codeId),
+    index("codings_segment_idx").on(t.segmentId),
+    index("codings_answer_idx").on(t.answerId),
+  ],
+);
+
+export const MEMO_TARGETS = ["project", "code", "theme", "segment", "answer", "session"] as const;
+export type MemoTarget = (typeof MEMO_TARGETS)[number];
+export const memoTargetEnum = pgEnum("memo_target", MEMO_TARGETS);
+
+export const memos = pgTable(
+  "memos",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("mem")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    targetType: memoTargetEnum("target_type").notNull(),
+    targetId: text("target_id"),
+    title: text("title"),
+    body: text("body").notNull(),
+    authorId: text("author_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("memos_target_idx").on(t.projectId, t.targetType, t.targetId)],
+);
+
 // ── Relations ───────────────────────────────────────────────────────────────
 
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
@@ -575,3 +700,7 @@ export type ResearchSession = typeof researchSessions.$inferSelect;
 export type Transcript = typeof transcripts.$inferSelect;
 export type SegmentRow = typeof segments.$inferSelect;
 export type SessionNote = typeof sessionNotes.$inferSelect;
+export type Code = typeof codes.$inferSelect;
+export type Theme = typeof themes.$inferSelect;
+export type CodeApplication = typeof codeApplications.$inferSelect;
+export type Memo = typeof memos.$inferSelect;

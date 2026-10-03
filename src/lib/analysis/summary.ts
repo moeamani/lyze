@@ -1,6 +1,7 @@
 import { boxStats, frequencies, histogram, nps as npsScore, summarize, type Bin, type BoxStats, type Summary } from "@/lib/stats/descriptive";
 import type { Question } from "@/lib/forms/schema";
 import { column, numericColumn, type DatasetRow } from "./dataset";
+import { sentimentOverview } from "@/lib/qual/sentiment";
 import { wordFrequencies, type WordCount } from "./text";
 import { OTHER_CODE, questionVariables, type Variable } from "./variables";
 
@@ -28,7 +29,7 @@ export type QuestionSummary =
     }
   | { kind: "ranking"; answered: number; total: number; items: { label: string; meanRank: number; firstPercent: number }[] }
   | { kind: "matrix"; answered: number; total: number; columns: string[]; rows: { label: string; counts: number[]; percents: number[]; mean: number | null; n: number }[]; multiple: boolean }
-  | { kind: "text"; answered: number; total: number; recent: string[]; words: WordCount[]; avgWords: number }
+  | { kind: "text"; answered: number; total: number; recent: string[]; words: WordCount[]; avgWords: number; sentiment: { positive: number; neutral: number; negative: number; examples: { label: "positive" | "negative"; text: string }[] } }
   | { kind: "date"; answered: number; total: number; earliest: string | null; latest: string | null; byMonth: { month: string; count: number }[] }
   | { kind: "files"; answered: number; total: number; files: number };
 
@@ -115,7 +116,21 @@ export function summarizeQuestion(question: Question, number: number, rows: read
         .sort((a, b) => b.at.getTime() - a.at.getTime())
         .map((x) => x.text);
       const totalWords = texts.reduce((a, t) => a + t.split(/\s+/).filter(Boolean).length, 0);
-      return { kind: "text", answered, total, recent: texts.slice(0, 50), words: wordFrequencies(texts), avgWords: texts.length ? totalWords / texts.length : 0 };
+      const mood = sentimentOverview(texts);
+      return {
+        kind: "text",
+        answered,
+        total,
+        recent: texts.slice(0, 50),
+        words: wordFrequencies(texts, 60),
+        avgWords: texts.length ? totalWords / texts.length : 0,
+        sentiment: {
+          positive: mood.positive,
+          neutral: mood.neutral,
+          negative: mood.negative,
+          examples: [...mood.mostPositive.slice(0, 2).map((x) => ({ label: "positive" as const, text: x.text })), ...mood.mostNegative.slice(0, 2).map((x) => ({ label: "negative" as const, text: x.text }))],
+        },
+      };
     }
     case "date": {
       const dates = answeredRows.map((r) => r.answers[question.id] as string).sort();

@@ -94,10 +94,10 @@ Phases add tables as they need them (migrations per phase).
 | `transcripts` | sessionId (unique), provider (mock/openai/import/manual), status, language, speakers (jsonb: S1… → name, role, participantId) | 4 |
 | `segments` | transcriptId, position, speaker, startMs, endMs, text (open-text answers are coded in place in Phase 5) | 4 |
 | `session_notes` | sessionId, atMs, tag, text, authorId | 4 |
-| `codes` | studyId/projectId, parentId, name, color, definition, position | 5 |
-| `code_applications` | codeId, segmentId \| answerId, startOffset, endOffset, quote, createdById, source(human/ai), approvedAt | 5 |
-| `themes` / `theme_codes` | projectId, name, description, column(kanban), position | 5 |
-| `memos` | workspaceId, target(type,id), body, authorId | 5 |
+| `codes` | **projectId** (codes span every study in the project), parentId (≤ 4 levels), name (unique among siblings), color (slot 1–8), definition, position, themeId?, themePosition | 5 |
+| `code_applications` | codeId, segmentId \| answerId, start, end (UTF-16 offsets into that one unit), quote, createdById, source(human/ai), approvedAt (null = pending suggestion), reason, starred | 5 |
+| `themes` | projectId, name, description, color, position — codes hang off themes via `codes.themeId` (one theme per code), so the board is just ordered columns | 5 |
+| `memos` | workspaceId, projectId, target(project/code/theme/segment/answer/session, id), title, body, authorId | 5 |
 | `insights` | projectId, kind(chart/quote/theme/stat), payload(jsonb), note | 7 |
 | `reports` / `report_blocks` | projectId, title, shareToken, blocks(type, config, position) | 7 |
 | `files` | workspaceId, responseId?, storage(s3/local), key, name, mime, size | 2 |
@@ -130,7 +130,8 @@ Phases add tables as they need them (migrations per phase).
 | `…/s/[studyId]/sessions/[sid]/live` | Live session: timer, in-browser recording, guide checklist, quick notes (Phase 4) |
 | `/consent/[token]` | Participant's personal consent page (respondent layout) (Phase 4) |
 | `/api/sessions/[sid]/media`, `/transcript?format=`, `/calendar` | Recording upload, transcript download (txt/vtt/srt), .ics (Phase 4) |
-| `/w/[ws]/p/[projectId]/codebook`, `/coding`, `/themes`, `/search` | Qualitative (Phase 5) |
+| `/w/[ws]/p/[projectId]` (+ tabs) | Project tabs: Studies, `/coding?doc=`, `/codebook?code=`, `/themes`, `/quotes?code=&theme=&study=&person=&starred=`, `/memos`, `/search?q=&in=&study=&person=&code=&from=&to=` (Phase 5) |
+| `/api/projects/[projectId]/export?format=` | REFI-QDA `qdpx`, `qdpx-maxqda`, codebook `qdc`, quote bank `quotes` CSV (Phase 5) |
 | `/w/[ws]/p/[projectId]/mixed` | Joint displays, triangulation (Phase 6) |
 | `/w/[ws]/p/[projectId]/reports/[id]` | Report builder (Phase 7) |
 | `/w/[ws]/settings`, `/settings/members`, `/settings/api` | Workspace settings |
@@ -206,7 +207,7 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - [x] Phase 2 — Forms: builder, respondent form, responses
 - [x] Phase 3 — Quantitative analysis + R / SPSS / NVivo / MAXQDA interoperability
 - [x] Phase 4 — Interviews: guides, participants, consent, sessions, recording, transcription
-- [ ] Phase 5 — Qualitative coding
+- [x] Phase 5 — Qualitative coding
 - [ ] Phase 6 — Mixed methods
 - [ ] Phase 7 — Reports & exports
 - [ ] Phase 8 — Polish
@@ -272,13 +273,46 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - Fixed along the way: grid tracks in the new pages use `minmax(0,1fr)` so nothing pushes the page
   sideways on phones (checked by e2e at 360px).
 
+### Phase 5 notes
+
+- `src/lib/qual/` is framework-free and unit-tested: code tree helpers (flatten, depth limit,
+  cycle-safe moves, sibling name checks), offset ranges (normalize, snap to words, overlapping
+  highlight spans, relocating codings when a segment is edited), search query parsing (`"phrases"`,
+  `-exclude`, snippets), a lexicon sentiment scorer with negation and boosters, a deterministic
+  word-cloud layout, and small NLP helpers (stemming, TF-IDF, k-means clustering, extractive
+  summaries).
+- **Coding workspace**: every ready transcript (interviews, focus groups, field notes, diaries) and
+  every open-text survey question is a document. Select text → a picker to apply or create a code
+  (keyboard friendly, recent codes first); click a highlight to star, remove or memo it. On phones
+  each passage has a "Code" button and the codes panel is a bottom sheet. Editing a transcript
+  segment moves its codings with the text; rewriting a field note keeps unchanged paragraphs.
+- **Codebook**: nested codes with colors and definitions, reorder, merge (passages, children and
+  memos move), split (tick passages → new code), and REFI-QDA codebook import/export.
+- **Themes** board (dnd-kit, keyboard accessible) with an "Unsorted" column; **quote bank** with
+  URL filters, starring, copy and CSV export; **memos** on the project, codes, themes, passages and
+  sessions; **search** across transcripts, answers and memos with study/participant/code/date
+  filters.
+- **Assistant** behind `AssistProvider` (`src/server/ai`): the default built-in provider is
+  deterministic (keyword suggestions from code names/definitions, TF-IDF clustering, extractive
+  summaries, template theme descriptions). `AI_PROVIDER=claude` uses the Anthropic API with
+  structured outputs. Suggestions are stored as pending codings and count nowhere until a person
+  accepts them; summaries and drafts are shown for review before saving.
+- Results for open-text questions gained a word cloud (one hue, opacity by frequency, with the bar
+  view kept as the default and as the accessible alternative) and a tone bar (diverging
+  red · gray · blue) with example answers. Sentiment is English-only.
+- Demo: the coffee project ships a small codebook (Ritual › Pause, Social; Cutting down; Cost;
+  Health & sleep), two themes, coded passages in both interviews and the survey, one pending
+  suggestion and three memos.
+- Also in this phase: the landing mascot is now a small 3D agent, and the respondent form was
+  redesigned — each question is a centred card in a single column on every screen.
+
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |
 | --- | --- | --- |
 | **SPSS** | Frequencies, descriptives, crosstabs + χ², t-tests, ANOVA, nonparametrics, correlations, reliability, recode / compute, select cases; SPSS syntax for each result; **.sav export** with variable labels, value labels, measurement levels, dates | Factor analysis, multiple/logistic regression, post-hoc tables |
 | **R** | Same tests with R code for each result; **R bundle** (CSV + .sav + `lyze_import.R` that builds factors, ordered factors and labels) | Running R code inside Lyze is out of scope |
-| **NVivo / ATLAS.ti / MAXQDA** | **REFI-QDA .qdpx** project: every open-text answer as a source, one code per question with the answer coded, cases with survey variables as case attributes (MAXQDA variant with CRLF line endings) | Full coding, codebook, memos and .qdc codebook exchange arrive in Phase 5 |
+| **NVivo / ATLAS.ti / MAXQDA** | Coding, nested codebook, themes, memos, quote bank, search. **REFI-QDA .qdpx** project export with transcripts and open-text answers as sources, your codes and codings at the right positions, memos as notes and participants as cases with attributes (MAXQDA variant with CRLF line endings); **.qdc codebook import/export**. Per-study survey .qdpx from Phase 3 still works | — |
 | **Excel / anything** | .xlsx (responses, codes, variable sheet) and CSV (labels or codes, UTF-8 BOM, formula-injection safe) | — |
 
 ## Decisions log
@@ -318,3 +352,8 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 31 | Field notes and diary entries are stored as **manual transcripts** (one segment per paragraph) | Every kind of qualitative text is coded, searched and exported the same way in Phase 5. Rewriting an entry replaces its segments. |
 | 32 | Recordings upload through the app (streamed with a size cap, `MEDIA_MAX_MB`), not presigned S3 URLs | One code path for local disk and S3, permission checks in one place. Direct-to-S3 multipart uploads are a later scale-up. |
 | 33 | Mock transcription is the default; real speech-to-text is opt-in via env | Every screen works offline and in tests; no audio leaves the server unless configured. |
+| 34 | **Codes are project-scoped**, not study-scoped | One codebook across interviews, field notes and survey answers is how qualitative teams work; the same code can be compared across methods in Phase 6. |
+| 35 | Codings store **UTF-16 offsets into one unit** (a segment or an answer), converted to code points only on REFI-QDA export | Matches the DOM, so highlights are exact; selections that span units become one coding per unit. |
+| 36 | Theme membership is a column on `codes` (`themeId`, `themePosition`), not a join table | A code belongs to at most one theme on the board; moving a card is a single update. |
+| 37 | AI help sits behind an `AssistProvider`; built-in heuristics are the default, Claude is opt-in (`AI_PROVIDER=claude`) | Works offline and in tests; no research data leaves the server unless the workspace operator configures it. |
+| 38 | AI suggestions are **pending codings** (`source = ai`, `approvedAt = null`) | They are visible in context, but excluded from counts, quotes, search filters and exports until a person accepts them. |

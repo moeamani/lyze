@@ -21,6 +21,8 @@ export async function signIn(page: Page, email: string, callbackUrl?: string) {
 
 /** Layouts must never scroll sideways, at any width. */
 export async function expectNoHorizontalScroll(page: Page) {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(0);
+  // Mobile browsers widen the layout viewport to fit wide content, so compare to the configured width.
+  const width = page.viewportSize()?.width ?? Infinity;
+  const scroll = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(scroll).toBeLessThanOrEqual(width);
 }

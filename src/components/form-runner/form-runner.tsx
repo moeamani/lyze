@@ -455,7 +455,7 @@ export function FormRunner({
       ref={rootRef}
       className={cn(
         "form-theme flex min-h-full flex-col",
-        theme.background === "tinted" && !embed && "bg-[radial-gradient(ellipse_at_top,var(--accent-soft),transparent_60%)]",
+        !embed && (theme.background === "tinted" ? "bg-[color-mix(in_oklab,var(--accent-soft)_45%,var(--background))]" : "bg-muted/40"),
         className,
       )}
       data-accent={theme.accent}
@@ -472,7 +472,7 @@ export function FormRunner({
         </div>
       )}
 
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pt-6 pb-8 sm:px-6 sm:pt-12">
+      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 pt-6 pb-8 sm:px-0 sm:pt-14">
         {languages && languages.length > 1 && screen.kind !== "done" && (
           <div className="mb-4 flex justify-end">
             <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
@@ -545,13 +545,13 @@ export function FormRunner({
               void next();
             }}
           >
-            <header className="mb-8 space-y-2">
+            <header className="mb-6 space-y-2 text-center">
               {pageIndex === 0 || history.length === 0 ? (
                 <>
                   <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold text-balance outline-none sm:text-3xl">
                     {doc.title}
                   </h1>
-                  {doc.description && <p className="text-pretty whitespace-pre-line text-muted-foreground">{doc.description}</p>}
+                  {doc.description && <p className="mx-auto max-w-md text-pretty whitespace-pre-line text-muted-foreground">{doc.description}</p>}
                 </>
               ) : (
                 <p className="text-sm font-medium text-muted-foreground">{doc.title}</p>
@@ -576,7 +576,7 @@ export function FormRunner({
               )}
             </header>
 
-            <div className="flex flex-col gap-8" key={page.id}>
+            <div className="flex flex-col gap-4" key={page.id}>
               {pageQuestions.map((q) => (
                 <QuestionBlock
                   key={q.id}
@@ -622,7 +622,7 @@ export function FormRunner({
               </p>
             )}
 
-            <div className="sticky bottom-0 -mx-4 mt-10 flex items-center gap-2 border-t bg-background/90 px-4 py-3 backdrop-blur-md sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+            <div className="sticky bottom-0 -mx-4 mt-6 flex items-center gap-2 border-t bg-background/90 px-4 py-3 backdrop-blur-md sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
               {history.length > 0 && (
                 <button type="button" onClick={back} className={secondaryButton}>
                   <ArrowLeftIcon className="size-4 rtl:rotate-180" aria-hidden />
@@ -730,10 +730,13 @@ function QuestionBlock({
       id={`q-${question.id}`}
       role={labelable ? undefined : "group"}
       aria-labelledby={labelable ? undefined : titleId}
-      className={cn("scroll-mt-24 rounded-2xl transition-colors", error && "-mx-3 bg-destructive/5 px-3 py-3 sm:-mx-4 sm:px-4")}
+      className={cn(
+        "scroll-mt-24 rounded-2xl border bg-card p-5 shadow-soft transition-[border-color,box-shadow] sm:p-6",
+        error && "border-destructive/50 ring-4 ring-destructive/10",
+      )}
     >
-      <div className="mb-3 space-y-1">
-        <TitleTag id={titleId} {...(TitleTag === "label" ? { htmlFor: inputId } : {})} className="block text-lg leading-snug font-medium text-pretty">
+      <div className="mb-4 space-y-1">
+        <TitleTag id={titleId} {...(TitleTag === "label" ? { htmlFor: inputId } : {})} className="block text-[1.05rem] leading-snug font-medium text-pretty">
           {number !== undefined && <span className="me-1.5 text-muted-foreground tabular-nums">{number}.</span>}
           {title}
           {required ? (

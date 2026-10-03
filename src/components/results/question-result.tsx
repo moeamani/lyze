@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { WordCloud, SentimentBar } from "@/components/charts/word-cloud";
 import { BarList, BoxPlots, ChartOrTable, ColumnChart, Donut, Heatmap, StackedBars, type BoxRow, type TableData } from "@/components/charts/charts";
 import { QuestionTypeIcon } from "@/components/builder/question-icon";
 import type { QuestionSummary } from "@/lib/analysis/summary";
@@ -253,20 +255,7 @@ function Body({ summary, groups, type, caption }: { summary: QuestionSummary; gr
 
     case "text":
       if (summary.answered === 0) return <p className="text-sm text-muted-foreground">{t("noText")}</p>;
-      return (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div className="grid content-start gap-3">
-            <h3 className="text-sm font-medium">{t("topWords")}</h3>
-            <BarList series={[t("count")]} rows={summary.words.slice(0, 12).map((w) => ({ label: w.word, values: [w.count], display: [String(w.count)] }))} />
-          </div>
-          <div className="grid content-start gap-2">
-            <h3 className="text-sm font-medium">
-              {t("recentAnswers")} <span className="font-normal text-muted-foreground">· {t("avgWords", { n: num(summary.avgWords, 0) })}</span>
-            </h3>
-            <TextList items={summary.recent} />
-          </div>
-        </div>
-      );
+      return <TextResult summary={summary} />;
 
     case "date":
       return (
@@ -279,6 +268,59 @@ function Body({ summary, groups, type, caption }: { summary: QuestionSummary; gr
     case "files":
       return <p className="text-sm text-muted-foreground">{t("files", { count: summary.files })}</p>;
   }
+}
+
+function TextResult({ summary }: { summary: Extract<QuestionSummary, { kind: "text" }> }) {
+  const t = useTranslations("results");
+  const [view, setView] = useState<"bars" | "cloud">("bars");
+  return (
+    <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid content-start gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-medium">{t("topWords")}</h3>
+          <div role="radiogroup" aria-label={t("topWords")} className="inline-flex h-8 items-center rounded-lg bg-muted p-0.5 text-xs">
+            {(["bars", "cloud"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={view === v}
+                onClick={() => setView(v)}
+                className={cn("h-full rounded-md px-2.5 font-medium text-muted-foreground", view === v && "bg-card text-foreground shadow-soft")}
+              >
+                {t(v === "bars" ? "wordBars" : "wordCloud")}
+              </button>
+            ))}
+          </div>
+        </div>
+        {view === "bars" ? (
+          <BarList series={[t("count")]} rows={summary.words.slice(0, 12).map((w) => ({ label: w.word, values: [w.count], display: [String(w.count)] }))} />
+        ) : (
+          <WordCloud words={summary.words} label={t("wordCloudLabel", { words: summary.words.slice(0, 5).map((w) => w.word).join(", ") })} />
+        )}
+        <div className="grid gap-2 pt-2">
+          <h3 className="text-sm font-medium">{t("sentiment.title")}</h3>
+          <SentimentBar {...summary.sentiment} />
+          <p className="text-xs text-muted-foreground">{t("sentiment.hint")}</p>
+          {summary.sentiment.examples.length > 0 && (
+            <ul className="grid gap-1.5">
+              {summary.sentiment.examples.map((e, i) => (
+                <li key={i} className="rounded-lg bg-muted/40 px-3 py-2 text-xs">
+                  <span className="me-1.5 font-medium">{t(`sentiment.${e.label}`)}</span>“{e.text}”
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+      <div className="grid content-start gap-2">
+        <h3 className="text-sm font-medium">
+          {t("recentAnswers")} <span className="font-normal text-muted-foreground">· {t("avgWords", { n: num(summary.avgWords, 0) })}</span>
+        </h3>
+        <TextList items={summary.recent} />
+      </div>
+    </div>
+  );
 }
 
 function TextList({ items, title }: { items: string[]; title?: string }) {
