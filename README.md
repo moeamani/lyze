@@ -4,8 +4,9 @@ Lyze is a calm, minimal web app for collecting and analyzing research data —
 surveys and forms, interviews, and quantitative, qualitative and mixed-methods
 analysis in one place. The name is "analyze", trimmed to its essentials.
 
-> **Status:** Phases 1–3 are complete (foundation; form builder, respondent forms and response
-> storage; results, charts, statistics and exports for SPSS, R, NVivo, ATLAS.ti and MAXQDA). See [PLAN.md](./PLAN.md) for the architecture, data model, route map and what's next.
+> **Status:** Phases 1–4 of 8 are complete (foundation; form builder, respondent forms and
+> response storage; results, charts, statistics and exports for SPSS, R, NVivo, ATLAS.ti and
+> MAXQDA; interviews with guides, participants, consent, recording and transcription). See [PLAN.md](./PLAN.md) for the architecture, data model, route map and what's next.
 
 ## Quick start
 
@@ -43,6 +44,9 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | `UPLOADS_DIR` | no | Local folder for uploaded files when S3 isn't configured (default `./.data/uploads`). |
 | `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | prod | Any S3-compatible storage for uploads and recordings. |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | no | Enables the optional captcha on public forms. |
+| `MEDIA_MAX_MB` | no | Largest session recording accepted (default 500 MB). |
+| `TRANSCRIPTION_PROVIDER` | no | Empty → mock transcripts (dev). `openai` → any OpenAI-compatible speech-to-text endpoint. |
+| `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_API_URL`, `TRANSCRIPTION_MODEL` | with `openai` | Key, base URL (default `https://api.openai.com/v1`) and model (default `whisper-1`). |
 
 ## Scripts
 
@@ -82,6 +86,23 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | R bundle `.zip` | R / RStudio — `source("lyze_import.R")` gives a labelled `lyze` data frame |
 | REFI-QDA `.qdpx` | NVivo, ATLAS.ti, MAXQDA (separate MAXQDA variant), QualCoder |
 
+## Interviews
+
+- **Guide** — topics with goals and time budgets, questions, probes and private notes; templates
+  for discovery interviews, usability tests and focus groups. Autosaves with undo.
+- **Consent form** — versioned; participants sign online from a personal link (emailed or
+  copied), or you record verbal/written consent. Every signature records version, method and time.
+- **Participants** — codes (P01…), a recruiting pipeline (recruited → eligible → scheduled →
+  completed), attributes for analysis, CSV import, and anonymization that keeps the data usable.
+- **Sessions** — interviews, focus groups, field notes and diary entries; schedule them and add
+  them to a calendar (.ics).
+- **Live view** — timer, in-browser recording, the guide as a checklist with time budgets, and
+  timestamped notes with quick tags (Alt+1–5).
+- **Transcripts** — upload audio/video for automatic transcription (mock provider in dev, any
+  OpenAI-compatible speech-to-text in production) or import a Zoom/Teams/Otter transcript
+  (.vtt, .srt, .txt). The transcript follows playback, timestamps seek the player (k / j / l
+  shortcuts), segments and speakers can be corrected, and transcripts download as .txt, .vtt or .srt.
+
 ## Architecture
 
 ```
@@ -111,6 +132,8 @@ src/
   lib/stats/           Statistics library (distributions, descriptives, tests), tested vs SciPy
   lib/analysis/        Dataset builder (SPSS-style variables), recodes, summaries, R/SPSS syntax
   lib/exports/         .sav, .xlsx, CSV, R script and REFI-QDA .qdpx writers
+  lib/interviews/      Guide docs, participants, transcript import/export, timestamps, .ics, mock transcriber
+  server/transcription/  Speech-to-text providers (mock | OpenAI-compatible)
   lib/forms/           Form document schema, answer validation, logic engine, piping,
                        quotas, translations, templates (heavily unit tested)
   server/storage/      Storage adapters: local disk (dev) and S3-compatible
@@ -172,3 +195,10 @@ Check each at **360px**, **768px** and **1280px+**, in light and dark mode:
 - [ ] Analyze: crosstab heatmap, compare groups (box plots), correlation (scatter + line), reliability
 - [ ] Prepare data: toggles, recode editors, scale score, sticky save bar
 - [ ] Export menu
+- [ ] Study overview for interview studies (sessions card, next steps)
+- [ ] Guide builder: template picker, topics with timing, probes, drag to reorder; consent form tab
+- [ ] Participants: table (desktop) / cards (phone), status filter, import dialog, participant page with consent panel
+- [ ] Sessions list (up next / done) and new-session dialog
+- [ ] Session page: player + following transcript + inline notes, speakers dialog, editing a segment, field-notes editor
+- [ ] Live session: timer, recording meter, guide checklist, quick notes (desktop and phone tabs)
+- [ ] Public consent page on a phone: unsigned, validation message, signed

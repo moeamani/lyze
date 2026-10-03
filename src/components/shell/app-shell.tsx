@@ -72,7 +72,7 @@ export function AppShell({
         <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileHeader />
-          <main id="main" tabIndex={-1} className="flex-1 pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom))] outline-none md:pb-0">
+          <main id="main" tabIndex={-1} className="min-w-0 flex-1 pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom))] outline-none md:pb-0">
             {children}
           </main>
         </div>

@@ -6,6 +6,7 @@ import { requireWorkspaceBySlug } from "@/server/services/access";
 import { isAppError } from "@/server/services/errors";
 import { getProject } from "@/server/services/projects";
 import { getStudy } from "@/server/services/studies";
+import { collectsSessions } from "@/lib/studies";
 
 /** Signed-in user + workspace membership for a `/w/[ws]` route. 404s for non-members. */
 export const getWorkspaceContext = cache(async (slug: string) => {
@@ -37,4 +38,12 @@ export const getStudyContext = cache(async (slug: string, projectId: string, stu
     if (isAppError(error) && error.code === "notFound") notFound();
     throw error;
   }
+});
+
+/** Study context for interview pages (guide, participants, sessions); 404s for survey-only studies. */
+export const getSessionStudyContext = cache(async (slug: string, projectId: string, studyId: string) => {
+  const ctx = await getStudyContext(slug, projectId, studyId);
+  if (!collectsSessions(ctx.study.type)) notFound();
+  const scope = { workspaceId: ctx.workspace.id, slug: ctx.workspace.slug, projectId: ctx.project.id, studyId: ctx.study.id };
+  return { ...ctx, scope, base: `/w/${slug}/p/${projectId}/s/${studyId}` };
 });

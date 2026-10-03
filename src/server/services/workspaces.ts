@@ -12,6 +12,7 @@ import { TEMPLATES } from "@/lib/forms/templates";
 import { recordAudit } from "./audit";
 import { createPublishedForm } from "./forms";
 import { seedDemoResponses } from "./demo";
+import { seedDemoInterviews } from "./demo-interviews";
 import { requireWorkspace } from "./access";
 import { AppError } from "./errors";
 
@@ -64,7 +65,7 @@ export async function createWorkspace(userId: string, raw: CreateWorkspaceInput)
         })
         .returning();
       if (project) {
-        const [survey] = await tx.insert(studies).values([
+        const [survey, interviews] = await tx.insert(studies).values([
           {
             workspaceId: workspace.id,
             projectId: project.id,
@@ -81,6 +82,7 @@ export async function createWorkspace(userId: string, raw: CreateWorkspaceInput)
             name: "Café regulars interviews",
             description: "Follow-up conversations with five regulars.",
             type: "interview",
+            status: "live",
             isDemo: true,
             createdById: userId,
           },
@@ -91,6 +93,7 @@ export async function createWorkspace(userId: string, raw: CreateWorkspaceInput)
           const form = await createPublishedForm(tx, { workspaceId: workspace.id, studyId: survey.id, doc, userId });
           await seedDemoResponses(tx, { workspaceId: workspace.id, studyId: survey.id, formId: form.id, doc });
         }
+        if (interviews) await seedDemoInterviews(tx, { workspaceId: workspace.id, studyId: interviews.id, userId });
       }
     }
     return workspace;

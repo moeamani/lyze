@@ -24,8 +24,8 @@ export function s3Storage(): StorageAdapter {
       const res = await client.fetch(url(key), { method: "PUT", body: body as Uint8Array<ArrayBuffer>, headers: { "content-type": contentType } });
       if (!res.ok) throw new Error(`S3 upload failed: ${res.status}`);
     },
-    async get(key) {
-      const res = await client.fetch(url(key));
+    async get(key, range) {
+      const res = await client.fetch(url(key), range ? { headers: { range: `bytes=${range.start}-${range.end}` } } : undefined);
       if (res.status === 404) return null;
       if (!res.ok || !res.body) throw new Error(`S3 download failed: ${res.status}`);
       const size = Number(res.headers.get("content-length")) || undefined;

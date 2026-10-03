@@ -84,14 +84,15 @@ Phases add tables as they need them (migrations per phase).
 | `forms` | studyId (unique), publicId, **draft (jsonb FormDoc)**, publishedVersion, publishedAt | 2 |
 | `form_versions` | formId, version, doc(jsonb) — immutable snapshot respondents answer | 2 |
 | `form_invites` | formId, email, token, sentAt — personal links for email invites | 2 |
-| `participants` | workspaceId, studyId?, externalId, name, email, attributes(jsonb), status, consentAt, anonymized | 4 |
+| `participants` | workspaceId, studyId, code (P01…), name, email, phone, externalId, attributes(jsonb), status, notes, consent token/at/method/name/version, anonymizedAt | 4 |
 | `responses` | studyId, formId, formVersion, status(partial/complete/screened_out/over_quota), resumeToken, inviteId?, deviceId?, locale, currentPageId, quotaIds[], meta, startedAt, submittedAt, durationMs | 2 |
 | `answers` | responseId, questionId, value(jsonb), numeric (for fast stats), text (for search); unique(responseId, questionId) | 2 |
 | `derived_variables` / `recodes` | studyId, name, definition(jsonb) | 3 |
-| `interview_guides` / `guide_items` | studyId, topic, question, probes, minutes, position | 4 |
-| `sessions_` (`research_sessions`) | studyId, participantId, kind(interview/focus_group/field_notes/diary), scheduledAt, status, mediaFileId, notes | 4 |
-| `transcripts` | sessionId, provider, status, language | 4 |
-| `segments` | transcriptId?, answerId?, speaker, startMs, endMs, text, position | 4 |
+| `interview_guides` | studyId (PK), **doc (jsonb GuideDoc: intro, sections → questions → probes, minutes, outro)**, consent (jsonb, versioned) | 4 |
+| `research_sessions` | studyId, kind(interview/focus_group/field_notes/diary), title, status, scheduledAt, durationMin, location, interviewerId, mediaFileId, mediaDurationMs, startedAt, endedAt, summary | 4 |
+| `session_participants` | sessionId, participantId (focus groups have several) | 4 |
+| `transcripts` | sessionId (unique), provider (mock/openai/import/manual), status, language, speakers (jsonb: S1… → name, role, participantId) | 4 |
+| `segments` | transcriptId, position, speaker, startMs, endMs, text (open-text answers are coded in place in Phase 5) | 4 |
 | `session_notes` | sessionId, atMs, tag, text, authorId | 4 |
 | `codes` | studyId/projectId, parentId, name, color, definition, position | 5 |
 | `code_applications` | codeId, segmentId \| answerId, startOffset, endOffset, quote, createdById, source(human/ai), approvedAt | 5 |
@@ -123,7 +124,12 @@ Phases add tables as they need them (migrations per phase).
 | `…/s/[studyId]/results` | Per-question summaries and charts, filter, compare-by (Phase 3) |
 | `…/s/[studyId]/analyze?tool=` | Crosstab, compare groups, correlation, before/after, reliability, correlation matrix, prepare data (Phase 3) |
 | `/api/studies/[studyId]/export?format=` | CSV, Excel, SPSS .sav, R bundle, REFI-QDA .qdpx (Phase 3) |
-| `…/s/[studyId]/guide`, `/participants`, `/sessions/[sid]` | Interviews (Phase 4) |
+| `…/s/[studyId]/guide` (`?tab=consent`) | Interview guide builder and consent form (Phase 4) |
+| `…/s/[studyId]/participants`, `/participants/[pid]` | Participants: pipeline, import, consent, anonymize (Phase 4) |
+| `…/s/[studyId]/sessions`, `/sessions/[sid]` | Sessions list; player + synced transcript + notes (Phase 4) |
+| `…/s/[studyId]/sessions/[sid]/live` | Live session: timer, in-browser recording, guide checklist, quick notes (Phase 4) |
+| `/consent/[token]` | Participant's personal consent page (respondent layout) (Phase 4) |
+| `/api/sessions/[sid]/media`, `/transcript?format=`, `/calendar` | Recording upload, transcript download (txt/vtt/srt), .ics (Phase 4) |
 | `/w/[ws]/p/[projectId]/codebook`, `/coding`, `/themes`, `/search` | Qualitative (Phase 5) |
 | `/w/[ws]/p/[projectId]/mixed` | Joint displays, triangulation (Phase 6) |
 | `/w/[ws]/p/[projectId]/reports/[id]` | Report builder (Phase 7) |
@@ -199,7 +205,7 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - [x] Phase 1 — Foundation
 - [x] Phase 2 — Forms: builder, respondent form, responses
 - [x] Phase 3 — Quantitative analysis + R / SPSS / NVivo / MAXQDA interoperability
-- [ ] Phase 4 — Interviews
+- [x] Phase 4 — Interviews: guides, participants, consent, sessions, recording, transcription
 - [ ] Phase 5 — Qualitative coding
 - [ ] Phase 6 — Mixed methods
 - [ ] Phase 7 — Reports & exports
@@ -241,6 +247,31 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - New workspaces with the demo project get 48 deterministic responses (3 unfinished, a few
   speeders, built-in correlations) so Results and Analyze have something to show immediately.
 
+### Phase 4 notes
+
+- `src/lib/interviews/` is framework-free and unit-tested: guide documents and templates with
+  timing, participant pipeline and CSV import, transcript import (WebVTT from Zoom/Teams, SRT,
+  text in the common "Name: …" / `[00:01:02]` / Otter shapes) and export (txt, vtt, srt), `.ics`
+  files, `#tag` note parsing and the mock transcriber.
+- Transcription runs behind a `TranscriptionProvider` interface (`src/server/transcription`): the
+  mock builds a deterministic interview from the study's guide, timed to the recording; the
+  `openai` provider talks to any OpenAI-compatible `/audio/transcriptions` endpoint. Jobs run with
+  `after()` once the upload response is sent; the session page polls until the transcript is ready.
+- Speakers are normalized to S1…Sn and auto-assigned (names matching a participant link to them;
+  otherwise the first voice is the interviewer). Linked participants are always shown by code.
+- Playback sync: the file route serves byte ranges (206) so audio/video can seek; the transcript
+  highlights and follows the playing segment; timestamps and timed notes jump the player.
+- Live view: timer with optional in-browser audio recording (MediaRecorder, WebM/Opus or MP4),
+  guide as a checklist with per-topic time budgets, notes stamped at the moment you start typing,
+  quick tags (Alt+1–5). If an upload fails the recording is downloaded so nothing is lost.
+- Consent: one versioned form per study; participants sign online at a personal link (every
+  statement ticked + typed name), or researchers record verbal/written consent. Changing the
+  wording makes a new version and older signatures show as outdated. Every step is audit-logged.
+- Demo: the "Café regulars interviews" study is seeded with a guide, consent form, five people at
+  different stages, two transcribed interviews with notes, one upcoming interview and field notes.
+- Fixed along the way: grid tracks in the new pages use `minmax(0,1fr)` so nothing pushes the page
+  sideways on phones (checked by e2e at 360px).
+
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |
@@ -280,3 +311,10 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 24 | .qdpx follows the REFI-QDA 1.5 project schema as implemented by QualCoder | Plain-text sources with code-point offsets, UTF-8 BOM, lowercase `sources/`; a CRLF variant for MAXQDA, which counts line breaks as two characters. Not yet verified inside the commercial apps. |
 | 25 | Data preparation is a **saved per-study rule set**, not edits to answers | Reproducible and reversible; every view and export applies the same rules. |
 | 26 | Analysis tool state lives in the **URL** | Results are linkable and survive refresh. |
+| 27 | Interview guide and consent form are **JSON documents** (like forms), not item tables | Autosave/undo in one object; guides are small; consent needs versioned snapshots anyway. |
+| 28 | **Participants belong to a study**; `externalId`/email match people across studies | Matches the study-centred UI; mixed-methods studies already hold both survey and sessions. Cross-study linking is Phase 6. |
+| 29 | Participants are **pseudonymous by default**: code everywhere in analysis, contact details only for editors, one-click anonymization that keeps attributes and data | GDPR-friendly without breaking analysis. |
+| 30 | **One transcript per session**, speakers as a map on the transcript | Renaming or linking a speaker is one edit; segments stay stable for coding in Phase 5. |
+| 31 | Field notes and diary entries are stored as **manual transcripts** (one segment per paragraph) | Every kind of qualitative text is coded, searched and exported the same way in Phase 5. Rewriting an entry replaces its segments. |
+| 32 | Recordings upload through the app (streamed with a size cap, `MEDIA_MAX_MB`), not presigned S3 URLs | One code path for local disk and S3, permission checks in one place. Direct-to-S3 multipart uploads are a later scale-up. |
+| 33 | Mock transcription is the default; real speech-to-text is opt-in via env | Every screen works offline and in tests; no audio leaves the server unless configured. |

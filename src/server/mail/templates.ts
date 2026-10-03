@@ -57,3 +57,15 @@ export function formInviteEmail(url: string, title: string, inviterName: string,
       <p style="margin:24px 0 0;font-size:13px;color:#77777e">This link is personal — please don't forward it.</p>`),
   };
 }
+
+export function consentEmail(url: string, studyName: string, researcherName: string, when?: string) {
+  return {
+    subject: `Please review the consent form for “${studyName}”`,
+    text: `${researcherName} invited you to take part in “${studyName}”${when ? ` (${when})` : ""}.\n\nPlease read and sign the consent form before the session:\n${url}\n\nYou can ask questions or withdraw at any time.`,
+    html: shell(`
+      <h1 style="margin:0 0 8px;font-size:20px">Before we talk 🌿</h1>
+      <p style="margin:0 0 24px;line-height:1.5;color:#55555c"><strong>${escape(researcherName)}</strong> invited you to take part in <strong>${escape(studyName)}</strong>${when ? ` on ${escape(when)}` : ""}. Please read and sign the consent form first — it takes a minute.</p>
+      ${button(url, "Review consent form")}
+      <p style="margin:24px 0 0;font-size:13px;color:#77777e">Taking part is voluntary. You can ask questions or withdraw at any time.</p>`),
+  };
+}

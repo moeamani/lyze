@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FormDoc } from "@/lib/forms/schema";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -9,15 +8,15 @@ const HISTORY_LIMIT = 60;
 const COALESCE_MS = 800;
 
 /**
- * Holds the form draft with undo/redo and debounced autosave.
+ * Holds a document draft (a form, an interview guide) with undo/redo and debounced autosave.
  * `update(tag, mutate)` clones the doc, lets you mutate the clone, and records history — edits with
  * the same tag in quick succession (typing in one field) collapse into a single undo step.
  */
-export function useFormDoc(initial: FormDoc, save: (doc: FormDoc) => Promise<boolean>, enabled: boolean) {
+export function useFormDoc<Doc>(initial: Doc, save: (doc: Doc) => Promise<boolean>, enabled: boolean) {
   const [doc, setDoc] = useState(initial);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const past = useRef<FormDoc[]>([]);
-  const future = useRef<FormDoc[]>([]);
+  const past = useRef<Doc[]>([]);
+  const future = useRef<Doc[]>([]);
   const last = useRef<{ tag: string; at: number }>({ tag: "", at: 0 });
   // Mirrors the history refs so the toolbar re-renders when undo/redo availability changes.
   const [historySize, setHistorySize] = useState({ past: 0, future: 0 });
@@ -27,7 +26,7 @@ export function useFormDoc(initial: FormDoc, save: (doc: FormDoc) => Promise<boo
   const docRef = useRef(doc);
 
   const update = useCallback(
-    (tag: string, mutate: (draft: FormDoc) => void) => {
+    (tag: string, mutate: (draft: Doc) => void) => {
       if (!enabled) return;
       // Work from the ref (not a state updater) so history is recorded exactly once per edit.
       const prev = docRef.current;

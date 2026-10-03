@@ -43,6 +43,23 @@ const KNOWN_ACTIONS = new Set([
   "response.deleted",
   "analysis.updated",
   "data.exported",
+  "consent.updated",
+  "participant.created",
+  "participant.imported",
+  "participant.updated",
+  "participant.status",
+  "participant.consent_sent",
+  "participant.consent_signed",
+  "participant.consent_recorded",
+  "participant.consent_revoked",
+  "participant.anonymized",
+  "participant.deleted",
+  "session.created",
+  "session.updated",
+  "session.status",
+  "session.deleted",
+  "session.media_uploaded",
+  "session.transcript_imported",
 ]);
 
 export default async function ActivityPage({ params }: PageProps<"/w/[ws]/activity">) {
@@ -75,7 +92,10 @@ export default async function ActivityPage({ params }: PageProps<"/w/[ws]/activi
             const key = (KNOWN_ACTIONS.has(e.action) ? e.action.replace(".", "_") : "unknown") as EventKey;
             const values = {
               actor,
-              name: meta.name ?? "",
+              name: meta.name ?? meta.title ?? "",
+              code: meta.code ?? "",
+              count: String(meta.count ?? ""),
+              version: String(meta.version ?? ""),
               email: meta.email ?? "",
               role: meta.role ? tr(meta.role as "viewer") : meta.to && e.action === "member.role_changed" ? tr(meta.to as "viewer") : "",
               status: meta.to && e.action === "study.status_changed" ? ts(meta.to as "draft") : "",

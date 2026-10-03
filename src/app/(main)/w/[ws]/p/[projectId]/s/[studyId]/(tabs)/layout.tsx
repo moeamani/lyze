@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { getStudyContext } from "@/server/queries/workspace";
-import { collectsResponses } from "@/lib/studies";
+import { collectsResponses, collectsSessions } from "@/lib/studies";
 import { Badge } from "@/components/ui/badge";
 import { PageContainer, PageHeader } from "@/components/common/page-header";
 import { Breadcrumbs } from "@/components/common/breadcrumbs";
@@ -42,7 +42,7 @@ export default async function StudyLayout({ children, params }: LayoutProps<"/w/
             </span>
           }
         />
-        {collectsResponses(study.type) && <StudyTabs base={base} />}
+        <StudyTabs base={base} form={collectsResponses(study.type)} sessions={collectsSessions(study.type)} />
       </div>
       {children}
     </PageContainer>

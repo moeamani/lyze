@@ -18,10 +18,21 @@ export function localStorage(): StorageAdapter {
       await fs.mkdir(path.dirname(full), { recursive: true });
       await fs.writeFile(full, body);
     },
-    async get(key) {
+    async get(key, range) {
       try {
-        const body = await fs.readFile(resolve(key));
-        return { body: new Uint8Array(body), size: body.byteLength };
+        if (!range) {
+          const body = await fs.readFile(resolve(key));
+          return { body: new Uint8Array(body), size: body.byteLength };
+        }
+        const handle = await fs.open(resolve(key), "r");
+        try {
+          const length = range.end - range.start + 1;
+          const buffer = new Uint8Array(length);
+          const { bytesRead } = await handle.read(buffer, 0, length, range.start);
+          return { body: buffer.subarray(0, bytesRead), size: bytesRead };
+        } finally {
+          await handle.close();
+        }
       } catch {
         return null;
       }

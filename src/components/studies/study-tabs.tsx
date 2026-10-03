@@ -3,19 +3,32 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { BarChart3Icon, FlaskConicalIcon, InboxIcon, LayoutDashboardIcon, PencilRulerIcon, Share2Icon } from "lucide-react";
+import { BarChart3Icon, CalendarClockIcon, FlaskConicalIcon, InboxIcon, LayoutDashboardIcon, ListChecksIcon, PencilRulerIcon, Share2Icon, UsersIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function StudyTabs({ base }: { base: string }) {
+/** Study sections. Survey tabs appear for studies with a form, interview tabs for studies with sessions. */
+export function StudyTabs({ base, form, sessions }: { base: string; form: boolean; sessions: boolean }) {
   const t = useTranslations("studyTabs");
   const pathname = usePathname();
+  const at = (path: string) => pathname.startsWith(`${base}/${path}`);
   const tabs = [
     { href: base, label: t("overview"), icon: LayoutDashboardIcon, active: pathname === base },
-    { href: `${base}/build`, label: t("build"), icon: PencilRulerIcon, active: false },
-    { href: `${base}/share`, label: t("share"), icon: Share2Icon, active: pathname.startsWith(`${base}/share`) },
-    { href: `${base}/responses`, label: t("responses"), icon: InboxIcon, active: pathname.startsWith(`${base}/responses`) },
-    { href: `${base}/results`, label: t("results"), icon: BarChart3Icon, active: pathname.startsWith(`${base}/results`) },
-    { href: `${base}/analyze`, label: t("analyze"), icon: FlaskConicalIcon, active: pathname.startsWith(`${base}/analyze`) },
+    ...(form
+      ? [
+          { href: `${base}/build`, label: t("build"), icon: PencilRulerIcon, active: false },
+          { href: `${base}/share`, label: t("share"), icon: Share2Icon, active: at("share") },
+          { href: `${base}/responses`, label: t("responses"), icon: InboxIcon, active: at("responses") },
+          { href: `${base}/results`, label: t("results"), icon: BarChart3Icon, active: at("results") },
+          { href: `${base}/analyze`, label: t("analyze"), icon: FlaskConicalIcon, active: at("analyze") },
+        ]
+      : []),
+    ...(sessions
+      ? [
+          { href: `${base}/guide`, label: t("guide"), icon: ListChecksIcon, active: at("guide") },
+          { href: `${base}/participants`, label: t("participants"), icon: UsersIcon, active: at("participants") },
+          { href: `${base}/sessions`, label: t("sessions"), icon: CalendarClockIcon, active: at("sessions") },
+        ]
+      : []),
   ];
   return (
     <nav aria-label={t("label")} className="-mx-4 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0">

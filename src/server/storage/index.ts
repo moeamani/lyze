@@ -5,9 +5,12 @@ import { s3Storage } from "./s3";
 export interface StorageAdapter {
   readonly name: "local" | "s3";
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
-  get(key: string): Promise<{ body: ReadableStream<Uint8Array> | Uint8Array; size?: number } | null>;
+  /** Whole object, or bytes `start..end` (inclusive) when a range is given. */
+  get(key: string, range?: ByteRange): Promise<{ body: ReadableStream<Uint8Array> | Uint8Array; size?: number } | null>;
   delete(key: string): Promise<void>;
 }
+
+export type ByteRange = { start: number; end: number };
 
 let adapter: StorageAdapter | undefined;
 

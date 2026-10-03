@@ -18,6 +18,9 @@ import { STUDY_STATUSES, STUDY_TYPES } from "@/lib/studies";
 import type { FormDoc } from "@/lib/forms/schema";
 import type { AnswerValue } from "@/lib/forms/answers";
 import type { AnalysisSettings } from "@/lib/analysis/settings";
+import type { ConsentDoc, GuideDoc } from "@/lib/interviews/guide";
+import { PARTICIPANT_STATUSES, CONSENT_METHODS } from "@/lib/interviews/participants";
+import { SESSION_KINDS, SESSION_STATUSES, TRANSCRIPT_STATUSES, type Speakers } from "@/lib/interviews/sessions";
 
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow();
@@ -364,6 +367,172 @@ export const studyAnalysis = pgTable("study_analysis", {
   updatedAt: updatedAt(),
 });
 
+// ── Interviews: guides, participants, sessions, transcripts, notes ─────────
+
+/** One guide (and consent form) per study, stored as documents like forms. */
+export const interviewGuides = pgTable("interview_guides", {
+  studyId: text("study_id")
+    .primaryKey()
+    .references(() => studies.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  doc: jsonb("doc").$type<GuideDoc>().notNull(),
+  consent: jsonb("consent").$type<ConsentDoc>(),
+  updatedAt: updatedAt(),
+});
+
+export const participantStatusEnum = pgEnum("participant_status", PARTICIPANT_STATUSES);
+export const consentMethodEnum = pgEnum("consent_method", CONSENT_METHODS);
+
+export const participants = pgTable(
+  "participants",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("par")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    studyId: text("study_id")
+      .notNull()
+      .references(() => studies.id, { onDelete: "cascade" }),
+    /** Pseudonym shown everywhere analysis happens (P01, P02…). */
+    code: text("code").notNull(),
+    name: text("name"),
+    email: text("email"),
+    phone: text("phone"),
+    /** Id in a panel or another system; also used to match people across studies. */
+    externalId: text("external_id"),
+    attributes: jsonb("attributes").$type<Record<string, string>>().notNull().default({}),
+    status: participantStatusEnum("status").notNull().default("recruited"),
+    notes: text("notes"),
+    /** Secret for the participant's own consent page. */
+    consentToken: text("consent_token").notNull().unique(),
+    consentAt: timestamp("consent_at", { withTimezone: true, mode: "date" }),
+    consentMethod: consentMethodEnum("consent_method"),
+    consentName: text("consent_name"),
+    consentVersion: integer("consent_version"),
+    consentSentAt: timestamp("consent_sent_at", { withTimezone: true, mode: "date" }),
+    anonymizedAt: timestamp("anonymized_at", { withTimezone: true, mode: "date" }),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("participants_study_code_idx").on(t.studyId, t.code), index("participants_study_status_idx").on(t.studyId, t.status)],
+);
+
+export const sessionKindEnum = pgEnum("session_kind", SESSION_KINDS);
+export const sessionStatusEnum = pgEnum("session_status", SESSION_STATUSES);
+
+export const researchSessions = pgTable(
+  "research_sessions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("ses")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    studyId: text("study_id")
+      .notNull()
+      .references(() => studies.id, { onDelete: "cascade" }),
+    kind: sessionKindEnum("kind").notNull(),
+    title: text("title").notNull(),
+    status: sessionStatusEnum("status").notNull().default("scheduled"),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true, mode: "date" }),
+    durationMin: integer("duration_min"),
+    /** Room, address or meeting link. */
+    location: text("location"),
+    interviewerId: text("interviewer_id").references(() => users.id, { onDelete: "set null" }),
+    mediaFileId: text("media_file_id").references(() => files.id, { onDelete: "set null" }),
+    mediaDurationMs: integer("media_duration_ms"),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }),
+    endedAt: timestamp("ended_at", { withTimezone: true, mode: "date" }),
+    summary: text("summary"),
+    createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("sessions_study_scheduled_idx").on(t.studyId, t.scheduledAt)],
+);
+
+export const sessionParticipants = pgTable(
+  "session_participants",
+  {
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => researchSessions.id, { onDelete: "cascade" }),
+    participantId: text("participant_id")
+      .notNull()
+      .references(() => participants.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.sessionId, t.participantId] }), index("session_participants_participant_idx").on(t.participantId)],
+);
+
+export const transcriptStatusEnum = pgEnum("transcript_status", TRANSCRIPT_STATUSES);
+
+export const transcripts = pgTable("transcripts", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => newId("trn")),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  sessionId: text("session_id")
+    .notNull()
+    .unique()
+    .references(() => researchSessions.id, { onDelete: "cascade" }),
+  /** mock | openai | import | manual */
+  provider: text("provider").notNull(),
+  status: transcriptStatusEnum("status").notNull().default("processing"),
+  language: text("language"),
+  speakers: jsonb("speakers").$type<Speakers>().notNull().default({}),
+  error: text("error"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const segments = pgTable(
+  "segments",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("seg")),
+    transcriptId: text("transcript_id")
+      .notNull()
+      .references(() => transcripts.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    speaker: text("speaker"),
+    startMs: integer("start_ms"),
+    endMs: integer("end_ms"),
+    text: text("text").notNull(),
+  },
+  (t) => [index("segments_transcript_position_idx").on(t.transcriptId, t.position)],
+);
+
+export const sessionNotes = pgTable(
+  "session_notes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("note")),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => researchSessions.id, { onDelete: "cascade" }),
+    /** Milliseconds into the session/recording; null for notes added afterwards. */
+    atMs: integer("at_ms"),
+    tag: text("tag"),
+    text: text("text").notNull(),
+    authorId: text("author_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("session_notes_session_idx").on(t.sessionId, t.atMs)],
+);
+
 // ── Relations ───────────────────────────────────────────────────────────────
 
 export const workspacesRelations = relations(workspaces, ({ many }) => ({
@@ -401,3 +570,8 @@ export type FormVersion = typeof formVersions.$inferSelect;
 export type ResponseRow = typeof responses.$inferSelect;
 export type AnswerRow = typeof answers.$inferSelect;
 export type FileRow = typeof files.$inferSelect;
+export type Participant = typeof participants.$inferSelect;
+export type ResearchSession = typeof researchSessions.$inferSelect;
+export type Transcript = typeof transcripts.$inferSelect;
+export type SegmentRow = typeof segments.$inferSelect;
+export type SessionNote = typeof sessionNotes.$inferSelect;
