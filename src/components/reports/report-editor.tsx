@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowDownIcon, ArrowUpIcon, CopyIcon, DownloadIcon, Link2Icon, Loader2Icon, PlusIcon, PrinterIcon, Trash2Icon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, CopyIcon, DownloadIcon, Link2Icon, Loader2Icon, PlusIcon, PrinterIcon, Trash2Icon, FileTextIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -180,6 +181,11 @@ export function ReportEditor({ scope, report, data, sources, back }: { scope: Sc
           )}
         </div>
         <div className="grid gap-1">
+          <Button asChild variant="ghost" className="justify-start">
+            <Link href="?preview=pdf">
+              <FileTextIcon /> {t("pdfPreview")}
+            </Link>
+          </Button>
           <Button variant="ghost" className="justify-start" onClick={() => window.print()}>
             <PrinterIcon /> {t("print")}
           </Button>

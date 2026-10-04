@@ -111,7 +111,7 @@ function Missing() {
 
 export function ReportBody({ title, blocks, data, className }: { title: string; blocks: Block[]; data: ResolvedReport; className?: string }) {
   return (
-    <article className={cn("report-print grid grid-cols-1 gap-5", className)}>
+    <article className={cn("grid grid-cols-1 gap-5", className)}>
       <h1 className="text-3xl font-semibold text-balance">{title}</h1>
       {blocks.map((b) => (
         <ReportBlock key={b.id} block={b} data={data} />

@@ -475,6 +475,23 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
   per passage (segment) with Jaccard overlap. Cohen's kappa uses every participant turn in the
   transcripts both coders worked in, per code and pooled. `/api/projects/:id/export?format=cases`
   gives participant × code counts.
+
+### Report PDF layout
+
+- `PrintReport` (`src/components/reports/print-report.tsx`) is what printing shows; the screen
+  report is hidden in print. Figures and tables are numbered up front (pure, so render order can't
+  change the numbers). Choice → horizontal bars with "n (p%)"; ratings, numbers and dates →
+  columns with a labelled y axis; Likert and single-answer grids → 100% stacked bars with a legend;
+  multi-answer grids and open text → tables; ranking → share ranked first, mean ranks in the note.
+  Options nobody chose are listed in the note instead of drawn as empty bars.
+- Charts (`print-charts.tsx`) are hand-laid SVG at a fixed 600-unit width: no client chart library,
+  no ResponsiveContainer (which printed blank). RTL mirrors the geometry by hand and keeps the SVG
+  itself LTR. Colours: blue `#2a78d6` for single series; Likert arms validated as ordinal ramps
+  against white (red `#ec8d89 → #a33232`, blue `#86b6ef → #1c5cab`) with a grey `#d9d8d2` midpoint;
+  every segment wide enough carries its percentage.
+- Print CSS: A4, page numbers in `@page @bottom-center`, Calibri/Carlito where installed (Geist
+  otherwise, Peyda for RTL), app chrome removed so no blank trailing pages. `?preview=pdf` shows the
+  same layout on screen.
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |

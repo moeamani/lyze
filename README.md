@@ -205,6 +205,13 @@ Combine headings, text, survey charts, quotes, themes, the joint display and you
 report, or press **Generate report** for a first draft. Share it with a read-only link (it always
 shows current data; turn the link off to revoke it), print or save it as PDF, or download Markdown.
 
+The PDF is laid out for paper, not captured from the screen: a title block, numbered figures with
+APA-style captions ("Figure 1" in bold, the question in italics), charts drawn for print like a
+chart in Word (bars and columns with axes, gridlines and the value on every bar; 100% stacked bars
+for Likert items and grids, red–grey–blue), a *Note.* with n and M, SD, Mdn under each figure,
+tables with rules instead of boxes, and page numbers. Persian and Arabic reports print right to
+left. **PDF preview** in the report editor shows the exact layout before printing.
+
 All prose Lyze writes follows the humanize skill in `docs/skills/humanize`.
 
 ## AI

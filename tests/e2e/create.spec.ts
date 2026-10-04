@@ -44,6 +44,14 @@ test("generate, upload or enter data; build, share and print a report", async ({
   await expect(link).toHaveValue(/\/r\//);
   const url = await link.inputValue();
 
+  // The PDF layout: numbered figures with charts drawn for paper, previewable on screen.
+  const reportUrl = page.url().split("?")[0];
+  await page.goto(`${reportUrl}?preview=pdf`);
+  await expect(page.getByText("Figure 1", { exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "How many cups of coffee do you drink on a typical day?" })).toBeVisible();
+  await expect(page.getByText(/Note\. n = \d+ of \d+ respondents answered/).first()).toBeVisible();
+  await expect(page.getByText("Table 1", { exact: true })).toBeVisible();
+
   // Anyone with the link can read it, signed out.
   const guest = await browser.newContext();
   const g = await guest.newPage();

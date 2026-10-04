@@ -403,19 +403,26 @@
   }
 }
 
-/* Reports print on their own: everything else on the page is hidden, the report fills the paper. */
+/* Reports print on their own: the paper layout (.print-doc) replaces the page, everything else is hidden. */
 .report-print-only {
   display: none;
 }
 @media print {
   @page {
-    margin: 18mm 16mm;
+    size: A4;
+    margin: 20mm 18mm 22mm;
+    @bottom-center {
+      /* The LRM keeps "2 / 3" in order on right-to-left pages. */
+      content: "\200E" counter(page) " / " counter(pages);
+      font-size: 8.5pt;
+      color: #6f6e69;
+    }
   }
   body * {
     visibility: hidden;
   }
   .report-print-only {
-    display: grid;
+    display: block;
   }
   .report-print,
   .report-print * {
@@ -425,10 +432,164 @@
     position: absolute;
     inset: 0 auto auto 0;
     width: 100%;
-    color: #000;
   }
-  .report-print .break-inside-avoid {
-    break-inside: avoid;
+  /* The hidden app layout must not add blank pages after the report. */
+  body:has(.report-print) :is(aside, nav, header):not(.report-print *) {
+    display: none !important;
+  }
+  body:has(.report-print) :not(.report-print, .report-print *) {
+    min-height: 0 !important;
+  }
+}
+
+/*
+ * The report as a document, like a Word file: a plain sans (Calibri/Carlito where installed),
+ * 10.5pt body, numbered figures with the label in bold and the title in italics above (APA style),
+ * notes in small type below, and tables with rules instead of boxes. Used for print and the preview.
+ */
+.print-doc {
+  --print-ink: #0b0b0b;
+  --print-ink-2: #52514e;
+  --print-rule: #0b0b0b;
+  color: var(--print-ink);
+  background: #fff;
+  font-family: Calibri, Carlito, Aptos, "Segoe UI", var(--font-geist-sans), Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+.print-doc[dir="rtl"] {
+  font-family: var(--font-peyda), Tahoma, sans-serif;
+}
+.print-doc h1 {
+  font-size: 20pt;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 4pt;
+  text-wrap: balance;
+}
+.print-doc h2 {
+  font-size: 14pt;
+  font-weight: 700;
+  margin: 18pt 0 6pt;
+  break-after: avoid;
+}
+.print-doc h3 {
+  font-size: 11.5pt;
+  font-weight: 700;
+  margin: 0 0 3pt;
+  break-after: avoid;
+}
+.print-titleblock {
+  border-bottom: 1.5pt solid var(--print-rule);
+  padding-bottom: 8pt;
+  margin-bottom: 14pt;
+}
+.print-titleblock p {
+  color: var(--print-ink-2);
+  font-size: 9.5pt;
+  margin: 0;
+}
+.print-prose {
+  margin: 6pt 0;
+}
+.print-prose h2,
+.print-prose h3,
+.print-prose h4 {
+  margin-top: 10pt;
+}
+.print-figure {
+  margin: 12pt 0 14pt;
+  break-inside: avoid;
+}
+.print-figure figcaption {
+  display: grid;
+  gap: 1pt;
+  margin-bottom: 6pt;
+}
+.print-label {
+  font-weight: 700;
+}
+.print-title {
+  font-style: italic;
+}
+.print-note {
+  font-size: 9pt;
+  color: var(--print-ink-2);
+  margin: 6pt 0 0;
+  text-wrap: pretty;
+}
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5pt;
+  border-top: 1.25pt solid var(--print-rule);
+  border-bottom: 1.25pt solid var(--print-rule);
+}
+.print-table-narrow {
+  width: auto;
+  min-width: 50%;
+}
+.print-table th,
+.print-table td {
+  padding: 3pt 8pt 3pt 0;
+  text-align: start;
+  vertical-align: top;
+}
+.print-table thead th {
+  font-weight: 700;
+  border-bottom: 0.75pt solid var(--print-rule);
+}
+.print-table .num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.print-table tbody tr {
+  break-inside: avoid;
+}
+.print-quote {
+  margin: 10pt 0;
+  padding-inline-start: 14pt;
+  border-inline-start: 2pt solid #c3c2b7;
+  break-inside: avoid;
+}
+.print-quote blockquote,
+.print-answer {
+  margin: 0;
+  font-style: italic;
+}
+.print-answer {
+  margin: 6pt 0 0;
+  padding-inline-start: 10pt;
+  border-inline-start: 1.5pt solid #e1e0d9;
+  font-size: 9.5pt;
+}
+.print-quote figcaption {
+  margin-top: 3pt;
+  font-size: 9pt;
+  color: var(--print-ink-2);
+}
+.print-theme {
+  margin: 10pt 0;
+  break-inside: avoid;
+}
+.print-colophon {
+  margin-top: 18pt;
+  padding-top: 6pt;
+  border-top: 0.75pt solid #c3c2b7;
+  font-size: 8.5pt;
+  color: var(--print-ink-2);
+}
+/* On screen (the preview), the document sits on a sheet of A4-ish paper. */
+@media screen {
+  .print-sheet {
+    max-width: 210mm;
+    margin-inline: auto;
+    padding: 20mm 18mm;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 8px 24px rgb(0 0 0 / 0.08);
+    border-radius: 4px;
   }
 }
 
