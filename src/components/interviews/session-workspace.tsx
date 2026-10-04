@@ -189,7 +189,7 @@ export function SessionWorkspace(props: WorkspaceProps) {
             <AlertCircleIcon className="size-5 text-destructive" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="font-medium">{t("failed")}</p>
-              {transcript.error && <p className="truncate text-muted-foreground">{transcript.error}</p>}
+              {transcript.error && <p className="text-pretty text-muted-foreground">{transcript.error}</p>}
             </div>
             {canEdit && media && <RetryButton scope={scope} sessionId={sessionId} />}
             {canEdit && <ImportTranscriptButton scope={scope} sessionId={sessionId} />}

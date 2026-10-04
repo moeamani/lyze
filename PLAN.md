@@ -492,6 +492,20 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - Print CSS: A4, page numbers in `@page @bottom-center`, Calibri/Carlito where installed (Geist
   otherwise, Peyda for RTL), app chrome removed so no blank trailing pages. `?preview=pdf` shows the
   same layout on screen.
+
+### Transcription with Gemini
+
+- `src/server/transcription/gemini.ts`: upload through the Gemini Files API (resumable; long
+  recordings fine), one `generateContent` call with a response schema of turns
+  (`speaker`, `start`, `end`, `text`), then delete the file. Prompt: verbatim, original language,
+  S1/S2… by first appearance, `[inaudible]`/`[crosstalk]`. Busy model → lighter fallback model.
+  A reply cut off at the output limit keeps its complete turns. Same-speaker sentences are merged
+  back into turns (`mergeCues`, 2.5 s gap). `assignSpeakers` then maps S1/S2… to interviewer and
+  participants as before.
+- Provider choice: `TRANSCRIPTION_PROVIDER` wins; otherwise Gemini when Lyze AI is a Gemini key;
+  otherwise mock in development and a clear failure in production (never a fake transcript).
+- A transcribed recording marks a scheduled session completed. Tested live: a 34 s two-voice
+  interview transcribed word for word with both speakers separated in about 6–18 s.
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |

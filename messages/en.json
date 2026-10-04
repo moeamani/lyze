@@ -1536,7 +1536,7 @@
     "addRecording": "Add a recording",
     "noRecording": "No recording attached — timestamps can't play.",
     "transcribing": "Transcribing the recording…",
-    "transcribingHint": "This page updates by itself. You can keep taking notes.",
+    "transcribingHint": "Usually a minute or two, longer for long recordings. This page updates by itself; you can keep taking notes.",
     "failed": "Transcription failed",
     "retry": "Try again",
     "sidebar": "Session notes and details",
@@ -1545,7 +1545,7 @@
     "guideTab": "Guide",
     "upload": {
       "title": "Add the recording",
-      "hint": "Drop an audio or video file, record right here, or import a transcript from Zoom, Teams or Otter.",
+      "hint": "Upload an audio or video file, or record right here, and Lyze transcribes it: who spoke, when, and what they said. Or import a transcript you already have.",
       "choose": "Upload file",
       "record": "Record live",
       "nothingYet": "No recording or transcript yet.",
