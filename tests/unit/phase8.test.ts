@@ -37,7 +37,7 @@ beforeAll(async () => {
 });
 
 describe("AI settings", () => {
-  it("encrypts keys at rest and decides between Lyze AI, the workspace key and placeholder", async () => {
+  it("encrypts keys at rest and decides between Ana, the workspace key and placeholder", async () => {
     expect(unseal(seal("secret value"))).toBe("secret value");
     // Change a whole ciphertext byte (the last base64 character can be padding bits only).
     const [v, iv, tag, data] = seal("x").split(".");
@@ -50,11 +50,11 @@ describe("AI settings", () => {
     delete process.env.LYZE_AI_KEY;
     delete process.env.ANTHROPIC_API_KEY;
     try {
-      // Neither Lyze AI nor a workspace key yet.
+      // Neither Ana nor a workspace key yet.
       await code(providerFor(user.id, ws.id, "lyze"), "aiNotConfigured");
       await code(providerFor(user.id, ws.id, "own"), "aiNotConfigured");
       expect(await aiStatus(ws.id)).toEqual({ lyze: false, own: null });
-      // Lyze AI: the server's key, for everyone, no workspace key needed.
+      // Ana: the server's key, for everyone, no workspace key needed.
       process.env.LYZE_AI_KEY = "AQ.server-key";
       expect((await aiStatus(ws.id)).lyze).toBe(true);
       expect(await aiCredentials(ws.id, "lyze")).toMatchObject({ provider: "gemini", apiKey: "AQ.server-key", model: "gemini-3.8-flash" });

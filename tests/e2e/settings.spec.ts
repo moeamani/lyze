@@ -9,7 +9,7 @@ test("Dev Mode, AI sources, API keys, webhooks and account data", async ({ page 
   await expect(page).toHaveURL(/\/w\//);
   const ws = page.url().match(/^.*\/w\/[^/?]+/)![0];
 
-  // No Lyze AI, no key, no Dev Mode: Placeholder isn't offered, only a set-up link.
+  // No Ana, no key, no Dev Mode: Placeholder isn't offered, only a set-up link.
   await page.getByRole("link", { name: /Coffee habits/ }).first().click();
   await expect(page).toHaveURL(/\/p\//);
   const base = page.url().match(/^.*\/p\/[^/?]+/)![0];
@@ -29,7 +29,7 @@ test("Dev Mode, AI sources, API keys, webhooks and account data", async ({ page 
 
   // Add the workspace's own key in Settings → AI; the key itself never comes back.
   await page.goto(`${ws}/settings/ai`);
-  await expect(page.getByText("Lyze AI isn't set up on this server")).toBeVisible();
+  await expect(page.getByText("Ana isn't set up on this server")).toBeVisible();
   await expect(page.getByText("No key added")).toBeVisible();
   // Pick a provider with a free tier: Google Gemini.
   await page.getByRole("combobox", { name: "Provider" }).click();

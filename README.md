@@ -66,12 +66,12 @@ Copy `.env.example` to `.env.local` and fill in what you need.
 | `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | prod | Any S3-compatible storage for uploads and recordings. |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | no | Enables the optional captcha on public forms. |
 | `MEDIA_MAX_MB` | no | Largest session recording accepted (default 500 MB). |
-| `TRANSCRIPTION_PROVIDER` | no | Empty → mock transcripts (dev). `openai` → any OpenAI-compatible speech-to-text endpoint. |
-| `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_API_URL`, `TRANSCRIPTION_MODEL` | with `openai` | Key, base URL (default `https://api.openai.com/v1`) and model (default `whisper-1`). |
-| `LYZE_AI_KEY` | no | Key for **Lyze AI**, the model every workspace uses without a key of its own. A Google Gemini key by default. Keep it in your host's secrets or `.env.local`, never in git. |
-| `LYZE_AI_PROVIDER` / `LYZE_AI_MODEL` / `LYZE_AI_BASE_URL` | no | Another provider, model (default `gemini-3.8-flash`) or endpoint for Lyze AI. |
+| `TRANSCRIPTION_PROVIDER` | no | Empty → Gemini with the Ana key when it's a Gemini key (speakers and timestamps); otherwise mock transcripts in development and a clear error in production. `gemini`, `openai` (any OpenAI-compatible speech-to-text endpoint) or `mock` to choose. |
+| `TRANSCRIPTION_API_KEY`, `TRANSCRIPTION_API_URL`, `TRANSCRIPTION_MODEL` | no | Key (Gemini or OpenAI-compatible; Gemini falls back to `LYZE_AI_KEY`), base URL for `openai` (default `https://api.openai.com/v1`) and model (Gemini: the Ana model; `openai`: `whisper-1`). |
+| `LYZE_AI_KEY` | no | Key for **Ana**, the model every workspace uses without a key of its own. A Google Gemini key by default. Keep it in your host's secrets or `.env.local`, never in git. |
+| `LYZE_AI_PROVIDER` / `LYZE_AI_MODEL` / `LYZE_AI_BASE_URL` | no | Another provider, model (default `gemini-3.8-flash`) or endpoint for Ana. |
 | `LYZE_AI_FALLBACK_MODEL` | no | Model to switch to when the main one is overloaded (default `gemini-3.5-flash-lite` for Gemini). |
-| `ANTHROPIC_API_KEY` | no | Older setups: used as Lyze AI when `LYZE_AI_KEY` is empty. |
+| `ANTHROPIC_API_KEY` | no | Older setups: used as Ana when `LYZE_AI_KEY` is empty. |
 | `AI_MODEL` | no | Model for that Anthropic key (default `claude-opus-5-5`). |
 | `AI_PROVIDER` | no | `claude` makes scripts and background jobs without an explicit choice use the Anthropic key. |
 | `AUTH_EMAIL_ENABLED` | no | `1` offers email magic links on the sign-in page (needs `EMAIL_SERVER`). Off by default. |
@@ -126,8 +126,11 @@ Copy `.env.example` to `.env.local` and fill in what you need.
   them to a calendar (.ics).
 - **Live view** — timer, in-browser recording, the guide as a checklist with time budgets, and
   timestamped notes with quick tags (Alt+1–5).
-- **Transcripts** — upload audio/video for automatic transcription (mock provider in dev, any
-  OpenAI-compatible speech-to-text in production) or import a transcript you already have: Word
+- **Transcripts** — upload audio/video (or record in the browser) and Lyze transcribes it with
+  Gemini, using the Ana key: speakers separated (interviewer and participants matched up),
+  timestamps on every turn, in the language spoken. The recording is deleted from Google once the
+  transcript is back. An OpenAI-compatible speech-to-text endpoint works too, and development uses
+  a mock or import a transcript you already have: Word
   (.docx), text, .vtt or .srt. Hand-typed transcripts with numbered, timed turns
   ("12 (00:45:35) - Jane: …") are understood, including follow-on paragraphs, notes like
   "(Break)" and sloppy times. **Import transcripts** on the Sessions tab takes many files at once
@@ -216,13 +219,13 @@ All prose Lyze writes follows the humanize skill in `docs/skills/humanize`.
 
 ## AI
 
-Generation works out of the box with **Lyze AI**: the server's own model, set with `LYZE_AI_KEY`
+Generation works out of the box with **Ana**, Lyze's research assistant ("Ana" + "Lyze"). She runs on the server's own model, set with `LYZE_AI_KEY`
 (a Google Gemini key, model `gemini-3.8-flash`). Nobody needs a key of their own. Free Gemini
 keys have daily limits shared by everyone on the server; when the model is busy Lyze retries, then
 switches to a lighter model, then tells the person to try again shortly.
 
 Owners can also add the workspace's own key in **Settings → AI** (stored encrypted; only its last
-four characters are shown). Once saved, every Generate button has a menu to pick **Lyze AI** or
+four characters are shown). Once saved, every Generate button has a menu to pick **Ana** or
 **Your key**. Supported providers:
 
 | Provider | Free option | Where to get a key |

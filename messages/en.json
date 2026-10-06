@@ -1536,7 +1536,7 @@
     "addRecording": "Add a recording",
     "noRecording": "No recording attached — timestamps can't play.",
     "transcribing": "Transcribing the recording…",
-    "transcribingHint": "This page updates by itself. You can keep taking notes.",
+    "transcribingHint": "Usually a minute or two, longer for long recordings. This page updates by itself; you can keep taking notes.",
     "failed": "Transcription failed",
     "retry": "Try again",
     "sidebar": "Session notes and details",
@@ -1545,7 +1545,7 @@
     "guideTab": "Guide",
     "upload": {
       "title": "Add the recording",
-      "hint": "Drop an audio or video file, record right here, or import a transcript from Zoom, Teams or Otter.",
+      "hint": "Upload an audio or video file, or record right here, and Lyze transcribes it: who spoke, when, and what they said. Or import a transcript you already have.",
       "choose": "Upload file",
       "record": "Record live",
       "nothingYet": "No recording or transcript yet.",
@@ -2289,7 +2289,7 @@
   },
   "ai": {
     "mode": "Generation mode",
-    "lyze": "Lyze AI",
+    "lyze": "Ana",
     "own": "Your key · {provider}",
     "placeholder": "Placeholder",
     "notSetUp": "Set up AI"
@@ -2303,7 +2303,7 @@
   },
   "aiSettings": {
     "title": "AI",
-    "subtitle": "Lyze AI drafts questionnaires, guides, codebooks and written analyses, suggests codes and summarises sessions. No key needed.",
+    "subtitle": "Ana, Lyze's research assistant, drafts questionnaires, guides, codebooks and written analyses, suggests codes, summarises sessions and transcribes recordings. No key needed.",
     "statusWorkspace": "Using {provider} with this workspace's key (…{hint})",
     "statusNone": "No key added",
     "statusHint": "Keys are encrypted before they are stored and never shown again. Text you send to AI goes to the provider you pick.",
@@ -2344,12 +2344,12 @@
       "ollama": "Free and private: models run on your own computer or server, no key needed.",
       "custom": "Any service that speaks the OpenAI chat-completions API (LM Studio, vLLM, Together, DeepSeek and others)."
     },
-    "lyzeOn": "Lyze AI is on",
-    "lyzeOnHint": "Everyone in this workspace can generate with Lyze's own model. Nobody needs an API key.",
-    "lyzeOff": "Lyze AI isn't set up on this server",
+    "lyzeOn": "Ana is on",
+    "lyzeOnHint": "Everyone in this workspace can work with Ana, Lyze's own assistant. Nobody needs an API key.",
+    "lyzeOff": "Ana isn't set up on this server",
     "lyzeOffHint": "Add your own key below to generate, or ask whoever runs this Lyze server to set LYZE_AI_KEY.",
     "ownTitle": "Your own API key (optional)",
-    "ownHint": "Use your own provider, for example a paid plan or a model on your own computer. Once a key is saved, every Generate button lets you pick Lyze AI or your key."
+    "ownHint": "Use your own provider, for example a paid plan or a model on your own computer. Once a key is saved, every Generate button lets you pick Ana or your key."
   },
   "apiSettings": {
     "title": "API & webhooks",

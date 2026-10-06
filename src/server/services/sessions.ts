@@ -451,7 +451,11 @@ export async function runTranscription(transcriptId: string, provider: Transcrip
       seed: session.id,
     });
     const assigned = assignSpeakers(result.segments, ctx);
-    await db.transaction((tx) => writeTranscript(tx, { workspaceId: session.workspaceId, sessionId: session.id, provider: provider.name, language: result.language, ...assigned }));
+    await db.transaction(async (tx) => {
+      await writeTranscript(tx, { workspaceId: session.workspaceId, sessionId: session.id, provider: provider.name, language: result.language, ...assigned });
+      // A transcribed recording means the conversation happened.
+      if (session.status === "scheduled" || session.status === "in_progress") await tx.update(researchSessions).set({ status: "completed", endedAt: session.endedAt ?? new Date() }).where(eq(researchSessions.id, session.id));
+    });
     await notifyTranscript(session, "transcript");
     void dispatchWebhooks(session.workspaceId, "transcript.ready", { sessionId: session.id, studyId: session.studyId });
   } catch (error) {

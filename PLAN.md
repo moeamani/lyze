@@ -405,7 +405,7 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
   schema-constrained output get the JSON Schema in the prompt; the answer is validated with zod and
   retried once with the error. Migration `0008` adds `workspace_ai.base_url`.
 - **Generation sources** next to every generate button (questionnaire, guide, codebook, write-up,
-  code suggestions, session summary, answer grouping, theme description): **Lyze AI** (the server's
+  code suggestions, session summary, answer grouping, theme description): **Ana** (the server's
   model, `LYZE_AI_KEY`, Gemini `gemini-3.8-flash` with `gemini-3.5-flash-lite` as the fallback when
   busy; no key needed from anyone), **Your key** (the workspace's own provider, once an owner saves
   one) and **Placeholder** (the offline generator, only with Dev Mode on). The menu shows only when
@@ -492,6 +492,20 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 - Print CSS: A4, page numbers in `@page @bottom-center`, Calibri/Carlito where installed (Geist
   otherwise, Peyda for RTL), app chrome removed so no blank trailing pages. `?preview=pdf` shows the
   same layout on screen.
+
+### Transcription with Gemini
+
+- `src/server/transcription/gemini.ts`: upload through the Gemini Files API (resumable; long
+  recordings fine), one `generateContent` call with a response schema of turns
+  (`speaker`, `start`, `end`, `text`), then delete the file. Prompt: verbatim, original language,
+  S1/S2… by first appearance, `[inaudible]`/`[crosstalk]`. Busy model → lighter fallback model.
+  A reply cut off at the output limit keeps its complete turns. Same-speaker sentences are merged
+  back into turns (`mergeCues`, 2.5 s gap). `assignSpeakers` then maps S1/S2… to interviewer and
+  participants as before.
+- Provider choice: `TRANSCRIPTION_PROVIDER` wins; otherwise Gemini when Ana is a Gemini key;
+  otherwise mock in development and a clear failure in production (never a fake transcript).
+- A transcribed recording marks a scheduled session completed. Tested live: a 34 s two-voice
+  interview transcribed word for word with both speakers separated in about 6–18 s.
 ### Coverage vs R, SPSS, NVivo, MAXQDA
 
 | Tool | What Lyze does now | Later |
@@ -557,7 +571,8 @@ Each phase ends with `npm run lint`, `npm run typecheck`, `npm test`
 | 50 | Placeholder generation needs Dev Mode, a per-person switch in account settings | It's a testing tool; real users should get real AI or a clear message, never canned text they might mistake for analysis. A switch is clearer than tying it to the owner role. |
 | 51 | The public API is read-only in v1 | Covers the common needs (R/Python scripts, dashboards) without opening write paths; writes can come later with scoped keys. |
 | 52 | Several AI providers behind one small `Llm` interface (JSON + write), not one SDK per feature | Researchers without a budget can use free tiers (Gemini, Groq, OpenRouter, Ollama); most providers speak the OpenAI protocol, so one client covers them. |
-| 53 | Lyze AI is a server-wide key (Gemini by default) every workspace uses unless it picks its own | Researchers can generate without signing up anywhere; teams that need their own provider or data terms can still bring a key. |
+| 53 | Ana is a server-wide key (Gemini by default) every workspace uses unless it picks its own | Researchers can generate without signing up anywhere; teams that need their own provider or data terms can still bring a key. |
 | 54 | Username/password accounts with database sessions created by Lyze, not Auth.js credentials + JWT | Keeps sign-out-everywhere and account deletion working the same for every sign-in method; email links wait for a mail provider. |
 | 55 | Interview patterns default to rank and exact tests, with ANOVA opt-in and flagged | Interview samples are small and code counts skewed; examiners question ANOVA there, but some supervisors ask for it. |
 | 56 | Word files are parsed in the browser, then go through the existing import paths | One validation path on the server; nothing new to upload or store, and big documents don't hit serverless body limits. |
+| 57 | The assistant has a name: Ana ("Ana" + "Lyze" = analyse) | A named helper is easier to talk about in the UI ("Suggestion · Ana") than "Lyze AI"; the provider behind her stays configurable. |

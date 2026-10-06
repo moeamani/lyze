@@ -38,7 +38,7 @@ export interface AssistProvider {
 }
 
 /**
- * Where generated text comes from: "lyze" (Lyze AI, the server's model, no key needed), "own" (the
+ * Where generated text comes from: "lyze" (Ana: the server's model, no key needed), "own" (the
  * workspace's own provider and key) or "placeholder" (the built-in offline generator, Dev Mode only).
  */
 export type AiMode = "lyze" | "own" | "placeholder";

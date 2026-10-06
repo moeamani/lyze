@@ -34,7 +34,7 @@ export function createLlm(cfg: LlmConfig): Llm {
 }
 
 /** Busy or rate-limited: worth waiting, or trying another model. */
-const isBusy = (e: unknown) => [429, 500, 502, 503, 504].includes((e as { status?: number }).status ?? 0);
+export const isBusy = (e: unknown) => [429, 500, 502, 503, 504].includes((e as { status?: number }).status ?? 0);
 
 function withFallback(main: Llm, backup: Llm): Llm {
   return {
@@ -111,7 +111,7 @@ async function jsonWithRetry<T extends z.ZodType>(schema: T, ask: (extra: string
 /** Waits before retrying a busy provider (ms). Exported so tests can shorten them. */
 export const RETRY_DELAYS = [1500, 4000];
 
-async function postJson(url: string, headers: Record<string, string>, body: unknown) {
+export async function postJson(url: string, headers: Record<string, string>, body: unknown) {
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(TIMEOUT) });
     const text = await res.text();
