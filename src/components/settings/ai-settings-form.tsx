@@ -15,7 +15,7 @@ import { AI_PROVIDERS, AI_PROVIDER_IDS, type AiProviderId } from "@/lib/ai-provi
 
 type Status = { lyze: boolean; own: { provider: AiProviderId; hint: string | null; model: string; baseUrl: string | null } | null };
 
-/** Lyze AI works without a key; owners can add their own provider and key as a second choice. The key never comes back to the browser. */
+/** Ana works without a key; owners can add their own provider and key as a second choice. The key never comes back to the browser. */
 export function AiSettingsForm({ scope, status, canManage }: { scope: { workspaceId: string; slug: string }; status: Status; canManage: boolean }) {
   const t = useTranslations("aiSettings");
   const feedback = useActionFeedback();

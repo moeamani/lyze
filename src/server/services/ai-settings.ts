@@ -10,7 +10,7 @@ import { recordAudit } from "./audit";
 import { AppError } from "./errors";
 
 export const DEFAULT_MODEL = "claude-opus-5-5";
-/** Lyze AI's default when LYZE_AI_KEY is a Google Gemini key. */
+/** Ana's default when LYZE_AI_KEY is a Google Gemini key. */
 export const LYZE_DEFAULT_MODEL = "gemini-3.8-flash";
 /** Used when the default is overloaded (common on free tiers). */
 export const LYZE_FALLBACK_MODEL = "gemini-3.5-flash-lite";
@@ -25,7 +25,7 @@ export type AiStatus = {
 };
 
 /**
- * Lyze AI: the model the server provides for everyone, set with LYZE_AI_KEY (a Google Gemini key by
+ * Ana: the model the server provides for everyone, set with LYZE_AI_KEY (a Google Gemini key by
  * default; LYZE_AI_PROVIDER, LYZE_AI_MODEL and LYZE_AI_BASE_URL pick something else). An older
  * ANTHROPIC_API_KEY setup still works as the fallback.
  */
@@ -48,7 +48,7 @@ async function ownRow(workspaceId: string) {
   return { row, provider, model: row.model || AI_PROVIDERS[provider].models[0] || "" };
 }
 
-/** What AI this workspace can use: Lyze AI, its own key, both, or neither. */
+/** What AI this workspace can use: Ana, its own key, both, or neither. */
 export async function aiStatus(workspaceId: string): Promise<AiStatus> {
   const own = await ownRow(workspaceId);
   return {

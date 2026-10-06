@@ -40,6 +40,6 @@ export const isProviderId = (v: unknown): v is AiProviderId => typeof v === "str
 export function providerLabel(id: string | null | undefined): string {
   if (!id || id === "builtin") return "Built-in";
   if (id === "claude") return "Claude";
-  if (id === "lyze") return "Lyze AI";
+  if (id === "lyze") return "Ana";
   return isProviderId(id) ? AI_PROVIDERS[id].label.replace(/\s*\(.*\)$/, "") : id;
 }

@@ -29,7 +29,7 @@ export interface TranscriptionProvider {
 /**
  * Which transcription to use:
  * - TRANSCRIPTION_PROVIDER=openai: any OpenAI-compatible `/audio/transcriptions` endpoint.
- * - TRANSCRIPTION_PROVIDER=gemini, or nothing set while Lyze AI uses a Gemini key: Gemini, with
+ * - TRANSCRIPTION_PROVIDER=gemini, or nothing set while Ana uses a Gemini key: Gemini, with
  *   speakers and timestamps (TRANSCRIPTION_API_KEY overrides the key, TRANSCRIPTION_MODEL the model).
  * - TRANSCRIPTION_PROVIDER=mock, or nothing available in development: made-up transcripts.
  * - Nothing available in production: a clear error instead of a fake transcript.

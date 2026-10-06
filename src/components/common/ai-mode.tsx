@@ -11,7 +11,7 @@ import { providerLabel } from "@/lib/ai-providers";
 
 type AiContext = {
   workspaceId: string;
-  /** Lyze AI is available (the server has a key). */
+  /** Ana is available (the server has a key). */
   lyze: boolean;
   /** Provider id of the workspace's own key, if it has one. */
   own: string | null;
@@ -50,7 +50,7 @@ function options(ctx: AiContext | null): AiMode[] {
 }
 
 /**
- * Where generated text comes from in this workspace: Lyze AI, the workspace's own key, or (Dev Mode
+ * Where generated text comes from in this workspace: Ana, the workspace's own key, or (Dev Mode
  * only) the offline Placeholder. A workspace with its own key uses it by default; the choice is
  * remembered per workspace in this browser.
  */
@@ -79,7 +79,7 @@ export function useAssistant() {
   return mode === "placeholder" ? "builtin" : mode === "own" ? (ctx?.own ?? "builtin") : "lyze";
 }
 
-/** Lyze AI / your own key / Placeholder, next to a generate button. Hidden when there's only one choice. */
+/** Ana / your own key / Placeholder, next to a generate button. Hidden when there's only one choice. */
 export function AiModeSelect({ className }: { className?: string }) {
   const t = useTranslations("ai");
   const [mode, setMode, ctx, available] = useAiMode();

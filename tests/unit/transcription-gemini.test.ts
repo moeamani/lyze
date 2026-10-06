@@ -47,7 +47,7 @@ describe("Gemini transcription", () => {
     expect(() => parseTurns("nothing")).toThrow();
   });
 
-  it("uses Gemini when Lyze AI has a Gemini key, and never fakes transcripts in production", () => {
+  it("uses Gemini when Ana has a Gemini key, and never fakes transcripts in production", () => {
     delete process.env.TRANSCRIPTION_PROVIDER;
     process.env.LYZE_AI_KEY = "AQ.key";
     expect(transcriptionProvider().name).toBe("gemini");
